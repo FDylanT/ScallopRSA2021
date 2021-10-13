@@ -25,7 +25,7 @@ setwd("~/Repos/ScallopRSA2021")
 
 # Sites 001-021
 file021 <- read.csv("./data/RBR/RSA_20211006_021.csv", skip = 1, header = TRUE) %>%
-  slice(-c(1:2)) %>%
+  slice(-c(1:2)) %>% #remove test runs in the lab
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
 plot(file021$Depth ~ file021$Timestamp)
@@ -43,6 +43,14 @@ file114 <- read.csv("./data/RBR/RSA_20211010_114.csv", skip = 1, header = TRUE) 
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
 plot(file114$Depth ~ file114$Timestamp)
+
+all_stations = rbind(file021, file064, file114)
+write.csv(all_stations, "./data/RBR_all_stations.csv")
+```
+
+## Separate out into casts
+```{r}
+
 ```
 
 
