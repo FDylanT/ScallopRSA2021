@@ -19,7 +19,12 @@ library(tidyverse)
 library(chron)
 ```
 
-## Load data
+## Load May data
+```{r}
+# No data from sites 006, 012, 016, 022, 030
+```
+
+## Load October data
 ```{r}
 setwd("~/Repos/ScallopRSA2021")
 
