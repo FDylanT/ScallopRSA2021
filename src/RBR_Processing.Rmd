@@ -16,7 +16,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load packages
 ```{r}
 library(tidyverse)
-library(oce)
 library(chron)
 ```
 
@@ -27,10 +26,10 @@ setwd("~/Repos/ScallopRSA2021")
 ## No data from sites 006, 012, 016, 022, 030, 081, 111, 114 ##
 
 # Chronological sites 001-060; includes 001-057 + 060-062 + 066-068 (no data from sites 006, 012, 016, 022, 030)
-may1_rsk <- read.rsk("./data/CTD_raw/RSA_20210504_060.rsk")
+may1 <- read.csv("./data/CTD_raw/RSA_20210504_060.csv")
 
 # Chronological sites 065-113; includes 058-059 + 063-065 + 069-113 (no data from sites 081, 111)
-may2_rsk <- read.rsk("./data/CTD_raw/RSA_20210506_113.rsk")
+may2 <- read.csv("./data/CTD_raw/RSA_20210506_113.csv")
 
 # No data from site 114
 ```
@@ -44,7 +43,8 @@ oct1 <- read.csv("./data/CTD_raw/RSA_20211006_021.csv", skip = 1, header = TRUE)
   slice(-c(1:2)) %>% #remove test runs in the lab
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
-plot(oct1$Depth ~ oct1$Timestamp)
+
+oct1Times_read <- read.csv("./data/oct1Times.txt")
 
 # No data from sites 022-023
 
@@ -52,16 +52,23 @@ plot(oct1$Depth ~ oct1$Timestamp)
 oct2 <- read.csv("./data/CTD_raw/RSA_20211008_064.csv", skip = 1, header = TRUE) %>%
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
-plot(oct2$Depth ~ oct2$Timestamp)
+
+oct2Times_read <- read.csv("./data/oct2Times.txt")
 
 # Sites 069-114 (no data from site 104)
 oct3 <- read.csv("./data/CTD_raw/RSA_20211010_114.csv", skip = 1, header = TRUE) %>%
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
-plot(oct3$Depth ~ oct3$Timestamp)
+
+oct3Times_read <- read.csv("./data/oct3Times.txt")
 
 oct_combined = rbind(oct1, oct2, oct3)
-write.csv(oct_combined, "./data/CTD_all_stations.csv")
+write.csv(oct_combined, "./data/CTD_all_stations_Oct.csv")
+```
+
+## Quick load
+```{r}
+
 ```
 
 ## Separate out into casts
@@ -70,6 +77,19 @@ write.csv(oct_combined, "./data/CTD_all_stations.csv")
 ```
 
 
+
+
+#### Save decimal second timestamps for future use
+```{r}
+oct1Times <- as.character(oct1$Time)
+write.csv(oct1Times, "./data/oct1Times.txt")
+
+oct2Times <- as.character(oct2$Time)
+write.csv(oct2Times, "./data/oct2Times.txt")
+
+oct3Times <- as.character(oct3$Time)
+write.csv(oct3Times, "./data/oct3Times.txt")
+```
 
 #### Figuring out which files need loading
 ```{r}
@@ -142,7 +162,7 @@ file021 <- read.csv("./data/CTD_raw/RSA_20211006_021.csv", skip = 1, header = TR
 minutes021 <- as.data.frame(unique(file021$Minute))
 #includes sites 001-021
 
-plot(file021$Depth ~ file021$Timestamp) #21 sites
+plot(file021$Depth_m ~ file021$Timestamp) #21 sites
 
 file022 <- read.csv("./data/CTD_raw/RSA_20211006_022.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
@@ -174,6 +194,8 @@ file064 <- read.csv("./data/CTD_raw/RSA_20211008_064.csv", skip = 1, header = TR
 minutes064 <- as.data.frame(unique(file064$Minute))
 #includes sites 024-068 (last chronologically is 064)
 
+plot(file064$Depth_m ~ file064$Timestamp) #45 sites
+
 file069 <- read.csv("./data/CTD_raw/RSA_20211008_069.csv", skip = 1, header = TRUE) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
@@ -188,5 +210,5 @@ file114 <- read.csv("./data/CTD_raw/RSA_20211010_114.csv", skip = 1, header = TR
 minutes114 <- as.data.frame(unique(file114$Minute))
 #includes sites 069-114, no data from site 104
 
-plot(file114$Depth ~ file114$Timestamp) #45 sites
+plot(file114$Depth_m ~ file114$Timestamp) #45 sites
 ```
