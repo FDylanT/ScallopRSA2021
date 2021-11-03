@@ -1,0 +1,18 @@
+cd Repos/ScallopRSA2021
+
+may1 = readmatrix('./data/CTD_raw/RSA_20210504_060.csv');
+may2 = readmatrix('./data/CTD_raw/RSA_20210506_113.csv');
+allMay = [may1; may2];
+
+oct1_nope = readmatrix('./data/CTD_raw/RSA_20211006_021.csv', 'NumHeaderLines', 2);
+% date is a mess
+
+oct1 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
+oct2 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
+oct3 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
+
+oct1 = RSKreaddata(oct1, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+oct2 = RSKreaddata(oct2, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+oct3 = RSKreaddata(oct3, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+
+disp(oct1.data)
