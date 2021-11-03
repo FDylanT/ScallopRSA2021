@@ -27,10 +27,10 @@ setwd("~/Repos/ScallopRSA2021")
 ## No data from sites 006, 012, 016, 022, 030, 081, 111, 114 ##
 
 # Chronological sites 001-060; includes 001-057 + 060-062 + 066-068 (no data from sites 006, 012, 016, 022, 030)
-may1_rsk <- read.rsk("./data/RBR/RSA_20210504_060.rsk")
+may1_rsk <- read.rsk("./data/RBR_raw/RSA_20210504_060.rsk")
 
 # Chronological sites 065-113; includes 058-059 + 063-065 + 069-113 (no data from sites 081, 111)
-may2_rsk <- read.rsk("./data/RBR/RSA_20210506_113.rsk")
+may2_rsk <- read.rsk("./data/RBR_raw/RSA_20210506_113.rsk")
 
 # No data from site 114
 ```
@@ -40,7 +40,7 @@ may2_rsk <- read.rsk("./data/RBR/RSA_20210506_113.rsk")
 ## No data from sites 022, 023, 104 ##
 
 # Sites 001-021
-oct1 <- read.csv("./data/RBR/RSA_20211006_021.csv", skip = 1, header = TRUE) %>%
+oct1 <- read.csv("./data/RBR_raw/RSA_20211006_021.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>% #remove test runs in the lab
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
@@ -49,13 +49,13 @@ plot(oct1$Depth ~ oct1$Timestamp)
 # No data from sites 022-023
 
 # Chronological sites 024-064; includes 024-068
-oct2 <- read.csv("./data/RBR/RSA_20211008_064.csv", skip = 1, header = TRUE) %>%
+oct2 <- read.csv("./data/RBR_raw/RSA_20211008_064.csv", skip = 1, header = TRUE) %>%
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
 plot(oct2$Depth ~ oct2$Timestamp)
 
 # Sites 069-114 (no data from site 104)
-oct3 <- read.csv("./data/RBR/RSA_20211010_114.csv", skip = 1, header = TRUE) %>%
+oct3 <- read.csv("./data/RBR_raw/RSA_20211010_114.csv", skip = 1, header = TRUE) %>%
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
 plot(oct3$Depth ~ oct3$Timestamp)
@@ -73,7 +73,7 @@ write.csv(oct_combined, "./data/RBR_all_stations.csv")
 
 #### Figuring out which files need loading
 ```{r}
-file007_008 <- read.csv("./data/RBR/RSA_20211005_007+008.csv", skip = 1, header = TRUE) %>%
+file007_008 <- read.csv("./data/RBR_raw/RSA_20211005_007+008.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
@@ -82,25 +82,25 @@ minutes007008 <- as.data.frame(unique(file007_008$Minute))
 plot(file007_008$Depth ~ file007_008$Timestamp)
 #includes sites 001-008
 
-file009 <- read.csv("./data/RBR/RSA_20211005_009.csv", skip = 1, header = TRUE) %>%
+file009 <- read.csv("./data/RBR_raw/RSA_20211005_009.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16))
 minutes009 <- as.data.frame(unique(file009$Minute))
 #discard; includes part of site 001 only
 
-file010 <- read.csv("./data/RBR/RSA_20211005_010.csv", skip = 1, header = TRUE) %>%
+file010 <- read.csv("./data/RBR_raw/RSA_20211005_010.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16))
 minutes010 <- as.data.frame(unique(file010$Minute))
 #discard; includes site 001 & part of site 002 only
 
-file011 <- read.csv("./data/RBR/RSA_20211005_011.csv", skip = 1, header = TRUE) %>%
+file011 <- read.csv("./data/RBR_raw/RSA_20211005_011.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16))
 minutes011 <- as.data.frame(unique(file011$Minute))
 #discard; includes sites 001-007 only
 
-file012 <- read.csv("./data/RBR/RSA_20211005_012.csv", skip = 1, header = TRUE) %>%
+file012 <- read.csv("./data/RBR_raw/RSA_20211005_012.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
@@ -109,7 +109,7 @@ minutes012 <- as.data.frame(unique(file012$Minute))
 plot(file012$Depth ~ file012$Timestamp)
 #discard; includes sites 001-008 & slightly after only
 
-file013 <- read.csv("./data/RBR/RSA_20211005_013.csv", skip = 1, header = TRUE) %>%
+file013 <- read.csv("./data/RBR_raw/RSA_20211005_013.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
@@ -118,7 +118,7 @@ minutes013 <- as.data.frame(unique(file013$Minute))
 plot(file013$Depth ~ file013$Timestamp)
 #includes sites 001-009
 
-file014 <- read.csv("./data/RBR/RSA_20211005_014.csv", skip = 1, header = TRUE) %>%
+file014 <- read.csv("./data/RBR_raw/RSA_20211005_014.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
@@ -128,13 +128,13 @@ minutes014 <- as.data.frame(unique(file014$Minute))
 plot(file014$Depth ~ file014$Timestamp)
 #includes sites 001-014! woohoo!
 
-file015 <- read.csv("./data/RBR/RSA_20211005_015.csv", skip = 1, header = TRUE) %>%
+file015 <- read.csv("./data/RBR_raw/RSA_20211005_015.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16))
 minutes015 <- as.data.frame(unique(file015$Minute))
 #includes sites 001-015
 
-file021 <- read.csv("./data/RBR/RSA_20211006_021.csv", skip = 1, header = TRUE) %>%
+file021 <- read.csv("./data/RBR_raw/RSA_20211006_021.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
@@ -144,7 +144,7 @@ minutes021 <- as.data.frame(unique(file021$Minute))
 
 plot(file021$Depth ~ file021$Timestamp) #21 sites
 
-file022 <- read.csv("./data/RBR/RSA_20211006_022.csv", skip = 1, header = TRUE) %>%
+file022 <- read.csv("./data/RBR_raw/RSA_20211006_022.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
@@ -152,7 +152,7 @@ file022 <- read.csv("./data/RBR/RSA_20211006_022.csv", skip = 1, header = TRUE) 
 minutes022 <- as.data.frame(unique(file022$Minute))
 #discard; includes sites 001 & 002 only
 
-file023 <- read.csv("./data/RBR/RSA_20211006_023.csv", skip = 1, header = TRUE) %>%
+file023 <- read.csv("./data/RBR_raw/RSA_20211006_023.csv", skip = 1, header = TRUE) %>%
   slice(-c(1:2)) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
@@ -160,28 +160,28 @@ file023 <- read.csv("./data/RBR/RSA_20211006_023.csv", skip = 1, header = TRUE) 
 minutes023 <- as.data.frame(unique(file023$Minute))
 #discard; includes sites 001-009 only
 
-file024 <- read.csv("./data/RBR/RSA_20211006_024.csv", skip = 1, header = TRUE) %>%
+file024 <- read.csv("./data/RBR_raw/RSA_20211006_024.csv", skip = 1, header = TRUE) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
 minutes024 <- as.data.frame(unique(file024$Minute))
 #includes site 24
 
-file064 <- read.csv("./data/RBR/RSA_20211008_064.csv", skip = 1, header = TRUE) %>%
+file064 <- read.csv("./data/RBR_raw/RSA_20211008_064.csv", skip = 1, header = TRUE) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
 minutes064 <- as.data.frame(unique(file064$Minute))
 #includes sites 024-068 (last chronologically is 064)
 
-file069 <- read.csv("./data/RBR/RSA_20211008_069.csv", skip = 1, header = TRUE) %>%
+file069 <- read.csv("./data/RBR_raw/RSA_20211008_069.csv", skip = 1, header = TRUE) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
 minutes069 <- as.data.frame(unique(file069$Minute))
 #includes site 069
 
-file114 <- read.csv("./data/RBR/RSA_20211010_114.csv", skip = 1, header = TRUE) %>%
+file114 <- read.csv("./data/RBR_raw/RSA_20211010_114.csv", skip = 1, header = TRUE) %>%
   mutate(Minute = substring(Time, 0, 16)) %>%
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
