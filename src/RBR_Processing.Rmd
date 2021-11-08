@@ -73,10 +73,21 @@ ggplot(mayCTD, aes(x = Timestamp, y = Salinity_PSU)) +
 
 ## Separate out into casts
 
-#### Use downcast data -- CTD is oriented so that intake is seeing new water before the rest of the package causes any mixing or has an effect on water temperature
-```{r}
+* Use downcast data -- CTD is oriented so that intake is seeing new water before the rest of the package causes any mixing or has an effect on water temperature
 
+```{r}
+#start from Louise's line 1339 -- "pick up here"
 ```
+
+
+
+
+
+
+
+
+
+
 
 
 
