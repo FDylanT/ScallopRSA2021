@@ -7,6 +7,9 @@
 % oct1_nope = readmatrix('./data/CTD_raw/RSA_20211006_021.csv', 'NumHeaderLines', 2);   % date is a mess
 
 %% Load rsk files
+
+% cd Repos/ScallopRSA2021
+
 may1 = RSKopen('data/CTD_raw/RSA_20210504_060.rsk');
 may1 = RSKreaddata(may1, 't1', datenum(2021, 05, 01), 't2', datenum(2021, 05, 06));
 may2 = RSKopen('data/CTD_raw/RSA_20210506_113.rsk');
