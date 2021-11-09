@@ -26,8 +26,6 @@ setwd("~/Repos/ScallopRSA2021")
 
 ## Quick load data
 ```{r}
-setwd("~/Repos/ScallopRSA2021")
-
 mayCTD <- read.csv("data/CTD_raw/CTD_allMay.csv") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
 
