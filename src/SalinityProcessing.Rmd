@@ -1,0 +1,20 @@
+---
+title: "Salinity_Processing"
+author: "Dylan Titmuss"
+date: "12/7/2021"
+output: html_document
+---
+
+## Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+## Load data
+```{r}
+setwd("~/Desktop/Repos/ScallopRSA2021")
+
+may_CTD <- read.csv("data/salinity/may_salinity_CTD.csv")
+```
