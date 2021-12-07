@@ -3,6 +3,8 @@ title: "Salinity_Processing"
 author: "Dylan Titmuss"
 date: "12/7/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ## Load packages
@@ -16,5 +18,16 @@ library(tidyverse)
 ```{r}
 setwd("~/Desktop/Repos/ScallopRSA2021")
 
-may_CTD <- read.csv("data/salinity/may_salinity_CTD.csv")
+mayCTD <- read.csv("./data/salinity/may_salinity_CTD.csv")
+may_measured <- read.csv("./data/salinity/may_salinity_measured.csv")
+```
+
+```{r}
+ggplot(data = mayCTD, aes(x = Station, y = BottomSalinity)) +
+  geom_point() +
+  geom_point(data = may_measured, aes(y = Salinity, col = "red")) +
+  ylim(30, 35) +
+  scale_color_discrete(labels = "bottle\nsample") +
+  theme_bw() +
+  theme(legend.title=element_blank())
 ```
