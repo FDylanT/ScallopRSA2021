@@ -2,23 +2,27 @@
 
 % cd Repos/ScallopRSA2021
 
-may1 = RSKopen('data/CTD_raw/RSA_20210504_060.rsk');
-may1 = RSKreaddata(may1, 't1', datenum(2021, 05, 02), 't2', datenum(2021, 05, 06));
-may2 = RSKopen('data/CTD_raw/RSA_20210506_113.rsk');
-may2 = RSKreaddata(may2, 't1', datenum(2021, 05, 02), 't2', datenum(2021, 05, 06));
-
 % oct1 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
 % oct1 = RSKreaddata(oct1, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+
 % oct2 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
 % oct2 = RSKreaddata(oct2, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+
 % oct3 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
 % oct3 = RSKreaddata(oct3, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+
+may1 = RSKopen('data/CTD_raw/RSA_20210504_060.rsk');
+may1 = RSKreaddata(may1, 't1', datenum(2021, 05, 02), 't2', datenum(2021, 05, 06));
+
+may2 = RSKopen('data/CTD_raw/RSA_20210506_113.rsk');
+may2 = RSKreaddata(may2, 't1', datenum(2021, 05, 02), 't2', datenum(2021, 05, 06));
 
 % print list of all channels
 %RSKprintchannels(may1)
 
 % read downcasts from all profiles
 may1down = RSKreadprofiles(may1, 'profile', 1:95, 'direction', 'down');
+
 may2down = RSKreadprofiles(may2, 'profile', 1:71, 'direction', 'down');
 
 % plot all profiles
@@ -27,6 +31,7 @@ may2down = RSKreadprofiles(may2, 'profile', 1:71, 'direction', 'down');
 
 % derive depths
 may1down = RSKderivedepth(may1down);
+
 may2down = RSKderivedepth(may2down);
 
 % trim downcasts in may1 file
@@ -36,98 +41,68 @@ may1down_uncut = may1down;
     %RSKplotprofiles(may1down_uncut, 'profile', [2, 6:7, 9, 11, 13, 15:16, 21:22, 33, 35:36, 38, 44, 57, 83], 'channel', {'temperature', 'conductivity'});
 
 for i = [1, 3:4, 10, 12, 14, 20, 24:27, 30, 32, 39, 42:43, 46:47, 50, 52, 54:56, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 84:85, 87:88, 90, 92, 94]
-    if i==20 || i==25 || i==75
+    if i==25
+        a = max(may1down.data(i).values(:, 7));
+    elseif i==20 || i==75
         a = max(may1down.data(i).values(:, 7))-0.05;
-        b = max(may1down.data(i).values(:, 7));
-        may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
     elseif i==30 || i==32 || i==42 || i==43 || i==46 || i==50 || i==54 || i==60 || i==66 || i==73 || i==79 || i==81 || i==84
         a = max(may1down.data(i).values(:, 7))-0.1;
-        b = max(may1down.data(i).values(:, 7));
-        may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
     elseif i==52 || i==64 || i==68 || i==78 || i==85 || i==90 || i==92
         a = max(may1down.data(i).values(:, 7))-0.15;
-        b = max(may1down.data(i).values(:, 7));
-        may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
     elseif i==10 || i==39 || i==47 || i==56 || i==62 || i==71 || i==74 || i==80 || i==87 || i==94
         a = max(may1down.data(i).values(:, 7))-0.2;
-        b = max(may1down.data(i).values(:, 7));
-        may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
     elseif i==1 || i==3 || i==4 || i==12 || i==26 || i==27 || i==55
         a = max(may1down.data(i).values(:, 7))-0.25;
-        b = max(may1down.data(i).values(:, 7));
-        may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
     elseif i==24 || i==88
         a = max(may1down.data(i).values(:, 7))-0.3;
-        b = max(may1down.data(i).values(:, 7));
-        may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
     elseif i==14 || i==70
         a = max(may1down.data(i).values(:, 7))-0.35;
-        b = max(may1down.data(i).values(:, 7));
-        may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
     elseif i==77
         a = max(may1down.data(i).values(:, 7))-0.45;
-        b = max(may1down.data(i).values(:, 7));
-        may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
     end
+    b = max(may1down.data(i).values(:, 7));
+    may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [a, b], 'profile', i, 'action', 'remove'); 
 end
 
 % check that data were removed
-%RSKplotprofiles(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'channel', {'temperature', 'conductivity'});
+RSKplotprofiles(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'channel', {'temperature', 'conductivity'});
 
 % trim downcasts in may2 file
 may2down_uncut = may2down;
 
-    % (no trimming needed: **)
-    RSKplotprofiles(may2down_uncut, 'profile', [**], 'channel', {'temperature', 'conductivity'});
+    % (no trimming needed: 1, 4, 19, 23, 53, 62, 64, 67)
+    %RSKplotprofiles(may2down_uncut, 'profile', [1, 4, 19, 23, 53, 62, 64, 67], 'channel', {'temperature', 'conductivity'});
 
-#### pick up here: figure out which profiles don't need trimming; then trim others incrementally
-
-may2down = may2down_uncut;
-for i = [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70]
-    a = max(may2down.data(i).values(:, 7))-0.05;
-    b = max(may2down.data(i).values(:, 7));
-    may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
-end
-
-    if i==20 || i==25 || i==75
+for i = [2, 6:7, 9, 11:12, 14:18, 20:22, 24:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 54:56, 58, 60:61, 65:66, 68:70]
+    if i==2 || i==55
+        a = max(may2down.data(i).values(:, 7));
+    elseif i==16 || i==17 || i==22 || i==29 || i==35 || i==36 || i==46 || i==58 || i==70
         a = max(may2down.data(i).values(:, 7))-0.05;
-        b = max(may2down.data(i).values(:, 7));
-        may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
-    elseif i==30 || i==32 || i==42 || i==43 || i==46 || i==50 || i==54 || i==60 || i==66 || i==73 || i==79 || i==81 || i==84
+    elseif i==7 || i==9 || i==27 || i==40 || i==56 || i==65 || i==68
         a = max(may2down.data(i).values(:, 7))-0.1;
-        b = max(may2down.data(i).values(:, 7));
-        may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
-    elseif i==52 || i==64 || i==68 || i==78 || i==85 || i==90 || i==92
+    elseif i==6 || i==15 || i==32 || i==34 || i==43 || i==66
         a = max(may2down.data(i).values(:, 7))-0.15;
-        b = max(may2down.data(i).values(:, 7));
-        may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
-    elseif i==10 || i==39 || i==47 || i==56 || i==62 || i==71 || i==74 || i==80 || i==87 || i==94
+    elseif i==12 || i==18 || i==20 || i==48 || i==54 || i==69
         a = max(may2down.data(i).values(:, 7))-0.2;
-        b = max(may2down.data(i).values(:, 7));
-        may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
-    elseif i==1 || i==3 || i==4 || i==12 || i==26 || i==27 || i==55
+    elseif i==14 || i==26 || i==31 || i==44 || i==60
         a = max(may2down.data(i).values(:, 7))-0.25;
-        b = max(may2down.data(i).values(:, 7));
-        may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
-    elseif i==24 || i==88
-        a = max(may2down.data(i).values(:, 7))-0.3;
-        b = max(may2down.data(i).values(:, 7));
-        may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
-    elseif i==14 || i==70
+    elseif i==11
         a = max(may2down.data(i).values(:, 7))-0.35;
-        b = max(may2down.data(i).values(:, 7));
-        may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
-    elseif i==77
-        a = max(may2down.data(i).values(:, 7))-0.45;
-        b = max(may2down.data(i).values(:, 7));
-        may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', [i], 'action', 'remove', 'visualize', [i]); %#ok<NBRAK> 
+    elseif i==37
+        a = max(may2down.data(i).values(:, 7))-0.4;
+    elseif i==25
+        a = max(may2down.data(i).values(:, 7))-0.5;
+    elseif i==24 || i==51 || i==61
+        a = max(may2down.data(i).values(:, 7))-0.55;
+    elseif i==21
+        a = max(may2down.data(i).values(:, 7))-0.6;
     end
+    b = max(may2down.data(i).values(:, 7));
+    may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [a, b], 'profile', i, 'action', 'remove');
 end
 
 % check that data were removed
-RSKplotprofiles(may2down, 'profile', [***], 'channel', {'temperature', 'conductivity'});
-
-##### should I trim the beginnings?
+RSKplotprofiles(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'channel', {'temperature', 'conductivity'});
 
 %% process data
 
@@ -135,19 +110,31 @@ RSKplotprofiles(may2down, 'profile', [***], 'channel', {'temperature', 'conducti
 may1down.channels(12:13) = [];
 may1down = RSKcorrecthold(may1down, 'action', 'interp');
 
+may2down.channels(12:13) = [];
+may2down = RSKcorrecthold(may2down, 'action', 'interp');
+
 % low-pass filter
-may1down = RSKsmooth(may1down, 'channel', {'temperature','conductivity'}, 'windowLength', 5, 'visualize', [10, 14, 26, 71, 78, 80, 84]);
+may1down = RSKsmooth(may1down, 'channel', {'temperature','conductivity'}, 'windowLength', 5);
+
+may2down = RSKsmooth(may2down, 'channel', {'temperature','conductivity'}, 'windowLength', 5);
 
 % align conductivity & temp
 lag = RSKcalculateCTlag(may1down);
 lag = -lag; % to advance temperature
 lag = median(lag); % select best lag for consistency among profiles
-may1down = RSKalignchannel(may1down, 'channel', 'temperature', 'lag', lag, 'visualize', [10, 14, 26, 71, 78, 80, 84]);
+may1down = RSKalignchannel(may1down, 'channel', 'temperature', 'lag', lag);
+
+lag = RSKcalculateCTlag(may2down);
+lag = -lag; % to advance temperature
+lag = median(lag); % select best lag for consistency among profiles
+may2down = RSKalignchannel(may2down, 'channel', 'temperature', 'lag', lag);
 
 % derive velocity
 may1down = RSKderivevelocity(may1down);
 
-% try to figure out optimal velocity threshold
+may2down = RSKderivevelocity(may2down);
+
+% look at velocity profiles
 %RSKplotprofiles(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'channel', {'velocity'});
 
 % remove loops
@@ -155,29 +142,167 @@ may1down = RSKderivevelocity(may1down);
 %may1loops1 = RSKremoveloops(may1down, 'threshold', 0.2, 'visualize', [10, 14, 26, 71, 78, 80, 84]);
 %may1loops2 = RSKremoveloops(may1down, 'threshold', 0.15, 'visualize', [10, 14, 26, 71, 78, 80, 84]);
 
-may1down = RSKremoveloops(may1down, 'threshold', 0.2, 'visualize', [10, 14, 26, 71, 78, 80, 84]);
-RSKplotprofiles(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'channel', {'temperature', 'conductivity'});
+may1down = RSKremoveloops(may1down, 'threshold', 0.2);
+%RSKplotprofiles(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'channel', {'temperature', 'conductivity'});
+
+may2down = RSKremoveloops(may2down, 'threshold', 0.2);
+%RSKplotprofiles(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'channel', {'temperature', 'conductivity'});
 
 % derive salinity
 may1down = RSKderivesalinity(may1down);
-RSKplotprofiles(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'channel', {'temperature', 'conductivity', 'salinity'});
+%RSKplotprofiles(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'channel', {'temperature', 'conductivity', 'salinity'});
 
-% bin average by sea pressure
-may1binned = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5, 'visualize', [10, 14, 26, 71, 78, 80, 84]);
+may2down = RSKderivesalinity(may2down);
+%RSKplotprofiles(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'channel', {'temperature', 'conductivity', 'salinity'});
+
+% bin average by sea pressure (may1)
+may1binned = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
 
-% compare raw & processed data
+% compare raw & processed data (may1)
 may1 = RSKreadprofiles(may1);
+
+a = [1:4, 6:7]; %#ok<*NASGU> 
+b = 9:16;
+c = [20:22, 24:27];
+d = [30, 32:33, 35:36, 38:39];
+e = [42:44, 46:47, 50, 52];
+f = [54:57, 60, 62, 64];
+g = [66, 68, 70:71, 73:75];
+h = [77:81, 83:85];
+i = [87:88, 90, 92, 94];
 
 figure
 channel = {'temperature', 'salinity', 'dissolved O21'};
-profile  = [1, 10, 15, 26, 47, 66, 71];
-[h1, ax] = RSKplotprofiles(may1, 'profile', profile, 'channel', channel, 'direction', 'up');
+profile  = i;
+[h1, ax] = RSKplotprofiles(may1, 'profile', profile, 'channel', channel, 'direction', 'up'); %#ok<*ASGLU> 
 h2 = RSKplotprofiles(may1binned, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
 
+% bin average by sea pressure (may2)
+may2binned = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5, 'visualize', [4, 19, 23:24, 53:54, 60, 67, 69]);
+h = findobj(gcf, 'type', 'line');
+set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
+
+% compare raw & processed data (may2)
 may2 = RSKreadprofiles(may2);
+
+a = [1:2, 4, 6:7, 9, 11:12];
+b = 14:20;
+c = 21:27;
+d = [29, 31:32, 34:37];
+e = [40, 43:44, 46, 48, 51];
+f = [53:56, 58, 60:62];
+g = 64:70;
+
+figure
+channel = {'temperature', 'salinity', 'dissolved O21'};
+profile  = g;
+[h1, ax] = RSKplotprofiles(may2, 'profile', profile, 'channel', channel, 'direction', 'up');
+h2 = RSKplotprofiles(may2binned, 'profile', profile, 'channel', channel);
+set(h2, 'linewidth', 3)
+
+%% assign station numbers to profiles
+
+% may1 file
+% no data from sites 006, 012, 016, 022, 030
+% chronological sites 001-060; includes 001-057 + 060-062 + 066-068
+
+list1 = [1:3, 5, 4, 7:11, 13, 13:15, 17:21, 23:29, 31:32, 35, 34, 33, 36:48, 50:51, 56, 55, 52, 49, 49, 53, 53:54, 57, 57, 61, 67:68, 66, 62, 60];
+
+% profiles 14, 78, 80, 84 share station ID with previous profile
+profiles1 = [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94];
+profiles1(55) %#ok<NOPTS> 
+list1(55) %#ok<NOPTS> 
+% duplicate sites: 13, 49, 53, 57
+compare1 = [list1; profiles1];
+stations1 = {'1', '2', '3', '5', '4', '7', '8', '9', '10', '11', '13', '13', '14', '15', '17', '18', '19', '20', '21', '23', '24', '25', '26', '27', '28', '29', '31', '32', '35', '34', '33', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '50', '51', '56', '55', '52', '49', '49', '53', '53', '54', '57', '57', '61', '67', '68', '66', '62', '60'};
+
+may1down = RSKaddstationdata(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'station', {'1', '2', '3', '5', '4', '7', '8', '9', '10', '11', '13', '13', '14', '15', '17', '18', '19', '20', '21', '23', '24', '25', '26', '27', '28', '29', '31', '32', '35', '34', '33', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '50', '51', '56', '55', '52', '49', '49', '53', '53', '54', '57', '57', '61', '67', '68', '66', '62', '60'});
+
+% may2 file
+% no data from sites 081, 111, 114
+% chronological sites 065-113; includes 058-059 + 063-065 + 069-113
+
+list2 = [65, 63, 58, 59, 64, 69:72, 76:78, 73:74, 79, 75, 80, 82, 82:84, 86:87, 93, 88, 85, 89:91, 97, 96, 92, 95, 94, 104, 103, 103, 102, 98, 100, 99, 101, 105:106, 109:110, 108, 107, 112:113];
+
+% profiles 24, 54 share station ID with previous profile
+profiles2 = [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70];
+profiles2(36) %#ok<NOPTS> 
+list2(36) %#ok<NOPTS> 
+% duplicate sites: 82, 103
+compare2 = [list2; profiles2];
+stations2 = {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '80', '82', '82', '83', '84', '86', '87', '93', '88', '85', '89', '90', '91', '97', '96', '92', '95', '94', '104', '103', '103', '102', '98', '100', '99', '101', '105', '106', '109', '110', '108', '107', '112', '113'};
+
+may2down = RSKaddstationdata(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'station', {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '80', '82', '82', '83', '84', '86', '87', '93', '88', '85', '89', '90', '91', '97', '96', '92', '95', '94', '104', '103', '103', '102', '98', '100', '99', '101', '105', '106', '109', '110', '108', '107', '112', '113'});
+
+%% extract salinity data
+
+stations = cell(112, 1);
+bottom_depth = NaN(112, 1);
+bottom_sal = NaN(112, 1);
+surface_depth = NaN(112, 1);
+surface_sal = NaN(112, 1);
+
+for i = 1:62
+    p = profiles1(i);
+    stations(i) = may1down.data(p).station;
+    [depth, index] = max(may1down.data(p).values(:, 7));
+    sal = may1down.data(p).values(index, 8);
+    while isnan(sal)
+        index = index - 1;
+        depth = may1down.data(p).values(index, 7);
+        sal = may1down.data(p).values(index, 8);
+    end
+    bottom_depth(i) = depth;
+    bottom_sal(i) = sal;
+    if p == 14 || p == 78 || p == 80 || p == 84 %don't include surface data
+        surface_depth(i) = NaN;
+        surface_sal(i) = NaN;
+    else
+        [m, index] = min(abs(may1down.data(p).values(:, 7) - 0.5)); %find closest datapoint to 0.5m
+        surface_depth(i) = may1down.data(p).values(index, 7);
+        surface_sal(i) = may1down.data(p).values(index, 8);
+    end
+end
+
+for i = 1:50
+    p = profiles2(i);
+    k = i + 62; % account for profiles in may1 file
+    stations(k) = may2down.data(p).station;
+    [depth, index] = max(may2down.data(p).values(:, 7));
+    sal = may2down.data(p).values(index, 8);
+    while isnan(sal)
+        index = index - 1;
+        depth = may2down.data(p).values(index, 7);
+        sal = may2down.data(p).values(index, 8);
+    end
+    bottom_depth(k) = depth;
+    bottom_sal(k) = sal;
+    if p == 24 || p == 54 %don't include surface data
+        surface_depth(k) = NaN;
+        surface_sal(k) = NaN;
+    else
+        [m, index] = min(abs(may2down.data(p).values(:, 7) - 0.5)); %find closest datapoint to 0.5m
+        surface_depth(k) = may2down.data(p).values(index, 7);
+        surface_sal(k) = may2down.data(p).values(index, 8);
+    end
+end
+
+stations = str2double(stations);
+
+may_salinity = [stations bottom_depth bottom_sal surface_depth surface_sal];
+
+may_salinity = array2table(may_salinity);
+may_salinity.Properties.VariableNames = {'Station', 'Bottom Depth', 'Bottom Salinity', 'Surface Depth', 'Surface Salinity'};
+
+writetable(may_salinity, "data/may_salinity_CTD.csv");
+
+
+
+
+
 
 
 
@@ -239,7 +364,7 @@ end
 % against: [17:19, 28:29, 40:41, 48:49, 58:59]
 a = max(depths(57));
 b = max(depths(58:59));
-a > b; %#ok<VUNUS> 
+a > b; %#ok<*VUNUS> 
 % all okay
 
 % full list: 1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44,
@@ -294,7 +419,7 @@ end
 % against: [38:39, 41:42, 49:50]
 a = max(depths(48));
 b = max(depths(49:50));
-a > b %#ok<NOPTS> 
+a > b;
 % all okay
 
 % full list: 1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44,
