@@ -1,15 +1,6 @@
-%% Load rsk files
-
 % cd Repos/ScallopRSA2021
 
-% oct1 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
-% oct1 = RSKreaddata(oct1, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
-
-% oct2 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
-% oct2 = RSKreaddata(oct2, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
-
-% oct3 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
-% oct3 = RSKreaddata(oct3, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+%% Load May rsk files
 
 may1 = RSKopen('data/CTD_raw/RSA_20210504_060.rsk');
 may1 = RSKreaddata(may1, 't1', datenum(2021, 05, 02), 't2', datenum(2021, 05, 06));
@@ -33,6 +24,115 @@ may2down = RSKreadprofiles(may2, 'profile', 1:71, 'direction', 'down');
 may1down = RSKderivedepth(may1down);
 
 may2down = RSKderivedepth(may2down);
+
+%% Find false downcasts in may1 file
+
+% why does it let me go past 1:58 in RSKreadprofiles when there should be 58 profiles?
+% bc it is including false "downcasts"
+plot(may1.data.tstamp, may1.data.values(:, 3))
+hold on
+plot(may1down.data(95).tstamp, may1down.data(95).values(:, 3))
+hold off
+
+% 20 peaks a/o profile 27
+% 30 peaks a/o profile 44
+% 50 peaks a/o profile 79
+
+% false downcasts: 5, 8, 14, 17:19, 23, 28:29, 31, 34, 37, 40:41, 45, 48:49, 51, 53, 58:59, 61, 63, 65, 67, 69, 72, 76, 78, 80,
+% 82, 84, 86, 89, 91, 93, 95
+
+% true downcasts: 1:4, 6:7, 9:13, 15:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68,
+% 70:71, 73:75, 77, 79, 81, 83, 85, 87:88, 90, 92, 94
+
+plot(may1.data.tstamp, may1.data.values(:, 3))
+hold on
+for i=[5, 8, 14, 17:19, 23, 28:29, 31, 34, 37, 40:41, 45, 48:49, 51, 53, 58:59, 61, 63, 65, 67, 69, 72, 76, 78, 80, 82, 84, 86, 89, 91, 93, 95]
+    plot(may1down.data(i).tstamp, may1down.data(i).values(:, 3))
+end
+hold off
+
+% find sites where "false" downcast(s) need to be included
+depths = NaN(95, 1);
+for i = 1:95
+  depths(i) = max(may1down.data(i).values(:, 7));
+end
+
+comp = NaN(26, 3);
+true = [4, 7, 13, 22, 30, 33, 36, 44, 50, 52, 60, 62, 64, 66, 68, 71, 75, 77, 79, 81, 83, 85, 88, 90, 92, 94];
+false = [5, 8, 14, 23, 31, 34, 37, 45, 51, 53, 61, 63, 65, 67, 69, 72, 76, 78, 80, 82, 84, 86, 89, 91, 93, 95];
+for i = 1:26
+    comp(i, 1) = max(depths(true(1, i)));
+    comp(i, 2) = max(depths(false(1, i)));
+    comp(i, 3) = comp(i, 1) > comp(i, 2);
+    if comp(i, 3) == 0
+        disp(false(1, i));
+    end
+end
+
+% 14, 78, 80, 84 should be included
+
+% manually check: [16, 27, 39, 47, 57]
+% against: [17:19, 28:29, 40:41, 48:49, 58:59]
+a = max(depths(57));
+b = max(depths(58:59));
+a > b; %#ok<*VUNUS> 
+% all okay
+
+% full list of may1 profiles to include: 1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60,
+% 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94
+
+%% Find false downcasts in may2 file
+plot(may2.data.tstamp, may2.data.values(:, 3))
+hold on
+plot(may2down.data(71).tstamp, may2down.data(71).values(:, 3))
+hold off
+
+% 8 peaks a/o profile 12
+% 17 peaks a/o profile 22
+% 30 peaks a/o profile 43
+
+% false downcasts: 3, 5, 8, 10, 13, 24, 28, 30, 33, 38:39, 41:42, 45, 47, 49:50, 52, 54, 57, 59, 63, 71
+
+% true downcasts: 1:2, 4, 6:7, 9, 11:12, 14:23, 25:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53, 55:56, 58, 60:62, 64:70
+
+plot(may2.data.tstamp, may2.data.values(:, 3))
+hold on
+for i=[3, 5, 8, 10, 13, 24, 28, 30, 33, 38:39, 41:42, 45, 47, 49:50, 52, 54, 57, 59, 63, 71]
+    plot(may2down.data(i).tstamp, may2down.data(i).values(:, 3))
+end
+hold off
+
+% find sites where "false" downcast(s) need to be included
+depths = NaN(71, 1);
+for i = 1:71
+  depths(i) = max(may2down.data(i).values(:, 7));
+end
+
+comp = NaN(17, 3);
+true = [2, 4, 7, 9, 12, 23, 27, 29, 32, 44, 46, 51, 53, 56, 58, 62, 70];
+false = [3, 5, 8, 10, 13, 24, 28, 30, 33, 45, 47, 52, 54, 57, 59, 63, 71];
+for i = 1:17
+    comp(i, 1) = max(depths(true(1, i)));
+    comp(i, 2) = max(depths(false(1, i)));
+    comp(i, 3) = comp(i, 1) > comp(i, 2);
+    if comp(i, 3) == 0
+        disp(false(1, i));
+    end
+end
+
+% 24, 54 should be included
+
+% manually check: [37, 40, 48]
+% against: [38:39, 41:42, 49:50]
+a = max(depths(48));
+b = max(depths(49:50));
+a > b;
+% all okay
+
+% full list of may2 profiles to include: 1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58,
+% 60:62, 64:70
+
+%% Clean profiles by trimming
 
 % trim downcasts in may1 file
 may1down_uncut = may1down;
@@ -104,7 +204,7 @@ end
 % check that data were removed
 RSKplotprofiles(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'channel', {'temperature', 'conductivity'});
 
-%% process data
+%% Process data
 
 % correct for analog-to-digital zero-order hold
 may1down.channels(12:13) = [];
@@ -155,7 +255,9 @@ may1down = RSKderivesalinity(may1down);
 may2down = RSKderivesalinity(may2down);
 %RSKplotprofiles(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'channel', {'temperature', 'conductivity', 'salinity'});
 
-% bin average by sea pressure (may1)
+%% Bin-average profiles; then compare raw vs. processed data
+
+% bin-average by sea pressure (may1)
 may1binned = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
@@ -180,7 +282,7 @@ profile  = i;
 h2 = RSKplotprofiles(may1binned, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
 
-% bin average by sea pressure (may2)
+% bin-average by sea pressure (may2)
 may2binned = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5, 'visualize', [4, 19, 23:24, 53:54, 60, 67, 69]);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
@@ -203,7 +305,7 @@ profile  = g;
 h2 = RSKplotprofiles(may2binned, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
 
-%% assign station numbers to profiles
+%% Assign station numbers to profiles
 
 % may1 file
 % no data from sites 006, 012, 016, 022, 030
@@ -237,7 +339,7 @@ stations2 = {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '
 
 may2down = RSKaddstationdata(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'station', {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '80', '82', '82', '83', '84', '86', '87', '93', '88', '85', '89', '90', '91', '97', '96', '92', '95', '94', '104', '103', '103', '102', '98', '100', '99', '101', '105', '106', '109', '110', '108', '107', '112', '113'});
 
-%% extract salinity data
+%% Extract salinity data
 
 stations = cell(112, 1);
 bottom_depth = NaN(112, 1);
@@ -245,6 +347,7 @@ bottom_sal = NaN(112, 1);
 surface_depth = NaN(112, 1);
 surface_sal = NaN(112, 1);
 
+% may1 file
 for i = 1:62
     p = profiles1(i);
     stations(i) = may1down.data(p).station;
@@ -267,6 +370,7 @@ for i = 1:62
     end
 end
 
+% may2 file
 for i = 1:50
     p = profiles2(i);
     k = i + 62; % account for profiles in may1 file
@@ -300,130 +404,22 @@ may_salinity.Properties.VariableNames = {'Station', 'Bottom Depth', 'Bottom Sali
 writetable(may_salinity, "data/may_salinity_CTD.csv");
 
 
+%% Load October rsk files
+
+oct1 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
+oct1 = RSKreaddata(oct1, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+
+oct2 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
+oct2 = RSKreaddata(oct2, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+
+oct3 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
+oct3 = RSKreaddata(oct3, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
+
+...
 
 
 
 
-
-
-
-
-
-%% Find false downcasts in may1 file
-
-% why does it let me go past 1:58 in RSKreadprofiles when there should be 58 profiles?
-% bc it is including false "downcasts"
-plot(may1.data.tstamp, may1.data.values(:, 3))
-hold on
-plot(may1down.data(95).tstamp, may1down.data(95).values(:, 3))
-hold off
-
-% 20 peaks a/o profile 27
-% 30 peaks a/o profile 44
-% 50 peaks a/o profile 79
-
-% false downcasts: 5, 8, 14, 17:19, 23, 28:29, 31, 34, 37, 40:41, 45,
-% 48:49, 51, 53, 58:59, 61, 63, 65, 67, 69, 72, 76, 78, 80, 82, 84, 86,
-% 89, 91, 93, 95
-
-% true downcasts: 1:4, 6:7, 9:13, 15:16, 20:22, 24:27, 30, 32:33, 35:36,
-% 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75,
-% 77, 79, 81, 83, 85, 87:88, 90, 92, 94
-
-% profile 14: might need to include? examine 13 & 14
-% profile 84: might need to include? examine 83 & 84
-
-plot(may1.data.tstamp, may1.data.values(:, 3))
-hold on
-for i=[5, 8, 14, 17:19, 23, 28:29, 31, 34, 37, 40:41, 45, 48:49, 51, 53, 58:59, 61, 63, 65, 67, 69, 72, 76, 78, 80, 82, 84, 86, 89, 91, 93, 95]
-    plot(may1down.data(i).tstamp, may1down.data(i).values(:, 3))
-end
-hold off
-
-% find sites where "false" downcast(s) need to be included
-depths = NaN(95, 1);
-for i = 1:95
-  depths(i) = max(may1down.data(i).values(:, 7));
-end
-
-comp = NaN(26, 3);
-true = [4, 7, 13, 22, 30, 33, 36, 44, 50, 52, 60, 62, 64, 66, 68, 71, 75, 77, 79, 81, 83, 85, 88, 90, 92, 94];
-false = [5, 8, 14, 23, 31, 34, 37, 45, 51, 53, 61, 63, 65, 67, 69, 72, 76, 78, 80, 82, 84, 86, 89, 91, 93, 95];
-for i = 1:26
-    comp(i, 1) = max(depths(true(1, i)));
-    comp(i, 2) = max(depths(false(1, i)));
-    comp(i, 3) = comp(i, 1) > comp(i, 2);
-    if comp(i, 3) == 0
-        disp(false(1, i));
-    end
-end
-
-% 14, 78, 80, 84 should be included
-
-% manually check: [16, 27, 39, 47, 57]
-% against: [17:19, 28:29, 40:41, 48:49, 58:59]
-a = max(depths(57));
-b = max(depths(58:59));
-a > b; %#ok<*VUNUS> 
-% all okay
-
-% full list: 1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44,
-% 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85,
-% 87:88, 90, 92, 94
-
-
-%% Find false downcasts in may2 file
-plot(may2.data.tstamp, may2.data.values(:, 3))
-hold on
-plot(may2down.data(71).tstamp, may2down.data(71).values(:, 3))
-hold off
-
-% 8 peaks a/o profile 12
-% 17 peaks a/o profile 22
-% 30 peaks a/o profile 43
-
-% false downcasts: 3, 5, 8, 10, 13, 24, 28, 30, 33, 38:39, 41:42, 45, 47,
-% 49:50, 52, 54, 57, 59, 63, 71
-
-% true downcasts: 1:2, 4, 6:7, 9, 11:12, 14:23, 25:27, 29, 31:32, 34:37,
-% 40, 43:44, 46, 48, 51, 53, 55:56, 58, 60:62, 64:70
-
-plot(may2.data.tstamp, may2.data.values(:, 3))
-hold on
-for i=[3, 5, 8, 10, 13, 24, 28, 30, 33, 38:39, 41:42, 45, 47, 49:50, 52, 54, 57, 59, 63, 71]
-    plot(may2down.data(i).tstamp, may2down.data(i).values(:, 3))
-end
-hold off
-
-% find sites where "false" downcast(s) need to be included
-depths = NaN(71, 1);
-for i = 1:71
-  depths(i) = max(may2down.data(i).values(:, 7));
-end
-
-comp = NaN(17, 3);
-true = [2, 4, 7, 9, 12, 23, 27, 29, 32, 44, 46, 51, 53, 56, 58, 62, 70];
-false = [3, 5, 8, 10, 13, 24, 28, 30, 33, 45, 47, 52, 54, 57, 59, 63, 71];
-for i = 1:17
-    comp(i, 1) = max(depths(true(1, i)));
-    comp(i, 2) = max(depths(false(1, i)));
-    comp(i, 3) = comp(i, 1) > comp(i, 2);
-    if comp(i, 3) == 0
-        disp(false(1, i));
-    end
-end
-
-% 24, 54 should be included
-
-% manually check: [37, 40, 48]
-% against: [38:39, 41:42, 49:50]
-a = max(depths(48));
-b = max(depths(49:50));
-a > b;
-% all okay
-
-% full list: 1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44,
-% 46, 48, 51, 53:56, 58, 60:62, 64:70
 
 
 
@@ -436,4 +432,4 @@ a > b;
 % may2 = readmatrix('./data/CTD_raw/RSA_20210506_113.csv');
 % allMay = [may1; may2];
 
-% oct1_nope = readmatrix('./data/CTD_raw/RSA_20211006_021.csv', 'NumHeaderLines', 2);   % date is a mess
+% oct1 = readmatrix('./data/CTD_raw/RSA_20211006_021.csv', 'NumHeaderLines', 2);   % date is a mess
