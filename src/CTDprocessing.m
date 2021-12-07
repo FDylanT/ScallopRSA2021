@@ -415,7 +415,7 @@ oct2 = RSKreaddata(oct2, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10
 oct3 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
 oct3 = RSKreaddata(oct3, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
 
-...
+% ...
 
 
 
