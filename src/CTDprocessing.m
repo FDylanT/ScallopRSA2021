@@ -25,7 +25,7 @@ may1down = RSKderivedepth(may1down);
 
 may2down = RSKderivedepth(may2down);
 
-%% Find false downcasts in may1 file
+%% [SKIP] Find false downcasts in may1 file
 
 % why does it let me go past 1:58 in RSKreadprofiles when there should be 58 profiles?
 % bc it is including false "downcasts"
@@ -81,7 +81,7 @@ a > b; %#ok<*VUNUS>
 % full list of may1 profiles to include: 1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60,
 % 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94
 
-%% Find false downcasts in may2 file
+%% [SKIP] Find false downcasts in may2 file
 plot(may2.data.tstamp, may2.data.values(:, 3))
 hold on
 plot(may2down.data(71).tstamp, may2down.data(71).values(:, 3))
@@ -165,7 +165,7 @@ for i = [1, 3:4, 10, 12, 14, 20, 24:27, 30, 32, 39, 42:43, 46:47, 50, 52, 54:56,
 end
 
 % check that data were removed
-RSKplotprofiles(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'channel', {'temperature', 'conductivity'});
+%RSKplotprofiles(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'channel', {'temperature', 'conductivity'});
 
 % trim downcasts in may2 file
 may2down_uncut = may2down;
@@ -202,7 +202,7 @@ for i = [2, 6:7, 9, 11:12, 14:18, 20:22, 24:27, 29, 31:32, 34:37, 40, 43:44, 46,
 end
 
 % check that data were removed
-RSKplotprofiles(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'channel', {'temperature', 'conductivity'});
+%RSKplotprofiles(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'channel', {'temperature', 'conductivity'});
 
 %% Process data
 
@@ -258,7 +258,7 @@ may2down = RSKderivesalinity(may2down);
 %% Bin-average profiles; then compare raw vs. processed data
 
 % bin-average by sea pressure (may1)
-may1binned = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5);
+may1down = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
 
@@ -279,11 +279,11 @@ figure
 channel = {'temperature', 'salinity', 'dissolved O21'};
 profile  = i;
 [h1, ax] = RSKplotprofiles(may1, 'profile', profile, 'channel', channel, 'direction', 'up'); %#ok<*ASGLU> 
-h2 = RSKplotprofiles(may1binned, 'profile', profile, 'channel', channel);
+h2 = RSKplotprofiles(may1down, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
 
 % bin-average by sea pressure (may2)
-may2binned = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5, 'visualize', [4, 19, 23:24, 53:54, 60, 67, 69]);
+may2down = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5, 'visualize', [23:24, 53:54]);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
 
@@ -302,7 +302,7 @@ figure
 channel = {'temperature', 'salinity', 'dissolved O21'};
 profile  = g;
 [h1, ax] = RSKplotprofiles(may2, 'profile', profile, 'channel', channel, 'direction', 'up');
-h2 = RSKplotprofiles(may2binned, 'profile', profile, 'channel', channel);
+h2 = RSKplotprofiles(may2down, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
 
 %% Assign station numbers to profiles
@@ -311,33 +311,33 @@ set(h2, 'linewidth', 3)
 % no data from sites 006, 012, 016, 022, 030
 % chronological sites 001-060; includes 001-057 + 060-062 + 066-068
 
-list1 = [1:3, 5, 4, 7:11, 13, 13:15, 17:21, 23:29, 31:32, 35, 34, 33, 36:48, 50:51, 56, 55, 52, 49, 49, 53, 53:54, 57, 57, 61, 67:68, 66, 62, 60];
+%list1 = [1:3, 5, 4, 7:11, 13, 13:15, 17:21, 23:29, 31:32, 35, 34, 33, 36:48, 50:51, 56, 55, 52, 49, 49, 53, 53:54, 57, 57, 61, 67:68, 66, 62, 60];
 
 % profiles 14, 78, 80, 84 share station ID with previous profile
 profiles1 = [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94];
-profiles1(55) %#ok<NOPTS> 
-list1(55) %#ok<NOPTS> 
+%profiles1(55) %#ok<NOPTS> 
+%list1(55) %#ok<NOPTS> 
 % duplicate sites: 13, 49, 53, 57
-compare1 = [list1; profiles1];
+%compare1 = [list1; profiles1];
 stations1 = {'1', '2', '3', '5', '4', '7', '8', '9', '10', '11', '13', '13', '14', '15', '17', '18', '19', '20', '21', '23', '24', '25', '26', '27', '28', '29', '31', '32', '35', '34', '33', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '50', '51', '56', '55', '52', '49', '49', '53', '53', '54', '57', '57', '61', '67', '68', '66', '62', '60'};
 
-may1down = RSKaddstationdata(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'station', {'1', '2', '3', '5', '4', '7', '8', '9', '10', '11', '13', '13', '14', '15', '17', '18', '19', '20', '21', '23', '24', '25', '26', '27', '28', '29', '31', '32', '35', '34', '33', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '50', '51', '56', '55', '52', '49', '49', '53', '53', '54', '57', '57', '61', '67', '68', '66', '62', '60'});
+may1down = RSKaddstationdata(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'station', stations1);
 
 % may2 file
 % no data from sites 081, 111, 114
 % chronological sites 065-113; includes 058-059 + 063-065 + 069-113
 
-list2 = [65, 63, 58, 59, 64, 69:72, 76:78, 73:74, 79, 75, 80, 82, 82:84, 86:87, 93, 88, 85, 89:91, 97, 96, 92, 95, 94, 104, 103, 103, 102, 98, 100, 99, 101, 105:106, 109:110, 108, 107, 112:113];
+%list2 = [65, 63, 58, 59, 64, 69:72, 76:78, 73:74, 79, 75, 80, 82, 82:84, 86:87, 93, 88, 85, 89:91, 97, 96, 92, 95, 94, 104, 103, 103, 102, 98, 100, 99, 101, 105:106, 109:110, 108, 107, 112:113];
 
 % profiles 24, 54 share station ID with previous profile
 profiles2 = [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70];
-profiles2(36) %#ok<NOPTS> 
-list2(36) %#ok<NOPTS> 
+%profiles2(36) %#ok<NOPTS> 
+%list2(36) %#ok<NOPTS> 
 % duplicate sites: 82, 103
-compare2 = [list2; profiles2];
+%compare2 = [list2; profiles2];
 stations2 = {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '80', '82', '82', '83', '84', '86', '87', '93', '88', '85', '89', '90', '91', '97', '96', '92', '95', '94', '104', '103', '103', '102', '98', '100', '99', '101', '105', '106', '109', '110', '108', '107', '112', '113'};
 
-may2down = RSKaddstationdata(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'station', {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '80', '82', '82', '83', '84', '86', '87', '93', '88', '85', '89', '90', '91', '97', '96', '92', '95', '94', '104', '103', '103', '102', '98', '100', '99', '101', '105', '106', '109', '110', '108', '107', '112', '113'});
+may2down = RSKaddstationdata(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'station', stations2);
 
 %% Extract salinity data
 
@@ -398,8 +398,24 @@ stations = str2double(stations);
 
 may_salinity = [stations bottom_depth bottom_sal surface_depth surface_sal];
 
+% determine whether doubled-up profiles are necessary
+%may_salinity(stations==13, :) % no difference in depth after binning; remove second
+%may_salinity(stations==53, :) % no difference in depth after binning; remove second
+%may_salinity(stations==82, :) % no difference in depth after binning; remove second
+%may_salinity(stations==103, :) % no difference in depth after binning; remove second
+
+%RSKplotprofiles(may1down_uncut, 'profile', 77:78, 'channel', {'temperature', 'conductivity'});
+%RSKplotprofiles(may1down, 'profile', 77:78, 'channel', {'temperature', 'salinity'});
+%may_salinity(stations==49, :) % salinity on first is more accurate; remove second
+
+%RSKplotprofiles(may1down_uncut, 'profile', 83:84, 'channel', {'temperature', 'conductivity'});
+%RSKplotprofiles(may1down, 'profile', 83:84, 'channel', {'temperature', 'salinity'});
+%may_salinity(stations==57, :) % salinity on first is more accurate; remove second
+
 may_salinity = array2table(may_salinity);
-may_salinity.Properties.VariableNames = {'Station', 'Bottom Depth', 'Bottom Salinity', 'Surface Depth', 'Surface Salinity'};
+may_salinity(isnan(surface_depth), :) = [];
+
+may_salinity.Properties.VariableNames = {'Station', 'BottomDepth', 'BottomSalinity', 'SurfaceDepth', 'SurfaceSalinity'};
 
 writetable(may_salinity, "data/may_salinity_CTD.csv");
 
