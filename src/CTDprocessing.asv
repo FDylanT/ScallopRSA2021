@@ -205,11 +205,104 @@ set(h2, 'linewidth', 3)
 
 %% assign station numbers to profiles
 
-may1down = RSKaddstationdata(may1down, 'profile', 4:6, 'station', {'S1','S2','S3'});
+% may1 file
+% no data from sites 006, 012, 016, 022, 030
+% chronological sites 001-060; includes 001-057 + 060-062 + 066-068
 
-may2down = RSKaddstationdata(may2down, 'profile', 4:6, 'station', {'S1','S2','S3'});
+list1 = [1:3, 5, 4, 7:11, 13, 13:15, 17:21, 23:29, 31:32, 35, 34, 33, 36:48, 50:51, 56, 55, 52, 49, 49, 53, 53:54, 57, 57, 61, 67:68, 66, 62, 60];
+
+% profiles 14, 78, 80, 84 share station ID with previous profile
+profiles1 = [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94];
+profiles1(55) %#ok<NOPTS> 
+list1(55) %#ok<NOPTS> 
+% duplicate sites: 13, 49, 53, 57
+compare1 = [list1; profiles1];
+stations1 = {'1', '2', '3', '5', '4', '7', '8', '9', '10', '11', '13', '13', '14', '15', '17', '18', '19', '20', '21', '23', '24', '25', '26', '27', '28', '29', '31', '32', '35', '34', '33', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '50', '51', '56', '55', '52', '49', '49', '53', '53', '54', '57', '57', '61', '67', '68', '66', '62', '60'};
+
+may1down = RSKaddstationdata(may1down, 'profile', [1:4, 6:7, 9:16, 20:22, 24:27, 30, 32:33, 35:36, 38:39, 42:44, 46:47, 50, 52, 54:57, 60, 62, 64, 66, 68, 70:71, 73:75, 77:81, 83:85, 87:88, 90, 92, 94], 'station', {'1', '2', '3', '5', '4', '7', '8', '9', '10', '11', '13', '13', '14', '15', '17', '18', '19', '20', '21', '23', '24', '25', '26', '27', '28', '29', '31', '32', '35', '34', '33', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '50', '51', '56', '55', '52', '49', '49', '53', '53', '54', '57', '57', '61', '67', '68', '66', '62', '60'});
+
+% may2 file
+% no data from sites 081, 111, 114
+% chronological sites 065-113; includes 058-059 + 063-065 + 069-113
+
+list2 = [65, 63, 58, 59, 64, 69:72, 76:78, 73:74, 79, 75, 80, 82, 82:84, 86:87, 93, 88, 85, 89:91, 97, 96, 92, 95, 94, 104, 103, 103, 102, 98, 100, 99, 101, 105:106, 109:110, 108, 107, 112:113];
+
+% profiles 24, 54 share station ID with previous profile
+profiles2 = [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70];
+profiles2(36) %#ok<NOPTS> 
+list2(36) %#ok<NOPTS> 
+% duplicate sites: 82, 103
+compare2 = [list2; profiles2];
+stations2 = {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '80', '82', '82', '83', '84', '86', '87', '93', '88', '85', '89', '90', '91', '97', '96', '92', '95', '94', '104', '103', '103', '102', '98', '100', '99', '101', '105', '106', '109', '110', '108', '107', '112', '113'};
+
+may2down = RSKaddstationdata(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'station', {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '80', '82', '82', '83', '84', '86', '87', '93', '88', '85', '89', '90', '91', '97', '96', '92', '95', '94', '104', '103', '103', '102', '98', '100', '99', '101', '105', '106', '109', '110', '108', '107', '112', '113'});
 
 %% extract salinity data
+
+stations = cell(112, 1);
+bottom_depth = NaN(112, 1);
+bottom_sal = NaN(112, 1);
+surface_depth = NaN(112, 1);
+surface_sal = NaN(112, 1);
+
+for i = 1:62
+    p = profiles1(i);
+    stations(i) = may1down.data(p).station;
+    [depth, index] = max(may1down.data(p).values(:, 7));
+    sal = may1down.data(p).values(index, 8);
+    while isnan(sal)
+        index = index - 1;
+        depth = may1down.data(p).values(index, 7);
+        sal = may1down.data(p).values(index, 8);
+    end
+    bottom_depth(i) = depth;
+    bottom_sal(i) = sal;
+    if p == 14 || p == 78 || p == 80 || p == 84 %don't include surface data
+        surface_depth(i) = NaN;
+        surface_sal(i) = NaN;
+    else
+        [m, index] = min(abs(may1down.data(p).values(:, 7) - 0.5)); %find closest datapoint to 0.5m
+        surface_depth(i) = may1down.data(p).values(index, 7);
+        surface_sal(i) = may1down.data(p).values(index, 8);
+    end
+end
+
+for i = 1:50
+    p = profiles2(i);
+    k = i + 62; % account for profiles in may1 file
+    stations(k) = may2down.data(p).station;
+    [depth, index] = max(may2down.data(p).values(:, 7));
+    sal = may2down.data(p).values(index, 8);
+    while isnan(sal)
+        index = index - 1;
+        depth = may2down.data(p).values(index, 7);
+        sal = may2down.data(p).values(index, 8);
+    end
+    bottom_depth(k) = depth;
+    bottom_sal(k) = sal;
+    if p == 24 || p == 54 %don't include surface data
+        surface_depth(k) = NaN;
+        surface_sal(k) = NaN;
+    else
+        [m, index] = min(abs(may2down.data(p).values(:, 7) - 0.5)); %find closest datapoint to 0.5m
+        surface_depth(k) = may2down.data(p).values(index, 7);
+        surface_sal(k) = may2down.data(p).values(index, 8);
+    end
+end
+
+stations = str2double(stations);
+
+may_salinity = [stations bottom_depth bottom_sal surface_depth surface_sal];
+
+may_salinity = table(may_salinity);
+may_salinity.Properties.VariableNames = {'Station' 'Bottom Depth' 'Bottom Salinity' 'Surface Depth' 'Surface Salinity'};
+
+writematrix(may_salinity, "may_salinity.csv");
+
+
+
+
+
 
 
 
