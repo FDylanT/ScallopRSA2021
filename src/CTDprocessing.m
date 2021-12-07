@@ -283,7 +283,7 @@ h2 = RSKplotprofiles(may1down, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
 
 % bin-average by sea pressure (may2)
-may2down = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5, 'visualize', [23:24, 53:54]);
+may2down = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
 
@@ -417,7 +417,7 @@ may_salinity(isnan(surface_depth), :) = [];
 
 may_salinity.Properties.VariableNames = {'Station', 'BottomDepth', 'BottomSalinity', 'SurfaceDepth', 'SurfaceSalinity'};
 
-writetable(may_salinity, "data/may_salinity_CTD.csv");
+writetable(may_salinity, "data/salinity/may_salinity_CTD.csv");
 
 
 %% Load October rsk files
