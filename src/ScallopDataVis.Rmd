@@ -137,11 +137,11 @@ heights
 densities <- map +
   geom_sf(data = stations_sf, aes(size = LinDensity, fill = Tow, shape = Tow), inherit.aes = FALSE) +
   geom_sf_text(data = stations_sf, aes(label = Station, colour = Tow), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
-  scale_size_continuous(range = c(2.5, 7.5), name = "Ratio of Shell Weight\nto Shell Height (g/mm)", guide = guide_legend(override.aes = list(shape = 22, fill = "white"))) +
+  scale_size_continuous(range = c(2.5, 7.5), name = "Mean Ratio of Shell Weight\nto Shell Height (g/mm)", guide = guide_legend(override.aes = list(shape = 22, fill = "white"))) +
   scale_fill_manual(values = c("white", "black"), guide = "none") +
   scale_shape_manual(values = c(22, 21), guide = "none") +
   scale_colour_manual(values = c("white", "black"), guide = "none") +
-  labs(title = "Variation in Linear Shell Density Across Georges Bank") +
+  labs(title = "Variation in Scallop Shell \"Linear Density\" Across Georges Bank") +
   coord_sf(crs = st_crs(4326)) +
   theme(plot.title = element_text(size = 17, face = "bold", hjust = 0.5),
         axis.text = element_text(size = 13),
