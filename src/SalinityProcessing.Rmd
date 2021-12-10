@@ -12,6 +12,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
+library(gsw)
 ```
 
 ## Load data
@@ -19,15 +20,94 @@ library(tidyverse)
 setwd("~/Desktop/Repos/ScallopRSA2021")
 
 mayCTD <- read.csv("./data/salinity/may_salinity_CTD.csv")
-may_measured <- read.csv("./data/salinity/may_salinity_measured.csv")
+may_bottle <- read.csv("./data/salinity/may_salinity_bottle.csv")
 ```
 
+## Calculate CTD offset
 ```{r}
-ggplot(data = mayCTD, aes(x = Station, y = BottomSalinity)) +
+for (i in 1:33) {
+  k <- may_bottle$Station[i]
+  s <- mayCTD[mayCTD$Station == k, 3]
+  print(c(k, s))
+}
+
+# remove 12 & 81 -- no CTD data (indices 5 & 8)
+
+station <- rep(NA, 31)
+CTD_sal <- rep(NA, 31)
+bottle_sal <- rep(NA, 31)
+offset <- rep(NA, 31)
+
+for (i in c(1:4, 6:7, 9:33)) {
+  k <- may_bottle$Station[i]
+  station[i] <- k
+  CTD_sal[i] <- mayCTD[mayCTD$Station == k, 3]
+  bottle_sal[i] <- may_bottle[i, 2]
+  offset[i] <- CTD_sal[i] - bottle_sal[i]
+}
+
+comparison <- as.data.frame(cbind(station, bottle_sal, CTD_sal, offset))
+
+mean(offset, na.rm = TRUE) # 0.02055761
+median(offset, na.rm = TRUE) # 0.01950791
+```
+
+## Plot CTD data with bottle data
+```{r}
+ggplot(data = comparison, aes(x = station, y = CTD_sal)) +
   geom_point() +
-  geom_point(data = may_measured, aes(y = Salinity, col = "red")) +
+  geom_point(aes(y = bottle_sal, col = "red")) +
   ylim(30, 35) +
   scale_color_discrete(labels = "bottle\nsample") +
   theme_bw() +
   theme(legend.title=element_blank())
+
+plot(comparison$bottle_sal ~ comparison$CTD_sal)
+abline(0, 1)
+plot(comparison$offset ~ comparison$bottle_sal)
+
+# uncertainty in CTD = 0.001 mS/cm
+gsw_SP_from_C(35.001, 7, 46.0566) - gsw_SP_from_C(35, 7, 46.0566) # ~0.0011 PSU
+
+# CTD salinity consistently slightly higher than bottle salinity -- let's do a correction
+```
+
+## Correct CTD data given bottle data
+```{r}
+lm1 <- lm(bottle_sal ~ CTD_sal, comparison) # bottle = 1.003717(CTD) - 0.143717
+summary(lm1)
+
+mayCTD$BottomSal_Corr <- 1.003717 * mayCTD$BottomSalinity - 0.143717
+
+# check new offset
+CTD_sal_corr <- rep(NA, 31)
+corr_offset <- rep(NA, 31)
+
+for (i in c(1:4, 6:7, 9:33)) {
+  k <- may_bottle$Station[i]
+  CTD_sal_corr[i] <- mayCTD[mayCTD$Station == k, 6]
+  corr_offset[i] <- CTD_sal_corr[i] - bottle_sal[i]
+}
+
+comparison <- as.data.frame(cbind(comparison, CTD_sal_corr, corr_offset))
+
+mean(corr_offset, na.rm = TRUE) # -0.00001244853
+mean(abs(corr_offset), na.rm = TRUE) # 0.007184927
+
+plot(comparison$bottle_sal ~ comparison$CTD_sal_corr)
+abline(0, 1)
+plot(comparison$corr_offset ~ comparison$bottle_sal)
+abline(h = 0, lty = 2)
+
+ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
+  geom_point() +
+  geom_point(aes(y = bottle_sal, col = "red")) +
+  ylim(30, 35) +
+  scale_color_discrete(labels = "bottle\nsample") +
+  theme_bw() +
+  theme(legend.title=element_blank())
+
+# looks good!
+
+mayCTD$SurfaceSal_Corr <- 1.003717 * mayCTD$SurfaceSalinity - 0.143717
 ```
