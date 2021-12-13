@@ -57,7 +57,7 @@ median(offset, na.rm = TRUE) # 0.01950791
 ggplot(data = comparison, aes(x = station, y = CTD_sal)) +
   geom_point() +
   geom_point(aes(y = bottle_sal, col = "red")) +
-  ylim(30, 35) +
+  ylim(32.5, 35) +
   scale_color_discrete(labels = "bottle\nsample") +
   theme_bw() +
   theme(legend.title=element_blank())
@@ -65,6 +65,7 @@ ggplot(data = comparison, aes(x = station, y = CTD_sal)) +
 plot(comparison$bottle_sal ~ comparison$CTD_sal)
 abline(0, 1)
 plot(comparison$offset ~ comparison$bottle_sal)
+abline(h = 0, lty = 2)
 
 # uncertainty in CTD = 0.001 mS/cm
 gsw_SP_from_C(35.001, 7, 46.0566) - gsw_SP_from_C(35, 7, 46.0566) # ~0.0011 PSU
@@ -102,12 +103,12 @@ abline(h = 0, lty = 2)
 ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
   geom_point() +
   geom_point(aes(y = bottle_sal, col = "red")) +
-  ylim(30, 35) +
+  ylim(32.5, 35) +
   scale_color_discrete(labels = "bottle\nsample") +
   theme_bw() +
   theme(legend.title=element_blank())
 
-# looks good!
+# looks better!
 
 mayCTD$SurfaceSal_Corr <- 1.003717 * mayCTD$SurfaceSalinity - 0.143717
 ```
@@ -133,6 +134,8 @@ depthCheck <- as.data.frame(cbind(mayBottomData$Station, radarDepth, CTDdepth)) 
 
 which(depthCheck$Check == TRUE) # all CTD depth readings are within 5m of recorded radar depth
 which(depthCheck$Check2 == TRUE) # all but two CTD depths are within 3m of recorded radar depth
+
+# station assignments seem correct!
 ```
 
 ## Write corrected salinity values to file
