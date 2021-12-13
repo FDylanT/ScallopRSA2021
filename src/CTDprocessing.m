@@ -419,44 +419,6 @@ may_salinity.Properties.VariableNames = {'Station', 'BottomDepth', 'BottomSalini
 
 writetable(may_salinity, "data/salinity/may_salinity_CTD.csv");
 
-%% Check what's up with station 63
-may2down_v2 = may2down_uncut;
-
-% profile 2 = station 63
-RSKplotprofiles(may2down_v2, 'profile', 2, 'channel', {'temperature', 'conductivity'});
-
-for i = 2
-    a = max(may2down_v2.data(i).values(:, 7));
-    b = max(may2down_v2.data(i).values(:, 7));
-    may2down_v2 = RSKtrim(may2down_v2, 'reference', 'depth', 'range', [a, b], 'profile', i, 'action', 'remove', 'visualize', i);
-end
-
-% check that data were removed
-RSKplotprofiles(may2down_v2, 'profile', 2, 'channel', {'temperature', 'conductivity'});
-
-% correct for analog-to-digital zero-order hold
-may2down_v2.channels(12:13) = [];
-may2down_v2 = RSKcorrecthold(may2down_v2, 'action', 'interp', 'visualize', 2);
-
-% low-pass filter
-may2down_v2 = RSKsmooth(may2down_v2, 'channel', {'temperature','conductivity'}, 'windowLength', 5, 'visualize', 2);
-
-% align conductivity & temp
-lag = RSKcalculateCTlag(may2down_v2);
-lag = -lag; % to advance temperature
-lag = median(lag); % select best lag for consistency among profiles
-may2down_v2 = RSKalignchannel(may2down_v2, 'channel', 'temperature', 'lag', lag, 'visualize', 2);
-
-% derive velocity
-may2down_v2 = RSKderivevelocity(may2down_v2);
-
-% remove loops
-may2down_v2 = RSKremoveloops(may2down_v2, 'threshold', 0.2, 'visualize', 2);
-
-% derive salinity
-may2down_v2 = RSKderivesalinity(may2down_v2);
-RSKplotprofiles(may2down_v2, 'profile', 2, 'channel', {'temperature', 'conductivity', 'salinity'});
-
 
 
 %% Load October rsk files
