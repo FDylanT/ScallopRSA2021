@@ -111,3 +111,48 @@ ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
 
 mayCTD$SurfaceSal_Corr <- 1.003717 * mayCTD$SurfaceSalinity - 0.143717
 ```
+
+## Check station assignments using depths
+```{r}
+mayBottomData <- read.csv("./data/MayCruiseData_12-13-21.csv") %>%
+  filter(Cast == "Deep") %>%
+  arrange(Station)
+
+CTDdepth <- rep(NA, 114)
+
+for (i in c(1:106)) {
+  k <- mayCTD$Station[i]
+  CTDdepth[k] <- mayCTD$BottomDepth[i]
+}
+
+radarDepth <- mayBottomData$Depth_meters
+
+depthCheck <- as.data.frame(cbind(mayBottomData$Station, radarDepth, CTDdepth)) %>%
+  mutate(Diff = radarDepth - CTDdepth) %>%
+  mutate(Check = abs(Diff) > 5, Check2 = abs(Diff) > 3)
+
+which(depthCheck$Check == TRUE) # all CTD depth readings are within 5m of recorded radar depth
+which(depthCheck$Check2 == TRUE) # all but two CTD depths are within 3m of recorded radar depth
+```
+
+## Write corrected salinity values to file
+```{r}
+BottomSal_Corr <- rep(NA, 114)
+SurfaceSal_Corr <- rep(NA, 114)
+
+for (i in c(1:106)) {
+  k <- mayCTD$Station[i]
+  BottomSal_Corr[k] <- mayCTD$BottomSal_Corr[i]
+  SurfaceSal_Corr[k] <- mayCTD$SurfaceSal_Corr[i]
+}
+
+Station <- rep(mayBottomData$Station, 2)
+Cast <- c(rep("Bottom", 114), rep("Surface", 114))
+Salinity_Corr <- c(BottomSal_Corr, SurfaceSal_Corr)
+
+may_corrected <- as.data.frame(cbind(Station, Cast, CTDdepth, Salinity_Corr)) %>%
+  mutate(Station = as.integer(Station)) %>%
+  arrange(Station)
+
+write.csv(may_corrected, "./data/salinity/may_salinity_corrected.csv", row.names = FALSE)
+```
