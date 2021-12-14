@@ -258,9 +258,11 @@ may2down = RSKderivesalinity(may2down);
 %% Bin-average profiles; then compare raw vs. processed data
 
 % bin-average by sea pressure (may1)
-may1down = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5);
+may1down = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 1, 'visualize', 20:22);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
+
+RSKplotprofiles(may1down_uncut, 'profile', 20:22, 'channel', {'temperature', 'conductivity', 'salinity'});
 
 % compare raw & processed data (may1)
 may1 = RSKreadprofiles(may1);
