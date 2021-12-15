@@ -145,10 +145,6 @@ Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
 Slope = 	 7.26344e-005
  9	Sample#:	RSA_001a	V(sample,ml)=	 18	C(HCl,M)=	 0.102211	V(end,ml) = 	 0.4167212R = 	 0.9999729TA(mM) = 	 2.3663	Count = 	 6
 
-Sample#:	rsa001b
-C(HCl,M)=	 0.102211		V(sample,ml)=	 18
-Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
- 0	 0	15:03:53	-55.8	7.888		22.3	Time-out
 Sample#:	rsa_001b
 C(HCl,M)=	 0.102211		V(sample,ml)=	 18
 Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
