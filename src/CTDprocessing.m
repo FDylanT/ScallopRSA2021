@@ -258,11 +258,9 @@ may2down = RSKderivesalinity(may2down);
 %% Bin-average profiles; then compare raw vs. processed data
 
 % bin-average by sea pressure (may1)
-may1down = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 1, 'visualize', 20:22);
+may1down = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 1);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
-
-RSKplotprofiles(may1down_uncut, 'profile', 20:22, 'channel', {'temperature', 'conductivity', 'salinity'});
 
 % compare raw & processed data (may1)
 may1 = RSKreadprofiles(may1);
@@ -285,7 +283,7 @@ h2 = RSKplotprofiles(may1down, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
 
 % bin-average by sea pressure (may2)
-may2down = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 0.5);
+may2down = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 1);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
 
@@ -344,6 +342,7 @@ may2down = RSKaddstationdata(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27,
 %% Extract salinity data
 
 stations = cell(112, 1);
+CTD_depth = NaN(112, 1);
 bottom_depth = NaN(112, 1);
 bottom_sal = NaN(112, 1);
 surface_depth = NaN(112, 1);
@@ -353,6 +352,7 @@ surface_sal = NaN(112, 1);
 for i = 1:62
     p = profiles1(i);
     stations(i) = may1down.data(p).station;
+    CTD_depth(i) = max(may1down_uncut.data(p).values(:, 7));
     [depth, index] = max(may1down.data(p).values(:, 7));
     sal = may1down.data(p).values(index, 8);
     while isnan(sal)
@@ -366,7 +366,7 @@ for i = 1:62
         surface_depth(i) = NaN;
         surface_sal(i) = NaN;
     else
-        [m, index] = min(abs(may1down.data(p).values(:, 7) - 0.5)); %find closest datapoint to 0.5m
+        [m, index] = min(abs(may1down.data(p).values(:, 7) - 1)); %find closest datapoint to 1m
         surface_depth(i) = may1down.data(p).values(index, 7);
         surface_sal(i) = may1down.data(p).values(index, 8);
     end
@@ -377,6 +377,7 @@ for i = 1:50
     p = profiles2(i);
     k = i + 62; % account for profiles in may1 file
     stations(k) = may2down.data(p).station;
+    CTD_depth(k) = max(may2down_uncut.data(p).values(:, 7));
     [depth, index] = max(may2down.data(p).values(:, 7));
     sal = may2down.data(p).values(index, 8);
     while isnan(sal)
@@ -390,7 +391,7 @@ for i = 1:50
         surface_depth(k) = NaN;
         surface_sal(k) = NaN;
     else
-        [m, index] = min(abs(may2down.data(p).values(:, 7) - 0.5)); %find closest datapoint to 0.5m
+        [m, index] = min(abs(may2down.data(p).values(:, 7) - 1)); %find closest datapoint to 1m
         surface_depth(k) = may2down.data(p).values(index, 7);
         surface_sal(k) = may2down.data(p).values(index, 8);
     end
@@ -398,17 +399,16 @@ end
 
 stations = str2double(stations);
 
-may_salinity = [stations bottom_depth bottom_sal surface_depth surface_sal];
+may_salinity = [stations CTD_depth bottom_depth bottom_sal surface_depth surface_sal];
 
 % determine whether doubled-up profiles are necessary
-%may_salinity(stations==13, :) % no difference in depth after binning; remove second
-%may_salinity(stations==53, :) % no difference in depth after binning; remove second
-%may_salinity(stations==82, :) % no difference in depth after binning; remove second
-%may_salinity(stations==103, :) % no difference in depth after binning; remove second
+%may_salinity(stations==13, :) % first goes deeper after binning; remove second
+%may_salinity(stations==82, :) % first goes deeper after binning; remove second
+%may_salinity(stations==103, :) % first goes deeper after binning; remove second
 
-%RSKplotprofiles(may1down_uncut, 'profile', 77:78, 'channel', {'temperature', 'conductivity'});
-%RSKplotprofiles(may1down, 'profile', 77:78, 'channel', {'temperature', 'salinity'});
-%may_salinity(stations==49, :) % salinity on first is more accurate; remove second
+%may_salinity(stations==49, :) % no difference in depth after binning; remove second
+
+%may_salinity(stations==53, :) % almost no difference in salinity; remove second
 
 %RSKplotprofiles(may1down_uncut, 'profile', 83:84, 'channel', {'temperature', 'conductivity'});
 %RSKplotprofiles(may1down, 'profile', 83:84, 'channel', {'temperature', 'salinity'});
@@ -417,7 +417,7 @@ may_salinity = [stations bottom_depth bottom_sal surface_depth surface_sal];
 may_salinity = array2table(may_salinity);
 may_salinity(isnan(surface_depth), :) = [];
 
-may_salinity.Properties.VariableNames = {'Station', 'BottomDepth', 'BottomSalinity', 'SurfaceDepth', 'SurfaceSalinity'};
+may_salinity.Properties.VariableNames = {'Station', 'CTDDepth', 'BottomDepth', 'BottomSalinity', 'SurfaceDepth', 'SurfaceSalinity'};
 
 writetable(may_salinity, "data/salinity/may_salinity_CTD.csv");
 
