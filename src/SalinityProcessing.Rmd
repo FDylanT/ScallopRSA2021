@@ -27,7 +27,7 @@ may_bottle <- read.csv("./data/salinity/may_salinity_bottle.csv")
 ```{r}
 for (i in 1:33) {
   k <- may_bottle$Station[i]
-  s <- mayCTD[mayCTD$Station == k, 3]
+  s <- mayCTD[mayCTD$Station == k, 4]
   print(c(k, s))
 }
 
@@ -41,15 +41,15 @@ offset <- rep(NA, 31)
 for (i in c(1:4, 6:7, 9:33)) {
   k <- may_bottle$Station[i]
   station[i] <- k
-  CTD_sal[i] <- mayCTD[mayCTD$Station == k, 3]
+  CTD_sal[i] <- mayCTD[mayCTD$Station == k, 4]
   bottle_sal[i] <- may_bottle[i, 2]
   offset[i] <- CTD_sal[i] - bottle_sal[i]
 }
 
 comparison <- as.data.frame(cbind(station, bottle_sal, CTD_sal, offset))
 
-mean(offset, na.rm = TRUE) # 0.02055761
-median(offset, na.rm = TRUE) # 0.01950791
+mean(offset, na.rm = TRUE) # 0.0196791
+median(offset, na.rm = TRUE) # 0.01988623
 ```
 
 ## Plot CTD data with bottle data
@@ -75,10 +75,10 @@ gsw_SP_from_C(35.001, 7, 46.0566) - gsw_SP_from_C(35, 7, 46.0566) # ~0.0011 PSU
 
 ## Correct CTD data given bottle data
 ```{r}
-lm1 <- lm(bottle_sal ~ CTD_sal, comparison) # bottle = 1.003717(CTD) - 0.143717
-summary(lm1)
+lm1 <- lm(bottle_sal ~ CTD_sal, comparison)
+summary(lm1) # bottle = 1.003579(CTD) - 0.138245 (bins start @ 1.0m)
 
-mayCTD$BottomSal_Corr <- 1.003717 * mayCTD$BottomSalinity - 0.143717
+mayCTD$BottomSal_Corr <- 1.003579 * mayCTD$BottomSalinity - 0.138245
 
 # check new offset
 CTD_sal_corr <- rep(NA, 31)
@@ -86,14 +86,14 @@ corr_offset <- rep(NA, 31)
 
 for (i in c(1:4, 6:7, 9:33)) {
   k <- may_bottle$Station[i]
-  CTD_sal_corr[i] <- mayCTD[mayCTD$Station == k, 6]
+  CTD_sal_corr[i] <- mayCTD[mayCTD$Station == k, 7]
   corr_offset[i] <- CTD_sal_corr[i] - bottle_sal[i]
 }
 
 comparison <- as.data.frame(cbind(comparison, CTD_sal_corr, corr_offset))
 
-mean(corr_offset, na.rm = TRUE) # -0.00001244853
-mean(abs(corr_offset), na.rm = TRUE) # 0.007184927
+mean(corr_offset, na.rm = TRUE) # 0.000005858112
+mean(abs(corr_offset), na.rm = TRUE) # 0.006372453
 
 plot(comparison$bottle_sal ~ comparison$CTD_sal_corr)
 abline(0, 1)
@@ -110,7 +110,7 @@ ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
 
 # looks better!
 
-mayCTD$SurfaceSal_Corr <- 1.003717 * mayCTD$SurfaceSalinity - 0.143717
+mayCTD$SurfaceSal_Corr <- 1.003579 * mayCTD$SurfaceSalinity - 0.138245
 ```
 
 ## Check station assignments using depths
@@ -123,7 +123,7 @@ CTDdepth <- rep(NA, 114)
 
 for (i in c(1:106)) {
   k <- mayCTD$Station[i]
-  CTDdepth[k] <- mayCTD$BottomDepth[i]
+  CTDdepth[k] <- mayCTD$CTDDepth[i]
 }
 
 radarDepth <- mayBottomData$Depth_meters
@@ -135,7 +135,7 @@ depthCheck <- as.data.frame(cbind(mayBottomData$Station, radarDepth, CTDdepth)) 
 which(depthCheck$Check == TRUE) # all CTD depth readings are within 5m of recorded radar depth
 which(depthCheck$Check2 == TRUE) # all but two CTD depths are within 3m of recorded radar depth
 
-# station assignments seem correct!
+# station assignments look correct!
 ```
 
 ## Write corrected salinity values to file
@@ -147,7 +147,17 @@ for (i in c(1:106)) {
   k <- mayCTD$Station[i]
   BottomSal_Corr[k] <- mayCTD$BottomSal_Corr[i]
   SurfaceSal_Corr[k] <- mayCTD$SurfaceSal_Corr[i]
+  if (k == 4 | k == 5 | k == 8 | k == 9 | k == 12 | k == 15 | k == 17 | k == 20 | k == 21 | 
+      k == 24 | k == 25 | k == 34 | k == 37 | k == 42 | k == 44 | k == 49 | k == 58 | k == 59 | 
+      k == 64 | k == 76 | k == 80 | k == 81 | k == 82 | k == 84 | k == 87 | k == 88 | k == 97 | 
+      k == 99 | k == 100 | k == 103 | k == 105 | k == 106 | k == 109) {
+    BottomSal_Corr[k] <- may_bottle[may_bottle$Station == k, 2]
+  }
 }
+
+# add stations not covered by CTD data
+BottomSal_Corr[12] <- may_bottle[may_bottle$Station == 12, 2]
+BottomSal_Corr[81] <- may_bottle[may_bottle$Station == 81, 2]
 
 Station <- rep(mayBottomData$Station, 2)
 Cast <- c(rep("Bottom", 114), rep("Surface", 114))
@@ -158,4 +168,38 @@ may_corrected <- as.data.frame(cbind(Station, Cast, CTDdepth, Salinity_Corr)) %>
   arrange(Station)
 
 write.csv(may_corrected, "./data/salinity/may_salinity_corrected.csv", row.names = FALSE)
+```
+
+## Check surface salinity values against sal-alk relationship
+```{r}
+setwd("~/Desktop/Repos/ScallopRSA2021/TA_processing")
+
+TA <- read.csv("Station_TA.csv") %>%
+  mutate(Station = str_extract(BottleID, "0[0-9]{2}")) %>%
+  mutate(Cast = rep(NA, 96))
+
+for(i in 1:96) {
+  c <- str_extract(TA$BottleID[i], ".$")
+  if(c == "a" | c == "A") {
+    TA$Cast[i] <- "Bottom"
+  } else if (c == "b" | c == "B") {
+    TA$Cast[i] <- "Surface"
+  }
+}
+
+TA$Cast[1] <- "Surface" # correct for flipped bottles
+TA$Cast[2] <- "Bottom"
+
+TA %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = Salinity, y = TA_avg)) +
+    geom_point() +
+    ylim(c(2100, 2300)) +
+    theme_bw()
+
+ggplot(TA, aes(x = Salinity, y = TA_avg, col = Cast)) +
+  geom_point() +
+  scale_colour_manual(values = c("black", "red")) +
+  ylim(c(2100, 2300)) +
+  theme_bw()
 ```
