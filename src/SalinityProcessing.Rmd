@@ -20,7 +20,7 @@ library(gsw)
 setwd("~/Desktop/Repos/ScallopRSA2021")
 
 mayCTD <- read.csv("./data/salinity/may_salinity_CTD.csv")
-may_bottle <- read.csv("./data/salinity/may_salinity_bottle.csv")
+may_bottle <- read.csv("./data/salinity/may_salinity_bottles.csv")
 ```
 
 ## Calculate CTD offset
@@ -143,27 +143,36 @@ which(depthCheck$Check2 == TRUE) # all but two CTD depths are within 3m of recor
 BottomSal_Corr <- rep(NA, 114)
 SurfaceSal_Corr <- rep(NA, 114)
 
-for (i in c(1:106)) {
+for (i in 1:length(mayCTD$Station)) {
   k <- mayCTD$Station[i]
   BottomSal_Corr[k] <- mayCTD$BottomSal_Corr[i]
   SurfaceSal_Corr[k] <- mayCTD$SurfaceSal_Corr[i]
-  if (k == 4 | k == 5 | k == 8 | k == 9 | k == 12 | k == 15 | k == 17 | k == 20 | k == 21 | 
-      k == 24 | k == 25 | k == 34 | k == 37 | k == 42 | k == 44 | k == 49 | k == 58 | k == 59 | 
-      k == 64 | k == 76 | k == 80 | k == 81 | k == 82 | k == 84 | k == 87 | k == 88 | k == 97 | 
-      k == 99 | k == 100 | k == 103 | k == 105 | k == 106 | k == 109) {
-    BottomSal_Corr[k] <- may_bottle[may_bottle$Station == k, 2]
+}
+
+# remove duplicate instance of RSA_021A
+which(may_bottle$BottleID == "RSA_021A")
+
+may_bottle <- may_bottle %>%
+    filter(!row_number() %in% 39)
+
+# add extra sal values
+for (i in 1:length(may_bottle$BottleID)) {
+  b <- may_bottle$BottleID[i]
+  k <- as.numeric(str_remove(str_extract(b, "[0-9]{3}"), "^0+"))
+  c <- str_extract(b, ".$")
+  if(c == "A") {
+    BottomSal_Corr[k] <- may_bottle[may_bottle$BottleID == b, 2]
+  } else if (c == "B") {
+    SurfaceSal_Corr[k] <- may_bottle[may_bottle$BottleID == b, 2]
   }
 }
 
-# add stations not covered by CTD data
-BottomSal_Corr[12] <- may_bottle[may_bottle$Station == 12, 2]
-BottomSal_Corr[81] <- may_bottle[may_bottle$Station == 81, 2]
-
 Station <- rep(mayBottomData$Station, 2)
 Cast <- c(rep("Bottom", 114), rep("Surface", 114))
+CTD_depth <- rep(CTDdepth, 2)
 Salinity_Corr <- c(BottomSal_Corr, SurfaceSal_Corr)
 
-may_corrected <- as.data.frame(cbind(Station, Cast, CTDdepth, Salinity_Corr)) %>%
+may_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Salinity_Corr)) %>%
   mutate(Station = as.integer(Station)) %>%
   arrange(Station)
 
@@ -176,9 +185,9 @@ setwd("~/Desktop/Repos/ScallopRSA2021/TA_processing")
 
 TA <- read.csv("Station_TA.csv") %>%
   mutate(Station = str_extract(BottleID, "0[0-9]{2}")) %>%
-  mutate(Cast = rep(NA, 96))
+  mutate(Cast = rep(NA, 103))
 
-for(i in 1:96) {
+for(i in 1:length(TA$BottleID)) {
   c <- str_extract(TA$BottleID[i], ".$")
   if(c == "a" | c == "A") {
     TA$Cast[i] <- "Bottom"
@@ -194,12 +203,13 @@ TA %>%
   filter(Cast == "Bottom") %>%
   ggplot(aes(x = Salinity, y = TA_avg)) +
     geom_point() +
+    geom_smooth(method = "lm") +
     ylim(c(2100, 2300)) +
     theme_bw()
 
 ggplot(TA, aes(x = Salinity, y = TA_avg, col = Cast)) +
   geom_point() +
-  scale_colour_manual(values = c("black", "red")) +
+  scale_color_manual(values = c("black", "red")) +
   ylim(c(2100, 2300)) +
   theme_bw()
 ```
