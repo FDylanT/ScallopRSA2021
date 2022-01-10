@@ -2,10 +2,10 @@
 
 %% Load May rsk files
 
-may1 = RSKopen('data/CTD_raw/RSA_20210504_060.rsk');
+may1 = RSKopen('data/CTD/RSK_raw/RSA_20210504_060.rsk');
 may1 = RSKreaddata(may1, 't1', datenum(2021, 05, 02), 't2', datenum(2021, 05, 06));
 
-may2 = RSKopen('data/CTD_raw/RSA_20210506_113.rsk');
+may2 = RSKopen('data/CTD/RSK_raw/RSA_20210506_113.rsk');
 may2 = RSKreaddata(may2, 't1', datenum(2021, 05, 02), 't2', datenum(2021, 05, 06));
 
 % print list of all channels
@@ -258,7 +258,7 @@ may2down = RSKderivesalinity(may2down);
 %% Bin-average profiles; then compare raw vs. processed data
 
 % bin-average by sea pressure (may1)
-may1down = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 1);
+may1down = RSKbinaverage(may1down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 2);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
 
@@ -283,7 +283,7 @@ h2 = RSKplotprofiles(may1down, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
 
 % bin-average by sea pressure (may2)
-may2down = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 1);
+may2down = RSKbinaverage(may2down, 'binBy', 'Depth', 'binSize', 1, 'boundary', 2);
 h = findobj(gcf, 'type', 'line');
 set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
 
@@ -340,7 +340,6 @@ stations2 = {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '
 may2down = RSKaddstationdata(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'station', stations2);
 
 %% Extract salinity data
-
 stations = cell(112, 1);
 CTD_depth = NaN(112, 1);
 bottom_depth = NaN(112, 1);
@@ -425,13 +424,13 @@ writetable(may_salinity, "data/salinity/may_salinity_CTD.csv");
 
 %% Load October rsk files
 
-oct1 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
+oct1 = RSKopen('data/CTD/RSK_raw/RSA_20211006_021.rsk');
 oct1 = RSKreaddata(oct1, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
 
-oct2 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
+oct2 = RSKopen('data/CTD/RSK_raw/RSA_20211006_021.rsk');
 oct2 = RSKreaddata(oct2, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
 
-oct3 = RSKopen('data/CTD_raw/RSA_20211006_021.rsk');
+oct3 = RSKopen('data/CTD/RSK_raw/RSA_20211006_021.rsk');
 oct3 = RSKreaddata(oct3, 't1', datenum(2021, 10, 05), 't2', datenum(2021, 10, 10));
 
 % ...
