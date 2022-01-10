@@ -21,6 +21,9 @@ setwd("~/Desktop/Repos/ScallopRSA2021")
 
 mayCTD <- read.csv("./data/salinity/may_salinity_CTD.csv")
 may_bottle <- read.csv("./data/salinity/may_salinity_bottles.csv")
+mayBottomData <- read.csv("./data/MayCruiseData_12-13-21.csv") %>%
+  filter(Cast == "Deep") %>%
+  arrange(Station)
 ```
 
 ## Calculate CTD offset
@@ -113,19 +116,18 @@ ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
 mayCTD$SurfaceSal_Corr <- 1.003579 * mayCTD$SurfaceSalinity - 0.138245
 ```
 
-## Check station assignments using depths
+## Extract CTD depths
 ```{r}
-mayBottomData <- read.csv("./data/MayCruiseData_12-13-21.csv") %>%
-  filter(Cast == "Deep") %>%
-  arrange(Station)
-
 CTDdepth <- rep(NA, 114)
 
 for (i in c(1:106)) {
   k <- mayCTD$Station[i]
   CTDdepth[k] <- mayCTD$CTDDepth[i]
 }
+```
 
+## Check station assignments using depths
+```{r}
 radarDepth <- mayBottomData$Depth_meters
 
 depthCheck <- as.data.frame(cbind(mayBottomData$Station, radarDepth, CTDdepth)) %>%
@@ -155,7 +157,7 @@ which(may_bottle$BottleID == "RSA_021A")
 may_bottle <- may_bottle %>%
     filter(!row_number() %in% 39)
 
-# add extra sal values
+# add extra bottle sal values as replacements
 for (i in 1:length(may_bottle$BottleID)) {
   b <- may_bottle$BottleID[i]
   k <- as.numeric(str_remove(str_extract(b, "[0-9]{3}"), "^0+"))
@@ -178,6 +180,11 @@ may_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Salinity_Corr)) %
 
 write.csv(may_corrected, "./data/salinity/may_salinity_corrected.csv", row.names = FALSE)
 ```
+
+
+
+
+
 
 ## Check surface salinity values against sal-alk relationship
 ```{r}
@@ -212,4 +219,45 @@ ggplot(TA, aes(x = Salinity, y = TA_avg, col = Cast)) +
   scale_color_manual(values = c("black", "red")) +
   ylim(c(2100, 2300)) +
   theme_bw()
+```
+
+
+
+
+
+
+#### Check salinity cut-off using bottle values
+```{r}
+mayCTD0.5 <- read.csv("./data/salinity/may_salinity_CTD_0-5.csv")
+mayCTD1 <- read.csv("./data/salinity/may_salinity_CTD_1.csv")
+mayCTD1.5 <- read.csv("./data/salinity/may_salinity_CTD_1-5.csv")
+mayCTD2 <- read.csv("./data/salinity/may_salinity_CTD_2.csv")
+mayCTD2.5 <- read.csv("./data/salinity/may_salinity_CTD_2-5.csv")
+mayCTD3 <- read.csv("./data/salinity/may_salinity_CTD_3.csv")
+mayCTD3.5 <- read.csv("./data/salinity/may_salinity_CTD_3-5.csv")
+
+cutoff <- as.data.frame(cbind(1:114, rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114)))
+colnames(cutoff) <- c("Station", "BottleSal", "CTDSal0.5", "CTDSal1", "CTDSal1.5", "CTDSal2", "CTDSal2.5", "CTDSal3", "CTDSal3.5")
+
+for (i in 1:length(may_bottle$BottleID)) {
+  b <- may_bottle$BottleID[i]
+  k <- as.numeric(str_remove(str_extract(b, "[0-9]{3}"), "^0+"))
+  c <- str_extract(b, ".$")
+  if(c == "B") {
+    cutoff$BottleSal[k] <- may_bottle[may_bottle$BottleID == b, 2]
+  }
+}
+
+for (i in 1:length(mayCTD$Station)) {
+  k <- mayCTD$Station[i]
+  cutoff$CTDSal0.5[k] <- 1.003579 * mayCTD0.5$SurfaceSalinity[i] - 0.138245
+  cutoff$CTDSal1[k] <- 1.003579 * mayCTD1$SurfaceSalinity[i] - 0.138245
+  cutoff$CTDSal1.5[k] <- 1.003579 * mayCTD1.5$SurfaceSalinity[i] - 0.138245
+  cutoff$CTDSal2[k] <- 1.003579 * mayCTD2$SurfaceSalinity[i] - 0.138245
+  cutoff$CTDSal2.5[k] <- 1.003579 * mayCTD2.5$SurfaceSalinity[i] - 0.138245
+  cutoff$CTDSal3[k] <- 1.003579 * mayCTD3$SurfaceSalinity[i] - 0.138245
+  cutoff$CTDSal3.5[k] <- 1.003579 * mayCTD3.5$SurfaceSalinity[i] - 0.138245
+}
+
+cutoff <- na.omit(cutoff)
 ```
