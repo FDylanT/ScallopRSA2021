@@ -683,10 +683,6 @@ Slope = 	 7.581605e-005
 Sample#:	esl06b_13
 C(HCl,M)=	 9.6693e-002		V(sample,ml)=	 18
 Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
- 0	 0	19:21:41	128.27	4.732		23.4	Time-out
-Sample#:	esl06b_13
-C(HCl,M)=	 9.6693e-002		V(sample,ml)=	 18
-Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
  0	 0	19:32:36	-63.8	8.039		23.4	
  1	 0.452	19:34:46	188.9	3.688	626.041689998914	23.4	
  2	 0.474	19:35:41	198.05	3.531	900.851059480611	23.4	
