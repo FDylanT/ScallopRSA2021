@@ -96,15 +96,6 @@ Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
 Slope = 	 8.327553e-005
  6	Sample#:	ESL07a_16	V(sample,ml)=	 18	C(HCl,M)=	 9.2881e-002	V(end,ml) = 	 0.4181708R = 	 0.9999581TA(mM) = 	 2.1578	Count = 	 6
 
-Calibration Date & Time	06-18-2021	11:22:24
-T(C) = 	 23.4
-	pH	EMF(mV)
-	 4.01	 169.9
-	 7	-5.1
-	 10.01	-181.8
-pH =	 6.909994	-1.705995e-002	 * EMF(mV)
-	C(HCl)(mM)	 92.751
-
 Calibration Date & Time	06-18-2021	11:23:03
 T(C) = 	 23.3
 	pH	EMF(mV)
@@ -244,9 +235,6 @@ Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
 Slope = 	 8.301589e-005
  16	Sample#:	RSA_070A	V(sample,ml)=	 18	C(HCl,M)=	 9.2751e-002	V(end,ml) = 	 0.4412712R = 	 0.9999729TA(mM) = 	 2.2738	Count = 	 6
 
-Sample#:	RSA_070A
-C(HCl,M)=	 9.2751e-002		V(sample,ml)=	 18
-Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
 Sample#:	RSA_070A
 C(HCl,M)=	 9.2751e-002		V(sample,ml)=	 18
 Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit

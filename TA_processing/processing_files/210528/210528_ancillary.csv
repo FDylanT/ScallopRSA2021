@@ -1,7 +1,7 @@
 ﻿TA Ancillary File,,,
 Date:,5/28/21,,
 Operator:,LC,,
-Acid Batch (yymmdd):,,,
+Acid Batch (yymmdd):,210524,,
 Certified CRM TA (umolkg-1):,2178.03,,
 Certified CRM Salinity:,32.291,,
 Calibration Temperature:,23.2,,
@@ -11,11 +11,11 @@ esl06b_15,23.2,32.291,50
 RSA_036a,23.3,32.927,100
 RSA_036b,23.3,32.981,100
 RSA_037a,23.3,32.837,100
-RSA_037b,23.3,32.750,100
+RSA_037b,23.3,32.75,100
 RSA_038a,23.3,32.887,100
 RSA_038b,23.3,33.039,100
-RSA_039a,23.3,32.740,100
-RSA_039b,23.3,32.670,100
+RSA_039a,23.3,32.74,100
+RSA_039b,23.3,32.67,100
 RSA_040a,23.3,32.843,100
 RSA_040b,23.3,32.838,100
 RSA_041a,23.3,32.816,100
