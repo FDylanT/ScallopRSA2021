@@ -300,7 +300,7 @@ Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
 Slope = 	 8.04549e-005
  21	Sample#:	RSA_031b	V(sample,ml)=	 18	C(HCl,M)=	 9.2099e-002	V(end,ml) = 	 0.4412925R = 	 0.9999219TA(mM) = 	 2.2579	Count = 	 6
 
-Sample#:	RSA_32a
+Sample#:	RSA_032a
 C(HCl,M)=	 9.2099e-002		V(sample,ml)=	 18
 Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
  0	 0	14:54:54	-57.9	7.928		23.4	
@@ -311,9 +311,9 @@ Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
  5	 0.656	15:01:54	225.3	3.056	2668.06075110693	23.4	
  6	 0.702	15:03:29	230.2	2.972	3247.53326767629	23.4	
 Slope = 	 8.006961e-005
- 22	Sample#:	RSA_32a	V(sample,ml)=	 18	C(HCl,M)=	 9.2099e-002	V(end,ml) = 	 0.4425337R = 	 0.9999656TA(mM) = 	 2.2643	Count = 	 6
+ 22	Sample#:	RSA_032a	V(sample,ml)=	 18	C(HCl,M)=	 9.2099e-002	V(end,ml) = 	 0.4425337R = 	 0.9999656TA(mM) = 	 2.2643	Count = 	 6
 
-Sample#:	RSA_32a
+Sample#:	RSA_032a
 C(HCl,M)=	 9.2099e-002		V(sample,ml)=	 18
 Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
  0	 0	15:10:34	-57.95	7.928		23.4	
@@ -324,7 +324,7 @@ Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
  5	 0.656	15:16:44	225.3	3.056	2668.06075110693	23.4	
  6	 0.702	15:17:39	230.2	2.972	3247.53326767629	23.4	
 Slope = 	 8.01385e-005
- 23	Sample#:	RSA_32a	V(sample,ml)=	 18	C(HCl,M)=	 9.2099e-002	V(end,ml) = 	 0.4423236R = 	 0.9999697TA(mM) = 	 2.2632	Count = 	 6
+ 23	Sample#:	RSA_032a	V(sample,ml)=	 18	C(HCl,M)=	 9.2099e-002	V(end,ml) = 	 0.4423236R = 	 0.9999697TA(mM) = 	 2.2632	Count = 	 6
 
 Sample#:	RSA_032b
 C(HCl,M)=	 9.2099e-002		V(sample,ml)=	 18
