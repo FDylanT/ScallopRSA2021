@@ -97,7 +97,7 @@ stations$Long <- -(Long_split$V1 + Long_split$V2)
 ## Add scallop data to stations df
 ```{r}
 maySites <- may %>%
-  rename(Station = Site)
+  rename(Station = Site) %>%
   group_by(Station) %>%
   summarize(ShellHt_mm = mean(ShellHt_mm, na.rm = TRUE), ShellWt_g = mean(ShellWt_g, na.rm = TRUE)) %>%
   mutate(LinDensity = ShellWt_g / ShellHt_mm)
