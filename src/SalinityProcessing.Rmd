@@ -23,7 +23,7 @@ setwd("~/Desktop/Repos/ScallopRSA2021")
 
 mayCTD <- read.csv("./data/salinity/may_salinity_CTD.csv")
 may_bottle <- read.csv("./data/salinity/may_salinity_bottles.csv")
-mayBottomData <- read.csv("./data/MayCruiseData_12-13-21.csv") %>%
+mayBottomData <- read.csv("./data/MayCruiseData.csv") %>%
   filter(Cast == "Deep") %>%
   arrange(Station)
 ```
@@ -181,46 +181,6 @@ may_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Salinity_Corr)) %
   arrange(Station)
 
 write.csv(may_corrected, "./data/salinity/may_salinity_corrected.csv", row.names = FALSE)
-```
-
-
-
-
-
-
-## Check surface salinity values against sal-alk relationship
-```{r}
-setwd("~/Desktop/Repos/ScallopRSA2021/TA_processing")
-
-TA <- read.csv("Station_TA.csv") %>%
-  mutate(Station = str_extract(BottleID, "0[0-9]{2}")) %>%
-  mutate(Cast = rep(NA, 103))
-
-for(i in 1:length(TA$BottleID)) {
-  c <- str_extract(TA$BottleID[i], ".$")
-  if(c == "a" | c == "A") {
-    TA$Cast[i] <- "Bottom"
-  } else if (c == "b" | c == "B") {
-    TA$Cast[i] <- "Surface"
-  }
-}
-
-TA$Cast[1] <- "Surface" # correct for flipped bottles
-TA$Cast[2] <- "Bottom"
-
-TA %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = Salinity, y = TA_avg)) +
-    geom_point() +
-    geom_smooth(method = "lm") +
-    ylim(c(2100, 2300)) +
-    theme_bw()
-
-ggplot(TA, aes(x = Salinity, y = TA_avg, col = Cast)) +
-  geom_point() +
-  scale_color_manual(values = c("black", "red")) +
-  ylim(c(2100, 2300)) +
-  theme_bw()
 ```
 
 
