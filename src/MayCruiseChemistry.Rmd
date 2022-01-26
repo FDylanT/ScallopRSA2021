@@ -404,6 +404,17 @@ surfaceSal <- map +
 surfaceSal
 ```
 
+## Look at chlorophyll data
+```{r}
+library(tidync)
+```
+
+
+
+
+
+
+
 
 
 
