@@ -1,0 +1,37 @@
+---
+title: "QC_Check"
+author: "Dylan Titmuss"
+date: "1/25/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+```{r}
+library(tidyverse)
+```
+
+## Check against QC'd data
+```{r}
+may <- read.csv("./data/MayCruiseData.csv") %>%
+  rename(Lat = Latitude_degrees_start,
+         Long = Longitude_degrees_start,
+         depth = Depth_meters) %>%
+  select(Station, Cast, Lat, Long, depth) %>%
+  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
+
+min(may$Lat)
+max(may$Lat)
+min(may$Long)
+max(may$Long)
+
+QC <- read.csv("./data/bottle_satellite_data_clean.csv") %>%
+  filter(Month == 4 | Month == 5) %>%
+  filter(Latitude > 40 & Latitude < 41) %>%
+  filter(Longitude < -68 & Longitude > -70)
+```
