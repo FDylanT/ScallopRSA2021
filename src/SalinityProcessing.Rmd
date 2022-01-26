@@ -21,10 +21,10 @@ library(gsw)
 ```{r}
 setwd("~/Desktop/Repos/ScallopRSA2021")
 
-mayCTD <- read.csv("./data/salinity/may_salinity_CTD.csv")
+mayCTD <- read.csv("./data/CTD/may_CTD.csv")
 may_bottle <- read.csv("./data/salinity/may_salinity_bottles.csv")
 mayBottomData <- read.csv("./data/MayCruiseData.csv") %>%
-  filter(Cast == "Deep") %>%
+  filter(Cast == "Bottom") %>%
   arrange(Station)
 ```
 
@@ -32,7 +32,7 @@ mayBottomData <- read.csv("./data/MayCruiseData.csv") %>%
 ```{r}
 for (i in 1:33) {
   k <- may_bottle$Station[i]
-  s <- mayCTD[mayCTD$Station == k, 4]
+  s <- mayCTD$BottomSalinity[mayCTD$Station == k]
   print(c(k, s))
 }
 
@@ -46,7 +46,7 @@ offset <- rep(NA, 31)
 for (i in c(1:4, 6:7, 9:33)) {
   k <- may_bottle$Station[i]
   station[i] <- k
-  CTD_sal[i] <- mayCTD[mayCTD$Station == k, 4]
+  CTD_sal[i] <- mayCTD$BottomSalinity[mayCTD$Station == k]
   bottle_sal[i] <- may_bottle[i, 2]
   offset[i] <- CTD_sal[i] - bottle_sal[i]
 }
@@ -91,7 +91,7 @@ corr_offset <- rep(NA, 31)
 
 for (i in c(1:4, 6:7, 9:33)) {
   k <- may_bottle$Station[i]
-  CTD_sal_corr[i] <- mayCTD[mayCTD$Station == k, 7]
+  CTD_sal_corr[i] <- mayCTD$BottomSal_Corr[mayCTD$Station == k]
   corr_offset[i] <- CTD_sal_corr[i] - bottle_sal[i]
 }
 
@@ -142,8 +142,17 @@ which(depthCheck$Check2 == TRUE) # all but two CTD depths are within 3m of recor
 # station assignments look correct!
 ```
 
-## Write corrected salinity values to file
+## Write temp values & corrected salinity values to file
 ```{r}
+BottomTemp <- rep(NA, 114)
+SurfaceTemp <- rep(NA, 114)
+
+for (i in 1:length(mayCTD$Station)) {
+  k <- mayCTD$Station[i]
+  BottomTemp[k] <- mayCTD$BottomTemp[i]
+  SurfaceTemp[k] <- mayCTD$SurfaceTemp[i]
+}
+  
 BottomSal_Corr <- rep(NA, 114)
 SurfaceSal_Corr <- rep(NA, 114)
 
@@ -174,9 +183,10 @@ for (i in 1:length(may_bottle$BottleID)) {
 Station <- rep(mayBottomData$Station, 2)
 Cast <- c(rep("Bottom", 114), rep("Surface", 114))
 CTD_depth <- rep(CTDdepth, 2)
+Temp <- c(BottomTemp, SurfaceTemp)
 Salinity_Corr <- c(BottomSal_Corr, SurfaceSal_Corr)
 
-may_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Salinity_Corr)) %>%
+may_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Temp, Salinity_Corr)) %>%
   mutate(Station = as.integer(Station)) %>%
   arrange(Station)
 
