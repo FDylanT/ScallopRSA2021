@@ -12,7 +12,9 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
-library(ggmap)
+library(marmap)
+library(mapdata)
+library(mapproj)
 library(sf)
 library(numform)
 library(sp)
@@ -44,54 +46,73 @@ ggplot(may, aes(x = Site, y = ShellWt_g)) +
 
 ggplot(may, aes(x = Site, y = ShellWt_g / ShellHt_mm)) +
   geom_boxplot() +
-  labs(y = "Ratio of Shell Weight to Shell Height (g/mm)", title = "\"Linear Density\" of Scallop Shells") +
+  labs(y = "Ratio of Shell Weight to Shell Height (g/mm)", title = "Linear Density of Scallop Shells") +
   theme_bw()
 ```
 
-## Register Google API key
-```{r, include = FALSE}
-register_google(key = "AIzaSyBvvS_nvTml09h56OWd0Oniktayi0L8WDU")
-```
-
-## Load satellite map
+## Create map
 ```{r}
-GB_map <- get_map(c(-68.5247, 40.8155), maptype = "satellite", zoom = 7, source = "google")
+# Create base map with NOAA data
+GB_bathy <- getNOAA.bathy(lon1 = -70.5, lon2 = -66, lat1 = 40, lat2 = 42.5, resolution = 1)
 
-map <- ggmap(GB_map) +
-  coord_sf(crs = st_crs(4326)) +
-  xlim(c(-71, -65.5)) +
-  scale_y_continuous(breaks = c(40, 41, 42), limits = c(39.5, 42.5)) +
-  theme(axis.title = element_blank())
+ggbathy <- GB_bathy %>%
+  fortify() %>%
+  mutate(lat = y, long = x, depth = z) %>%
+  select(-c(x, y, z)) %>%
+  mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180, -780, -1380, -1980, -2580, -3180, -Inf)))
 
-map
+# get regional polygons
+reg = map_data("world2Hires")
+reg = subset(reg, region %in% 'USA')
+
+# convert lat longs
+reg$long = (360 - reg$long)*-1
+
+map <- ggplot() +
+  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
+  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), guide = "none") +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(breaks = c(40, 41, 42), expand = c(0, 0)) +
+  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+               fill = "darkgrey", color = NA) +
+  coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
+  theme(axis.title = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
 ```
 
 ## Load station data & convert coordinates
 ```{r}
-stations <- read.csv("./data/CruiseTrack_October.csv")
-str(stations)
+stations <- read.csv("./data/MayCruiseData.csv") %>%
+  rename(Lat = Latitude_degrees_start,
+         Long = Longitude_degrees_start,
+         Depth = Depth_meters) %>%
+  mutate(Tow = ifelse(is.na(Tow_start_time), FALSE, TRUE)) %>%
+  select(Station, Cast, Lat, Long, Tow, Depth) %>%
+  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
 
-chd <- substr(stations$Lat, 3, 4)[1]
+chd <- substr(stations$Lat, 3, 3)[1]
 
 # convert latitude from DM to DD
-Lat_split <- str_split_fixed(stations$Lat, chd, 2) %>%
+Lat_split_may <- str_split_fixed(stations$Lat, chd, 2) %>%
   as.data.frame()
-Lat_split$V2 <- str_remove_all(Lat_split$V2, pattern = "'") %>%
+Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
   as.numeric()
-Lat_split$V2 <- Lat_split$V2/60
-Lat_split$V1 <- as.numeric(Lat_split$V1)
+Lat_split_may$V2 <- Lat_split_may$V2/60
+Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
 
-stations$Lat <- Lat_split$V1 + Lat_split$V2
+stations$Lat <- Lat_split_may$V1 + Lat_split_may$V2
 
 # convert longitude from DM to DD
-Long_split <- str_split_fixed(stations$Long, chd, 2) %>%
+Long_split_may <- str_split_fixed(stations$Long, chd, 2) %>%
   as.data.frame()
-Long_split$V2 <- str_remove_all(Long_split$V2, pattern = "'") %>%
+Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
   as.numeric()
-Long_split$V2 <- Long_split$V2/60
-Long_split$V1 <- as.numeric(Long_split$V1)
+Long_split_may$V2 <- Long_split_may$V2/60
+Long_split_may$V1 <- as.numeric(Long_split_may$V1)
 
-stations$Long <- -(Long_split$V1 + Long_split$V2)
+stations$Long <- -(Long_split_may$V1 + Long_split_may$V2)
 ```
 
 ## Add scallop data to stations df
@@ -111,8 +132,8 @@ stations <- right_join(stations, maySites, by = "Station")
 ## Add station points to map
 ```{r}
 stations_SPDF <- SpatialPointsDataFrame(coords = stations[ , c("Long","Lat")],
-                                        data = stations[ ,c("Long", "Lat", "Station", "Tow", "ShellHt_mm",
-                                                            "ShellWt_g", "LinDensity")],
+                                        data = stations[ ,c("Long", "Lat", "Station", "Tow",
+                                                            "ShellHt_mm", "ShellWt_g", "LinDensity")],
                                         proj4string = CRS("+init=epsg:4326"))
 
 stations_sf <- st_as_sf(stations_SPDF)
@@ -122,11 +143,22 @@ heights <- map +
   geom_sf(data = stations_sf, aes(size = ShellHt_mm, fill = Tow, shape = Tow), inherit.aes = FALSE) +
   geom_sf_text(data = stations_sf, aes(label = Station, colour = Tow), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
   scale_size_continuous(range = c(2, 7), name = "Mean Shell Height (mm)") +
-  scale_fill_manual(values = c("white", "black"), guide = "none") +
-  scale_shape_manual(values = c(21, 22), guide = "none") +
-  scale_colour_manual(values = c("white", "black"), guide = "none") +
+  #scale_fill_manual(values = c("white", "black"), guide = "none") +
+  #scale_shape_manual(values = c(21, 22), guide = "none") +
+  #scale_colour_manual(values = c("white", "black"), guide = "none") +
   labs(title = "Variation in Scallop Shell Size Across Georges Bank") +
   coord_sf(crs = st_crs(4326)) +
+  theme(plot.title = element_text(size = 17, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 13),
+        legend.title = element_text(size = 14, face = "bold"),
+        legend.text = element_text(size = 12))
+
+heights <- map +
+  geom_sf(data = stations_sf, aes(size = ShellHt_mm), inherit.aes = FALSE) +
+  geom_sf_text(data = stations_sf, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
+  scale_size_continuous(range = c(2, 7), name = "Mean Shell Height (mm)") +
+  labs(title = "Variation in Scallop Shell Size Across Georges Bank") +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   theme(plot.title = element_text(size = 17, face = "bold", hjust = 0.5),
         axis.text = element_text(size = 13),
         legend.title = element_text(size = 14, face = "bold"),
@@ -141,7 +173,7 @@ densities <- map +
   scale_fill_manual(values = c("white", "black"), guide = "none") +
   scale_shape_manual(values = c(22, 21), guide = "none") +
   scale_colour_manual(values = c("white", "black"), guide = "none") +
-  labs(title = "Variation in Scallop Shell \"Linear Density\" Across Georges Bank") +
+  labs(title = "Variation in Scallop Shell Linear Density Across Georges Bank") +
   coord_sf(crs = st_crs(4326)) +
   theme(plot.title = element_text(size = 17, face = "bold", hjust = 0.5),
         axis.text = element_text(size = 13),
@@ -149,4 +181,29 @@ densities <- map +
         legend.text = element_text(size = 12))
 
 densities
+```
+
+
+
+
+
+
+## Register Google API key
+```{r, include = FALSE}
+register_google(key = "AIzaSyBvvS_nvTml09h56OWd0Oniktayi0L8WDU")
+```
+
+## Load satellite map
+```{r}
+library(ggmap)
+
+GB_map <- get_map(c(-68.5247, 40.8155), maptype = "satellite", zoom = 7, source = "google")
+
+map <- ggmap(GB_map) +
+  coord_sf(crs = st_crs(4326)) +
+  xlim(c(-71, -65.5)) +
+  scale_y_continuous(breaks = c(40, 41, 42), limits = c(39.5, 42.5)) +
+  theme(axis.title = element_blank())
+
+map
 ```
