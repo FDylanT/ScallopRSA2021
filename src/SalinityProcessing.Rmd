@@ -152,7 +152,7 @@ for (i in 1:length(mayCTD$Station)) {
   BottomTemp[k] <- mayCTD$BottomTemp[i]
   SurfaceTemp[k] <- mayCTD$SurfaceTemp[i]
 }
-  
+
 BottomSal_Corr <- rep(NA, 114)
 SurfaceSal_Corr <- rep(NA, 114)
 
