@@ -24,6 +24,8 @@ library(viridis)
 
 ## Load data
 ```{r}
+setwd("./Repos/ScallopRSA2021")
+
 chem <- read.csv("./data/StationData.csv") %>%
   mutate(Station = str_extract(BottleID, "[0-9]{3}"),
          Cast = rep(NA, 228))
@@ -70,7 +72,7 @@ ggplot(chem, aes(x = Salinity, y = TA_avg)) +
 
 ggplot(chem, aes(x = Salinity, y = TA_avg, col = Cast)) +
   geom_point() +
-  scale_color_manual(values = c("black", "red")) +
+  scale_colour_manual(values = c("black", "red")) +
   theme_bw()
 
 chem <- chem %>%
@@ -142,7 +144,7 @@ map <- ggplot() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(breaks = c(40, 41, 42), expand = c(0, 0)) +
   geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
-               fill = "darkgrey", color = NA) +
+               fill = "darkgrey", colour = NA) +
   coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
   theme(axis.title = element_blank(),
         panel.grid.major = element_blank(),
@@ -192,18 +194,18 @@ station_SPDF <- SpatialPointsDataFrame(coords = stationChem[ , c("Long","Lat")],
                                                              "Temp", "Salinity", "DIC_avg", "TA_avg")],
                                         proj4string = CRS("+init=epsg:4326"))
 
-station_sf <- st_as_sf(station_SPDF)
-station_sf <- st_transform(station_sf, crs = 4326)
-```
+station_sf <- st_as_sf(station_SPDF) %>%
+  st_transform(crs = 4326)
 
-## Add points to map
-```{r}
 bottom_sf <- station_sf %>%
   filter(Cast == "Bottom")
 
 surface_sf <- station_sf %>%
   filter(Cast == "Surface")
+```
 
+## Add points to map
+```{r}
 min(chem$Temp, na.rm = TRUE)
 max(chem$Temp, na.rm = TRUE)
 
@@ -329,79 +331,160 @@ surfaceTA <- map +
 surfaceTA
 ```
 
-## Standard point-size versions
+## Attempt to interpolate chem parameters
+
+### Check mapping
 ```{r}
-bottomDIC <- map +
-  geom_sf(data = bottom_sf, aes(colour = DIC_avg), size = 2.5, inherit.aes = FALSE) +
-  #geom_sf_text(data = bottom_sf, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
-  scale_colour_viridis(limits = c(1950, 2150), option = "rocket", name = "DIC (umol/kg)") +
-  labs(title = "Bottom Alkalinity") +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  theme(legend.key = element_blank(),
-        legend.title = element_text(face = "bold"),
-        plot.title = element_text(face = "bold"))
+# filter null points (no CTD temp)
+bottomTemp_filt <- bottom_sf %>%
+  filter(!is.na(Temp))
 
-bottomDIC
+# create plot to check mapping
+ggplot(bottomTemp_filt, aes(x = Long, y = Lat)) +
+  geom_point(aes(colour = Temp)) +
+  geom_text(aes(label = Station), hjust = 0.05, vjust = 0.05, size = 3) +
+  scale_colour_gradientn(colours = c("navyblue", "blue", "cyan", "green", "yellow", "orange", "red")) +
+  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+               fill = "darkgrey", colour = NA) +
+  coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
+  scale_y_continuous(breaks = c(40, 41, 42))
+```
 
-surfaceDIC <- map +
-  geom_sf(data = surface_sf, aes(colour = DIC_avg), size = 2.5, inherit.aes = FALSE) +
-  #geom_sf_text(data = surface_sf, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
-  scale_colour_viridis(limits = c(1950, 2150), option = "rocket", name = "DIC (umol/kg)") +
-  labs(title = "Surface Alkalinity") +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  theme(legend.key = element_blank(),
-        legend.title = element_text(face = "bold"),
-        plot.title = element_text(face = "bold"))
+## Load GB shapefiles
+```{r}
+GB <- st_read("./data/2020SAMZones/GB_Estimation_Areas_2019_UTM19_PDT_SFModified.shp")
 
-surfaceDIC
+# subset shapefile to SAMs
+NLS_North <- subset(GB, NewSAMS == "NLS-North")
+CL1_South <- subset(GB, NewSAMS == "CL1-South")
+CL1_Sliver <- subset(GB, NewSAMS == "CL1-Sliver")
+CL2_AccessSoutheast <- subset(GB, NewSAMS == "CL2-Access-Southeast")
+SF <- subset(GB, NewSAMS == "SF")
+CL2_North <- subset(GB, NewSAMS == "CL2-North")
+CL1_Access <- subset(GB, NewSAMS == "CL1-Access")
+NF <- subset(GB, NewSAMS == "NF")
+CL2_Ext <- subset(GB, NewSAMS == "CL2-Ext")
+GSC <- subset(GB, NewSAMS == "GSC")
+NLS_SouthDeep <- subset(GB, NewSAMS == "NLS-South-Deep")
+NLS_West <- subset(GB, NewSAMS == "NLS-West")
+NLS_SouthShallow <- subset(GB, NewSAMS == "NLS-South-Shallow")
+CL2_AccessSouthwest <- subset(GB, NewSAMS == "CL2-Access-Southwest")
+SF_East <- subset(GB, NewSAMS == "SF-East")
 
-bottomTA <- map +
-  geom_sf(data = bottom_sf, aes(colour = TA_avg), size = 2.5, inherit.aes = FALSE) +
-  #geom_sf_text(data = bottom_sf, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
-  scale_colour_viridis(limits = c(2175, 2300), option = "rocket", name = "TA (umol/kg)") +
-  labs(title = "Bottom Alkalinity") +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  theme(legend.key = element_blank(),
-        legend.title = element_text(face = "bold"),
-        plot.title = element_text(face = "bold"))
+# fortify regions for use with ggplot
+NLS_North2 <- fortify(NLS_North)
+CL1_South2 <- fortify(CL1_South)
+CL1_Sliver2 <- fortify(CL1_Sliver)
+CL2_AccessSoutheast2 <- fortify(CL2_AccessSoutheast)
+SF2 <- fortify(SF)
+CL2_North2 <- fortify(CL2_North)
+CL1_Access2 <- fortify(CL1_Access)
+NF2 <- fortify(NF)
+CL2_Ext2 <- fortify(CL2_Ext)
+GSC2 <- fortify(GSC)
+NLS_SouthDeep2 <- fortify(NLS_SouthDeep)
+NLS_West2 <- fortify(NLS_West)
+NLS_SouthShallow2 <- fortify(NLS_SouthShallow)
+CL2_AccessSouthwest2 <- fortify(CL2_AccessSouthwest)
+SF_East2 <- fortify(SF_East)
 
-bottomTA
+# combine polygons and set CRS
+GB_sf <- st_union(NLS_North2, CL1_South2) %>%
+  st_union(CL1_Sliver2) %>%
+  st_union(CL2_AccessSoutheast2) %>%
+  st_union(SF2) %>%
+  st_union(CL2_North2) %>%
+  st_union(CL1_Access2) %>%
+  st_union(NF2) %>%
+  st_union(CL2_Ext2) %>%
+  st_union(GSC2) %>%
+  st_union(NLS_SouthDeep2) %>%
+  st_union(NLS_West2) %>%
+  st_union(NLS_SouthShallow2) %>%
+  st_union(CL2_AccessSouthwest2) %>%
+  st_union(SF_East2) %>%
+  st_transform(crs = 26919)
+  
+summary(GB_sf)
 
-surfaceTA <- map +
-  geom_sf(data = surface_sf, aes(colour = TA_avg), size = 2.5, inherit.aes = FALSE) +
-  #geom_sf_text(data = surface_sf, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
-  scale_colour_viridis(limits = c(2175, 2300), option = "rocket", name = "TA (umol/kg)") +
-  labs(title = "Surface Alkalinity") +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  theme(legend.key = element_blank(),
-        legend.title = element_text(face = "bold"),
-        plot.title = element_text(face = "bold"))
+ggplot() +
+  geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5)
+```
 
-surfaceTA
+## Begin interpolation round 1 (nearest-neighbor)
+```{r}
+bottom_sf_geom <- st_union(bottom_sf) %>%
+  st_transform(crs = 26919)
+bottom_sf_v <- st_voronoi(bottom_sf_geom)
+bottom_sf_v <- st_sf(bottom_sf_v)
 
-bottomSal <- map +
-  geom_sf(data = bottom_sf, aes(colour = Salinity), size = 2.5, inherit.aes = FALSE) +
-  #geom_sf_text(data = bottom_sf, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
-  scale_colour_viridis(limits = c(32, 34.5), option = "rocket", name = "Salinity (PSU)") +
-  labs(title = "Bottom Salinity") +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  theme(legend.key = element_blank(),
-        legend.title = element_text(face = "bold"),
-        plot.title = element_text(face = "bold"))
+GB_sf <- GB_sf %>%
+  st_set_precision(1000000) %>%
+  st_make_valid()
 
-bottomSal
+bottom_sf_v <- bottom_sf_v %>%
+  st_set_precision(1000000) %>%
+  st_make_valid()
 
-surfaceSal <- map +
-  geom_sf(data = surface_sf, aes(colour = Salinity), size = 2.5, inherit.aes = FALSE) +
-  #geom_sf_text(data = surface_sf, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
-  scale_colour_viridis(limits = c(32, 34.5), option = "rocket", name = "Salinity (PSU)") +
-  labs(title = "Surface Salinity") +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  theme(legend.key = element_blank(),
-        legend.title = element_text(face = "bold"),
-        plot.title = element_text(face = "bold"))
+# mask Voronoi with contour
+bottom_sf_v <- st_intersection(st_cast(bottom_sf_v), st_union(st_buffer(GB_sf, dist = 500)))
+bottom_sf_v <- st_sf(bottom_sf_v)
 
-surfaceSal
+bottom_sf2 <- bottom_sf %>%
+  st_transform(crs = 26919)
+
+# complete spatial join
+bottom_sf_v2 <- st_join(bottom_sf_v, bottom_sf2)
+glimpse(bottom_sf_v2)
+
+ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  scale_fill_gradientn(colours = c("navyblue", "blue", "cyan", "green", "yellow", "orange", "red")) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom Temperature")
+
+ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  scale_fill_gradientn(colours = c("navyblue", "blue", "cyan", "green", "yellow", "orange", "red")) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom Salinity")
+
+ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = DIC_avg), size = 0.25, colour = NA) +
+  scale_fill_gradientn(colours = c("navyblue", "blue", "cyan", "green", "yellow", "orange", "red")) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom DIC")
+
+ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = TA_avg), size = 0.25, colour = NA) +
+  scale_fill_gradientn(colours = c("navyblue", "blue", "cyan", "green", "yellow", "orange", "red")) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom TA")
+```
+
+## Attempt to add coastline polygon -- not working rn
+```{r}
+ggplot() +
+  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+               fill = "darkgrey", colour = NA) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5))
+
+reg_SPDF <- SpatialPointsDataFrame(coords = reg[ , c("long","lat")],
+                                        data = reg,
+                                        proj4string = CRS("+init=epsg:26919"))
+
+reg_sf <- st_as_sf(reg_SPDF) %>%
+  st_transform(crs = 26919)
+
+ggplot() +
+  geom_sf(data = reg_sf, fill = "lightblue") +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16), crs = st_crs(26919))
+# why won't my map show up :(((
+```
+
+## Now for interpolation style 2 (inverse distance weighting)
+```{r}
+
 ```
 
 ## Look at chlorophyll data
@@ -420,42 +503,18 @@ library(tidync)
 
 
 
-## Register API key
-```{r, include=FALSE}
-# register_google(key = "AIzaSyBvvS_nvTml09h56OWd0Oniktayi0L8WDU")
-```
 
-## Load satellite map
-```{r}
-library(ggmap)
 
-GB_map <- get_map(c(-68.5247, 40.8155), maptype = "satellite", zoom = 7, source = "google")
 
-map <- ggmap(GB_map) +
-  coord_sf(crs = st_crs(4326)) +
-  xlim(c(-71, -65.5)) +
-  scale_y_continuous(breaks = c(40, 41, 42), limits = c(39.5, 42.5)) +
-  theme(axis.title = element_blank())
 
-map
-```
 
-## Other map versions
-```{r}
-## base R map (using marmap data)
-plot(GB_bathy, image = TRUE, land = TRUE, n = 0, lwd = 1,
-     bpal = list(c(min(GB_bathy), -175, "#08306B","#08519C", "#2171B5", "#4292C6"), 
-            c(-175, 0, "#4292C6", "#6BAED6", "#9ECAE1", "#C6DBEF"), 
-            c(0, max(GB_bathy), "grey")),
-     yaxt = "n", xlab = "", ylab = "")
-axis(2, at = seq(40, 42.5, by = 1))
 
-## ggOceanMaps
-library(ggOceanMaps)
-basemap(limits = c(-70.5, -66, 40, 42.5), rotate = TRUE, grid.col = NA, bathymetry = TRUE)
 
-basemap(limits = c(-70.5, -66, 40, 42.5), rotate = TRUE, grid.col = NA, bathymetry = TRUE, bathy.style = "contour_blues")
-```
+
+
+
+
+
 
 
 
