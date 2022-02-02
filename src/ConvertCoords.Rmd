@@ -1,0 +1,79 @@
+---
+title: "ConvertCoords"
+author: "Dylan Titmuss"
+date: "2/1/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load data
+```{r}
+may_csv <- read.csv("/Users/dylan/Downloads/MayCruiseData.csv") %>%
+  rename(Lat = Latitude_DM,
+         Long = Longitude_DM)
+
+may_txt <- read.delim("/Users/dylan/Downloads/MayCruiseData.txt") %>%
+  rename(Lat = Latitude_DM,
+         Long = Longitude_DM)
+```
+
+## Convert csv coordinates
+```{r}
+chd <- substr(may_csv$Lat, 3, 3)[1]
+
+# convert latitude from DM to DD
+Lat_split_may <- str_split_fixed(may_csv$Lat, chd, 2) %>%
+  as.data.frame()
+Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Lat_split_may$V2 <- Lat_split_may$V2/60
+Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
+
+may_csv$Lat <- Lat_split_may$V1 + Lat_split_may$V2
+
+# convert longitude from DM to DD
+Long_split_may <- str_split_fixed(may_csv$Long, chd, 2) %>%
+  as.data.frame()
+Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Long_split_may$V2 <- Long_split_may$V2/60
+Long_split_may$V1 <- as.numeric(Long_split_may$V1)
+
+may_csv$Long <- -(Long_split_may$V1 + Long_split_may$V2)
+
+# write to file
+write_csv(may_csv, "/Users/dylan/Downloads/MayCruiseData.csv")
+```
+
+## Convert txt coordinates
+```{r}
+chd <- substr(may_txt$Lat, 3, 3)[1]
+
+# convert latitude from DM to DD
+Lat_split_may <- str_split_fixed(may_txt$Lat, chd, 2) %>%
+  as.data.frame()
+Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Lat_split_may$V2 <- Lat_split_may$V2/60
+Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
+
+may_txt$Lat <- Lat_split_may$V1 + Lat_split_may$V2
+
+# convert longitude from DM to DD
+Long_split_may <- str_split_fixed(may_txt$Long, chd, 2) %>%
+  as.data.frame()
+Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Long_split_may$V2 <- Long_split_may$V2/60
+Long_split_may$V1 <- as.numeric(Long_split_may$V1)
+
+may_txt$Long <- -(Long_split_may$V1 + Long_split_may$V2)
+
+# write to file
+write_delim(may_txt, "/Users/dylan/Downloads/MayCruiseData.txt")
+```
