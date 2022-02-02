@@ -16,15 +16,50 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
-## Check against QC'd data
+## Load RSA data
 ```{r}
 may <- read.csv("./data/MayCruiseData.csv") %>%
   rename(Lat = Latitude_degrees_start,
          Long = Longitude_degrees_start,
-         depth = Depth_meters) %>%
-  select(Station, Cast, Lat, Long, depth) %>%
+         Depth = Depth_m_CTD,
+         Temp = Temperature) %>%
+  select(Station, Cast, Lat, Long, Depth, Temp, Salinity, DIC, TA) %>%
   mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
+```
 
+## Convert coordinates
+```{r}
+chd <- substr(may$Lat, 3, 3)[1]
+
+# convert latitude from DM to DD
+Lat_split_may <- str_split_fixed(may$Lat, chd, 2) %>%
+  as.data.frame()
+Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Lat_split_may$V2 <- Lat_split_may$V2/60
+Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
+
+may$Lat <- Lat_split_may$V1 + Lat_split_may$V2
+
+# convert longitude from DM to DD
+Long_split_may <- str_split_fixed(may$Long, chd, 2) %>%
+  as.data.frame()
+Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Long_split_may$V2 <- Long_split_may$V2/60
+Long_split_may$V1 <- as.numeric(Long_split_may$V1)
+
+may$Long <- -(Long_split_may$V1 + Long_split_may$V2)
+
+# combine chemistry data & station info
+stationChem <- right_join(may, chem, by = c("Station", "Cast")) %>%
+  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
+         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
+         Long = ifelse(Station == "089", Long - 0.04, Long))
+```
+
+## Load QC'd data
+```{r}
 min(may$Lat)
 max(may$Lat)
 min(may$Long)
@@ -32,6 +67,37 @@ max(may$Long)
 
 QC <- read.csv("./data/bottle_satellite_data_clean.csv") %>%
   filter(Month == 4 | Month == 5) %>%
-  filter(Latitude > 40 & Latitude < 41) %>%
-  filter(Longitude < -68 & Longitude > -70)
+  filter(Latitude > 40 & Latitude < 42.5) %>%
+  filter(Longitude < -66 & Longitude > -70) %>%
+  select(Date, Latitude, Longitude, Depth_bottom, Depth, Salinity, Temperature,
+         Oxygen, DIC, TA, bottom_depth) %>%
+  rename(Lat = Latitude,
+         Long = Longitude,
+         Temp = Temperature) %>%
+  mutate(Depth_ratio = ifelse(!is.na(Depth_bottom), Depth / Depth_bottom, Depth / bottom_depth)) %>%
+  mutate(Cast = ifelse(Depth_ratio < 0.09, "Surface",
+                       ifelse(Depth_ratio > 0.80, "Bottom", NA)))
+
+QC$Cast[49] == NA
+```
+
+## Merge QC'd data with RSA data
+```{r}
+
+```
+
+## Prop-prop plots
+```{r}
+ggplot(chem, aes(x = Salinity, y = Temp, col = CTD_depth, shape = Cast)) +
+  geom_point() +
+  scale_colour_viridis(option = "rocket", direction = -1) +
+  theme_bw()
+
+ggplot(chem, aes(x = Salinity, y = DIC_avg, shape = Cast)) +
+  geom_point() +
+  theme_bw()
+
+ggplot(chem, aes(x = DIC_avg, y = TA_avg, shape = Cast)) +
+  geom_point() +
+  theme_bw()
 ```
