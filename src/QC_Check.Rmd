@@ -50,12 +50,6 @@ Long_split_may$V2 <- Long_split_may$V2/60
 Long_split_may$V1 <- as.numeric(Long_split_may$V1)
 
 may$Long <- -(Long_split_may$V1 + Long_split_may$V2)
-
-# combine chemistry data & station info
-stationChem <- right_join(may, chem, by = c("Station", "Cast")) %>%
-  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
-         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
-         Long = ifelse(Station == "089", Long - 0.04, Long))
 ```
 
 ## Load QC'd data
@@ -75,15 +69,15 @@ QC <- read.csv("./data/bottle_satellite_data_clean.csv") %>%
          Long = Longitude,
          Temp = Temperature) %>%
   mutate(Depth_ratio = ifelse(!is.na(Depth_bottom), Depth / Depth_bottom, Depth / bottom_depth)) %>%
-  mutate(Cast = ifelse(Depth_ratio < 0.09, "Surface",
+  mutate(Cast = ifelse(Depth_ratio < 0.07, "Surface",
                        ifelse(Depth_ratio > 0.80, "Bottom", NA)))
 
-QC$Cast[49] == NA
+QC$Cast[5] <- "Surface"
 ```
 
 ## Merge QC'd data with RSA data
 ```{r}
-
+mayQC <- rbind(may, QC)
 ```
 
 ## Prop-prop plots
