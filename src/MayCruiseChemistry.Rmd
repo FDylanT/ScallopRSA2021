@@ -27,35 +27,27 @@ library(gstat)
 ```{r}
 setwd("./Repos/ScallopRSA2021")
 
-chem <- read.csv("./data/StationData.csv") %>%
-  mutate(Station = str_extract(BottleID, "[0-9]{3}"),
-         Cast = rep(NA, 228))
-
-for(i in 1:length(chem$BottleID)) {
-  c <- str_extract(chem$BottleID[i], ".$")
-  if(c == "A") {
-    chem$Cast[i] <- "Bottom"
-  } else if (c == "B") {
-    chem$Cast[i] <- "Surface"
-  }
-}
-
-chem$Cast[1] <- "Surface" # correct flipped bottles
-chem$Cast[2] <- "Bottom"
+may <- read.csv("./data/MayCruiseData.csv") %>%
+  rename(Lat = Latitude_degrees_start,
+         Long = Longitude_degrees_start,
+         Depth = Depth_m_CTD,
+         Temp = Temperature) %>%
+  select(Station, Cast, Lat, Long, Depth, Temp, Salinity, DIC, TA) %>%
+  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
 ```
 
 ## Prop-prop plots
 ```{r}
 # Sal vs. Temp, coloured cast
-ggplot(chem, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
+ggplot(may, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
   geom_point() +
   theme_bw()
 
 # Sal vs. Temp, bottom, coloured depth
 #plot <-
-chem %>%
+may %>%
   filter(Cast == "Bottom") %>%
-  ggplot(aes(x = Salinity, y = Temp, col = CTD_depth)) +
+  ggplot(aes(x = Salinity, y = Temp, col = Depth)) +
   geom_point() +
   scale_colour_viridis(option = "mako", direction = -1) +
   theme_bw()
@@ -64,9 +56,9 @@ chem %>%
 #ggplot_build(plot)$layout$panel_scales_y[[1]]$range$range
 
 # Sal vs. Temp, surface, coloured bottom depth
-chem %>%
+may %>%
   filter(Cast == "Surface") %>%
-  ggplot(aes(x = Salinity, y = Temp, col = CTD_depth)) +
+  ggplot(aes(x = Salinity, y = Temp, col = Depth)) +
   geom_point(shape = 17) +
   scale_colour_viridis(option = "mako", direction = -1) +
   scale_x_continuous(limits = c(32.447, 34.397)) +
@@ -74,60 +66,60 @@ chem %>%
   theme_bw()
 
 # Sal vs. Temp, coloured DIC
-ggplot(chem, aes(x = Salinity, y = Temp, col = DIC_avg, shape = Cast)) +
+ggplot(may, aes(x = Salinity, y = Temp, col = DIC, shape = Cast)) +
   geom_point() +
   scale_colour_viridis(option = "rocket") +
   theme_bw()
 
 # Sal vs. Temp, coloured TA
-ggplot(chem, aes(x = Salinity, y = Temp, col = TA_avg, shape = Cast)) +
+ggplot(may, aes(x = Salinity, y = Temp, col = TA, shape = Cast)) +
   geom_point() +
   scale_colour_viridis() +
   theme_bw()
 
 # Sal vs. DIC, coloured cast
-ggplot(chem, aes(x = Salinity, y = DIC_avg, shape = Cast, col = Cast)) +
+ggplot(may, aes(x = Salinity, y = DIC, shape = Cast, col = Cast)) +
   geom_point() +
   theme_bw()
 
-plot(DIC_avg ~ Salinity, data = chem)
-identify(chem$DIC_avg ~ chem$Salinity)
+#plot(DIC ~ Salinity, data = may)
+#identify(may$DIC ~ may$Salinity)
 
 ### check 112A DIC
 
 # Sal vs. TA, coloured cast
-ggplot(chem, aes(x = Salinity, y = TA_avg, shape = Cast, col = Cast)) +
+ggplot(may, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
   geom_point() +
   theme_bw()
 
-plot(chem$TA_avg ~ chem$Salinity)
-abline(lm(chem$TA_avg ~ chem$Salinity))
-identify(chem$TA_avg ~ chem$Salinity)
+#plot(may$TA ~ may$Salinity)
+#abline(lm(may$TA ~ may$Salinity))
+#identify(may$TA ~ may$Salinity)
 
 ### check 053B TA; maybe check 052B TA
 
 # DIC vs. TA, coloured cast
-ggplot(chem, aes(x = DIC_avg, y = TA_avg, shape = Cast, col = Cast)) +
+ggplot(may, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
   geom_point() +
   theme_bw()
 
-plot(chem$TA_avg ~ chem$DIC_avg)
-identify(chem$TA_avg ~ chem$DIC_avg)
+#plot(may$TA ~ may$DIC)
+#identify(may$TA ~ may$DIC)
 
 ### definitely check 112 DIC
 ```
 
 ## Check questionable TA data
 ```{r}
-chem <- chem %>%
-  mutate(Ratio = TA_avg / Salinity) %>%
-  arrange(TA_avg)
+may <- may %>%
+  mutate(Ratio = TA / Salinity) %>%
+  arrange(TA)
 
-lm(chem$TA_avg ~ chem$Salinity)
+lm(may$TA ~ may$Salinity)
 
-chem <- chem %>%
+may <- may %>%
   mutate(line = Salinity * 45.19 + 736.94,
-         resid = TA_avg - line) %>%
+         resid = TA - line) %>%
   arrange(desc(abs(resid)))
 
 ### ***TA or sal value for 053B (surface) seems wrong***
@@ -146,14 +138,10 @@ chem <- chem %>%
 # RSA_114A: -14.15680
 ```
 
-## Load station data & convert coordinates
+## Convert coordinates
 ```{r}
-may <- read.csv("./data/MayCruiseData.csv") %>%
-  rename(Lat = Latitude_degrees_start,
-         Long = Longitude_degrees_start,
-         Depth = Depth_meters) %>%
-  select(Station, Cast, Lat, Long, Depth) %>%
-  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
+may <- may %>%
+  arrange(Station)
 
 chd <- substr(may$Lat, 3, 3)[1]
 
@@ -177,8 +165,8 @@ Long_split_may$V1 <- as.numeric(Long_split_may$V1)
 
 may$Long <- -(Long_split_may$V1 + Long_split_may$V2)
 
-# combine chemistry data & station info
-stationChem <- right_join(may, chem, by = c("Station", "Cast")) %>%
+# preserve may file; update coords to fit within polygon
+stationChem <- may %>%
   mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
          Lat = ifelse(Station == "026", Lat + 0.02, Lat),
          Long = ifelse(Station == "089", Long - 0.04, Long))
@@ -188,23 +176,32 @@ stationChem <- right_join(may, chem, by = c("Station", "Cast")) %>%
 ```{r}
 station_SPDF <- SpatialPointsDataFrame(coords = stationChem[ , c("Long","Lat")],
                                         data = stationChem[ ,c("Long", "Lat", "Station", "Cast", "Depth",
-                                                             "Temp", "Salinity", "DIC_avg", "TA_avg")],
+                                                             "Temp", "Salinity", "DIC", "TA")],
                                         proj4string = CRS("+init=epsg:4326"))
 
 station_sf <- st_as_sf(station_SPDF) %>%
   st_transform(crs = 4326)
 
-bottom_sf1 <- station_sf %>%
+bottom_sf <- station_sf %>%
   filter(Cast == "Bottom")
 
-surface_sf1 <- station_sf %>%
+surface_sf <- station_sf %>%
   filter(Cast == "Surface")
+```
+
+## Get regional polygons
+```{r}
+reg = map_data("world2Hires")
+reg = subset(reg, region %in% 'USA')
+
+# convert lat longs
+reg$long = (360 - reg$long)*-1
 ```
 
 ## Attempt to interpolate chem parameters
 ### Check mapping
 ```{r}
-ggplot(bottom_sf1, aes(x = Long, y = Lat)) +
+ggplot(bottom_sf, aes(x = Long, y = Lat)) +
   geom_point(aes(colour = Salinity)) +
   geom_text(aes(label = Station), hjust = 0.05, vjust = 0.05, size = 3) +
   scale_colour_viridis() +
@@ -273,8 +270,10 @@ GB_sf <- st_union(NLS_North2, CL1_South2) %>%
 
 ggplot() +
   geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5)
+```
 
-# check point placement
+## Check point placement on polygon
+```{r}
 ggplot() +
   geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5) +
   geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = Salinity)) +
@@ -285,14 +284,16 @@ ggplot() +
                fill = "darkgrey", colour = NA) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   scale_y_continuous(breaks = c(40, 41, 42))
+```
 
-# move coordinates that are outside GB polygon
-bottom_sf <- bottom_sf1 %>%
+## Move coordinates that are outside GB polygon
+```{r}
+bottom_sf1 <- bottom_sf %>%
   mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
          Lat = ifelse(Station == "026", Lat + 0.02, Lat),
          Long = ifelse(Station == "089", Long - 0.04, Long))
 
-surface_sf <- surface_sf1 %>%
+surface_sf1 <- surface_sf %>%
   mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
          Lat = ifelse(Station == "026", Lat + 0.02, Lat),
          Long = ifelse(Station == "089", Long - 0.04, Long))
@@ -300,12 +301,12 @@ surface_sf <- surface_sf1 %>%
 
 ## Begin interpolation round 1 (nearest-neighbor)
 ```{r}
-bottom_sf_geom <- st_union(bottom_sf) %>%
+bottom_sf_geom <- st_union(bottom_sf1) %>%
   st_transform(crs = 26919)
 bottom_sf_v <- st_voronoi(bottom_sf_geom)
 bottom_sf_v <- st_sf(bottom_sf_v)
 
-surface_sf_geom <- st_union(surface_sf) %>%
+surface_sf_geom <- st_union(surface_sf1) %>%
   st_transform(crs = 26919)
 surface_sf_v <- st_voronoi(surface_sf_geom)
 surface_sf_v <- st_sf(surface_sf_v)
@@ -416,13 +417,13 @@ ggplot() +
   labs(title = "Bottom Salinity")
 
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = DIC_avg), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_v3, aes(fill = DIC), size = 0.25, colour = NA) +
   scale_fill_viridis() +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom DIC")
 
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = TA_avg), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_v3, aes(fill = TA), size = 0.25, colour = NA) +
   scale_fill_viridis() +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom TA")
@@ -441,13 +442,13 @@ ggplot() +
   labs(title = "Surface Salinity")
 
 ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = DIC_avg), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
   scale_fill_viridis() +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface DIC")
 
 ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = TA_avg), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
   scale_fill_viridis() +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface TA")
@@ -562,9 +563,9 @@ ggplot() +
         axis.title = element_blank())
 
 # idw for DIC
-interp_DIC_B <- idw(DIC_avg ~ 1, bottom_sp, newdata = idw_grid, idp = 2) %>%
+interp_DIC_B <- idw(DIC ~ 1, bottom_sp, newdata = idw_grid, idp = 2) %>%
   as.data.frame()
-interp_DIC_S <- idw(DIC_avg ~ 1, surface_sp, newdata = idw_grid, idp = 2) %>%
+interp_DIC_S <- idw(DIC ~ 1, surface_sp, newdata = idw_grid, idp = 2) %>%
   as.data.frame()
 
 ggplot() +
@@ -584,9 +585,9 @@ ggplot() +
         axis.title = element_blank())
 
 # idw for TA
-interp_TA_B <- idw(TA_avg ~ 1, bottom_sp, newdata = idw_grid, idp = 2) %>%
+interp_TA_B <- idw(TA ~ 1, bottom_sp, newdata = idw_grid, idp = 2) %>%
   as.data.frame()
-interp_TA_S <- idw(TA_avg ~ 1, surface_sp, newdata = idw_grid, idp = 2) %>%
+interp_TA_S <- idw(TA ~ 1, surface_sp, newdata = idw_grid, idp = 2) %>%
   as.data.frame()
 
 ggplot() +
@@ -626,15 +627,6 @@ ggbathy <- GB_bathy %>%
   mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180, -780, -1380, -1980, -2580, -3180, -Inf)))
 ```
 
-## Get regional polygons
-```{r}
-reg = map_data("world2Hires")
-reg = subset(reg, region %in% 'USA')
-
-# convert lat longs
-reg$long = (360 - reg$long)*-1
-```
-
 ## Create bathy map
 ```{r}
 map <- ggplot() +
@@ -653,8 +645,8 @@ map <- ggplot() +
 
 ## Add points to map
 ```{r}
-min(chem$Temp, na.rm = TRUE)
-max(chem$Temp, na.rm = TRUE)
+min(may$Temp, na.rm = TRUE)
+max(may$Temp, na.rm = TRUE)
 
 bottomTemp <- map +
   geom_sf(data = bottom_sf1, aes(size = Temp, colour = Temp), inherit.aes = FALSE) +
@@ -684,8 +676,8 @@ surfaceTemp <- map +
 
 surfaceTemp
 
-min(chem$Salinity)
-max(chem$Salinity)
+min(may$Salinity)
+max(may$Salinity)
 
 bottomSal <- map +
   geom_sf(data = bottom_sf1, aes(size = Salinity, colour = Salinity), inherit.aes = FALSE) +
@@ -715,11 +707,11 @@ surfaceSal <- map +
 
 surfaceSal
 
-min(chem$DIC_avg)
-max(chem$DIC_avg)
+min(may$DIC)
+max(may$DIC)
 
 bottomDIC <- map +
-  geom_sf(data = bottom_sf1, aes(colour = DIC_avg), size = 5, inherit.aes = FALSE) +
+  geom_sf(data = bottom_sf1, aes(colour = DIC), size = 5, inherit.aes = FALSE) +
   #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(2000, 2150), option = "rocket") +
   #scale_size_continuous(limits = c(1950, 2150), range = c(2, 6)) +
@@ -733,7 +725,7 @@ bottomDIC <- map +
 bottomDIC
 
 surfaceDIC <- map +
-  geom_sf(data = surface_sf1, aes(colour = DIC_avg), size = 5, inherit.aes = FALSE) +
+  geom_sf(data = surface_sf1, aes(colour = DIC), size = 5, inherit.aes = FALSE) +
   #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(2000, 2150), option = "rocket") +
   #scale_size_continuous(limits = c(1950, 2150), range = c(2, 6)) +
@@ -746,11 +738,11 @@ surfaceDIC <- map +
 
 surfaceDIC
 
-min(chem$TA_avg)
-max(chem$TA_avg)
+min(may$TA)
+max(may$TA)
 
 bottomTA <- map +
-  geom_sf(data = bottom_sf1, aes(size = TA_avg, colour = TA_avg), inherit.aes = FALSE) +
+  geom_sf(data = bottom_sf1, aes(size = TA, colour = TA), inherit.aes = FALSE) +
   #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(2175, 2300), option = "rocket") +
   scale_size_continuous(limits = c(2175, 2300), range = c(2, 6)) +
@@ -764,7 +756,7 @@ bottomTA <- map +
 bottomTA
 
 surfaceTA <- map +
-  geom_sf(data = surface_sf1, aes(size = TA_avg, colour = TA_avg), inherit.aes = FALSE) +
+  geom_sf(data = surface_sf1, aes(size = TA, colour = TA), inherit.aes = FALSE) +
   #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(2175, 2300), option = "rocket") +
   scale_size_continuous(limits = c(2175, 2300), range = c(2, 6)) +
@@ -849,4 +841,19 @@ max(joined$diffLat)
 max(joined$diffLong)
 which(joined$diffLat > 0.05)
 which(joined$diffLong > 0.05)
+```
+
+## Extracting casts
+```{r}
+for(i in 1:length(chem$BottleID)) {
+  c <- str_extract(chem$BottleID[i], ".$")
+  if(c == "A") {
+    chem$Cast[i] <- "Bottom"
+  } else if (c == "B") {
+    chem$Cast[i] <- "Surface"
+  }
+}
+
+chem$Cast[1] <- "Surface" # correct flipped bottles
+chem$Cast[2] <- "Bottom"
 ```
