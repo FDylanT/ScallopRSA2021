@@ -38,12 +38,12 @@ may <- read.csv("./data/MayCruiseData.csv") %>%
 
 ## Prop-prop plots
 ```{r}
-# Sal vs. Temp, coloured cast
+# Temp vs. Sal, coloured cast
 ggplot(may, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
   geom_point() +
   theme_bw()
 
-# Sal vs. Temp, bottom, coloured depth
+# Temp vs. Sal, bottom, coloured depth
 #plot <-
 may %>%
   filter(Cast == "Bottom") %>%
@@ -55,7 +55,7 @@ may %>%
 #ggplot_build(plot)$layout$panel_scales_x[[1]]$range$range
 #ggplot_build(plot)$layout$panel_scales_y[[1]]$range$range
 
-# Sal vs. Temp, surface, coloured bottom depth
+# Temp vs. Sal, surface, coloured bottom depth
 may %>%
   filter(Cast == "Surface") %>%
   ggplot(aes(x = Salinity, y = Temp, col = Depth)) +
@@ -65,19 +65,19 @@ may %>%
   scale_y_continuous(limits = c(6.717487, 10.080005)) +
   theme_bw()
 
-# Sal vs. Temp, coloured DIC
+# Temp vs. Sal, coloured DIC
 ggplot(may, aes(x = Salinity, y = Temp, col = DIC, shape = Cast)) +
   geom_point() +
   scale_colour_viridis(option = "rocket") +
   theme_bw()
 
-# Sal vs. Temp, coloured TA
+# Temp vs. Sal, coloured TA
 ggplot(may, aes(x = Salinity, y = Temp, col = TA, shape = Cast)) +
   geom_point() +
   scale_colour_viridis() +
   theme_bw()
 
-# Sal vs. DIC, coloured cast
+# DIC vs. Sal, coloured cast
 ggplot(may, aes(x = Salinity, y = DIC, shape = Cast, col = Cast)) +
   geom_point() +
   theme_bw()
@@ -87,14 +87,14 @@ ggplot(may, aes(x = Salinity, y = DIC, shape = Cast, col = Cast)) +
 
 ### check 112A DIC
 
-# Sal vs. TA, coloured cast
+# TA vs. Sal, coloured cast
 ggplot(may, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
   geom_point() +
   theme_bw()
 
-#plot(may$TA ~ may$Salinity)
-#abline(lm(may$TA ~ may$Salinity))
-#identify(may$TA ~ may$Salinity)
+plot(may$TA ~ may$Salinity)
+abline(lm(may$TA ~ may$Salinity))
+identify(may$TA ~ may$Salinity)
 
 ### check 053B TA; maybe check 052B TA
 
@@ -189,29 +189,19 @@ surface_sf <- station_sf %>%
   filter(Cast == "Surface")
 ```
 
-## Get regional polygons
-```{r}
-reg = map_data("world2Hires")
-reg = subset(reg, region %in% 'USA')
-
-# convert lat longs
-reg$long = (360 - reg$long)*-1
-```
-
-## Attempt to interpolate chem parameters
-### Check mapping
+## Check mapping
 ```{r}
 ggplot(bottom_sf, aes(x = Long, y = Lat)) +
   geom_point(aes(colour = Salinity)) +
   geom_text(aes(label = Station), hjust = 0.05, vjust = 0.05, size = 3) +
   scale_colour_viridis() +
-  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
-               fill = "darkgrey", colour = NA) +
+  #geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+               #fill = "darkgrey", colour = NA) +
   coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
   scale_y_continuous(breaks = c(40, 41, 42))
 ```
 
-### Load GB shapefiles
+## Load GB shapefiles
 ```{r}
 GB <- st_read("./data/2020SAMZones/GB_Estimation_Areas_2019_UTM19_PDT_SFModified.shp")
 
@@ -280,8 +270,8 @@ ggplot() +
   geom_text(data = bottom_sf, aes(x = Long, y = Lat, label = Station),
             hjust = 0.05, vjust = 0.05, size = 3) +
   scale_colour_viridis() +
-  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
-               fill = "darkgrey", colour = NA) +
+  #geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+               #fill = "darkgrey", colour = NA) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   scale_y_continuous(breaks = c(40, 41, 42))
 ```
@@ -424,7 +414,7 @@ ggplot() +
 
 ggplot() +
   geom_sf(data = bottom_sf_v3, aes(fill = TA), size = 0.25, colour = NA) +
-  scale_fill_viridis() +
+  scale_fill_viridis(limits = c(2180, 2300)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom TA")
 
@@ -449,7 +439,7 @@ ggplot() +
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  scale_fill_viridis() +
+  scale_fill_viridis(limits = c(2180, 2300)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface TA")
 ```
@@ -607,10 +597,25 @@ ggplot() +
         axis.title = element_blank())
 ```
 
+## Calculate carbon system parameters
+```{r}
+library(seacarb)
+
+carb(15, may$TA, may$DIC, S = may$Salinity, T = Temp, Patm = *, P = SeaPressure, k1k2 = 1) # flag:15 = ALK & DIC   # k1k2:1 = Lueker et al. (2000)   # 
+```
+
 ## Look at chlorophyll data
 ```{r}
 library(tidync)
+
+# load data
+
 ```
+
+
+
+
+
 
 ## Get bathymetric data
 ```{r}
@@ -625,6 +630,15 @@ ggbathy <- GB_bathy %>%
   mutate(lat = y, long = x, depth = z) %>%
   select(-c(x, y, z)) %>%
   mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180, -780, -1380, -1980, -2580, -3180, -Inf)))
+```
+
+## Get regional polygons
+```{r}
+reg = map_data("world2Hires")
+reg = subset(reg, region %in% 'USA')
+
+# convert lat longs
+reg$long = (360 - reg$long)*-1
 ```
 
 ## Create bathy map
