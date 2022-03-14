@@ -24,38 +24,60 @@ library(oce)
 setwd("~/Repos/ScallopRSA2021")
 ```
 
-## Quick load data
+## Quickly load data
 ```{r}
-mayCTD <- read.csv("data/CTD_raw/CTD_allMay.csv") %>%
+mayCTD <- read.csv("data/CTD/CTD_allMay.csv") %>%
   mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
 
-octCTD <- read.csv("data/CTD_raw/CTD_allOct.csv") %>%
-  mutate(Timestamp = chron(dates = Date, times = Time, format = c('Y-m-d', 'h:m:s')))
+# load accurate times
+oct1Times <- read.csv("data/CTD/octTimes/oct1Times.txt")
+oct2Times <- read.csv("data/CTD/octTimes/oct2Times.txt")
+oct3Times <- read.csv("data/CTD/octTimes/oct3Times.txt")
+octTimes <- rbind(oct1Times, oct2Times, oct3Times)
+rm(oct1Times, oct2Times, oct3Times)
+
+options(digits.secs = 3) # preserve fractional seconds
+
+octCTD <- read.csv("data/CTD/CTD_allOct.csv") %>%
+  mutate(Time = octTimes$x) %>%
+  mutate(Timestamp = as.POSIXct(strptime(paste(Date, Time), format = "%m/%d/%y %H:%M:%OS")))
 ```
 
-## Look at overall casts
+## Look at overall casts (May)
 ```{r}
 # plot(Pressure_dbar ~ Conductivity_mS.cm, data = mayCTD, ylim = c(120, 0), main = "May CTD Casts")
 
 ggplot(mayCTD, aes(x = Salinity_PSU, y = Pressure_dbar)) +
   geom_point(na.rm = TRUE) +
-  ylim(c(120, 0)) +
+  ylim(c(120, 10)) +
   labs(title = "May CTD Casts") +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         axis.line = element_line(colour = "black"))
 
-# plot(Pressure_dbar ~ Conductivity_mS.cm, data = octCTD, ylim = c(120, 0), main = "October CTD Casts")
-
-ggplot(octCTD, aes(x = Salinity_PSU, y = Pressure_dbar)) +
-  geom_point(na.rm = TRUE) +
-  ylim(c(120, 0)) +
+ggplot(octCTD, aes(x = Timestamp, y = Pressure_dbar)) +
+  geom_point(na.rm = TRUE, size = 1, shape = 20) +
+  ylim(c(120, 10)) +
   labs(title = "October CTD Casts") +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         axis.line = element_line(colour = "black"))
+
+octCTD %>%
+  filter(Timestamp >= "2021-10-06 12:00:00.00" & Timestamp <= "2021-10-07 06:00:00.00") %>%
+  ggplot(aes(x = Timestamp, y = Pressure_dbar)) +
+  geom_point(na.rm = TRUE, size = 1, shape = 20) +
+  ylim(c(10, 85)) +
+  labs(title = "October CTD Casts") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"))
+
+library(plotly)
+ggplotly()
 ```
 
 ## Look into data messiness
@@ -184,7 +206,7 @@ write.csv(mayCTD, "data/CTD_raw/CTD_allMay.csv", row.names = FALSE)
 ## No data from sites 022, 023, 104 ##
 
 # Sites 001-021
-oct1 <- read.csv("data/CTD_raw/RSA_20211006_021.csv", skip = 1, header = TRUE) %>%
+oct1 <- read.csv("data/CTD/CSV_raw/RSA_20211006_021.csv", skip = 1, header = TRUE) %>%
   separate(Time, c("Date", "Time"), " ") %>%
   mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
   filter(Date >= "2021-10-05")
@@ -192,32 +214,32 @@ oct1 <- read.csv("data/CTD_raw/RSA_20211006_021.csv", skip = 1, header = TRUE) %
 # No data from sites 022-023
 
 # Chronological sites 024-064; includes 024-068
-oct2 <- read.csv("data/CTD_raw/RSA_20211008_064.csv", skip = 1, header = TRUE) %>%
+oct2 <- read.csv("data/CTD/CSV_raw/RSA_20211008_064.csv", skip = 1, header = TRUE) %>%
   separate(Time, c("Date", "Time"), " ")
 
 # Sites 069-114 (no data from site 104)
-oct3 <- read.csv("data/CTD_raw/RSA_20211010_114.csv", skip = 1, header = TRUE) %>%
+oct3 <- read.csv("data/CTD/CSV_raw/RSA_20211010_114.csv", skip = 1, header = TRUE) %>%
   separate(Time, c("Date", "Time"), " ")
 
 oct_combined <- rbind(oct1, oct2, oct3)
-write.csv(oct_combined, "data/CTD_raw/CTD_allOct.csv", row.names = FALSE)
+write.csv(oct_combined, "data/CTD/CTD_allOct.csv", row.names = FALSE)
 ```
 
-#### Save decimal second timestamps in case needed
+#### Save decimal-second timestamps
 ```{r}
 oct1Times <- as.character(oct1$Time)
-write.csv(oct1Times, "data/oct1Times.txt")
+write.csv(oct1Times, "data/CTD/octTimes/oct1Times.txt", row.names = FALSE)
 
 oct2Times <- as.character(oct2$Time)
-write.csv(oct2Times, "data/oct2Times.txt")
+write.csv(oct2Times, "data/CTD/octTimes/oct2Times.txt", row.names = FALSE)
 
 oct3Times <- as.character(oct3$Time)
-write.csv(oct3Times, "data/oct3Times.txt")
+write.csv(oct3Times, "data/CTD/octTimes/oct3Times.txt", row.names = FALSE)
 
 # Call these vectors
-oct1Times_read <- read.csv("data/CTD_raw/oct1Times.txt")
-oct2Times_read <- read.csv("data/CTD_raw/oct2Times.txt")
-oct3Times_read <- read.csv("data/CTD_raw/oct3Times.txt")
+oct1Times <- read.csv("data/CTD/octTimes/oct1Times.txt")
+oct2Times <- read.csv("data/CTD/octTimes/oct2Times.txt")
+oct3Times <- read.csv("data/CTD/octTimes/oct3Times.txt")
 ```
 
 #### Figuring out which files need loading
