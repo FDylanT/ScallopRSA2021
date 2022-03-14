@@ -312,6 +312,7 @@ may_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_d
 %RSKplotprofiles(may1down, 'profile', 83:84, 'channel', {'temperature', 'salinity'});
 %may_salinity(stations==57, :) % salinity on first seems more accurate; remove second
 
+% remove duplicate station lines
 may_salinity = array2table(may_salinity);
 may_salinity(isnan(surface_depth), :) = [];
 
@@ -567,7 +568,8 @@ oct2down = RSKtrim(oct2down, 'reference', 'depth', 'range', [0, 2.5], 'profile',
 %set(h2, 'linewidth', 3)
 
 % bin-average by sea pressure (oct2 -- upcasts)
-oct2up = RSKbinaverage(oct2up, 'direction', 'up', 'binBy', 'Depth', 'binSize', 1, 'boundary', [50 2]);
+## %get this to bound at 2.5m
+oct2up = RSKbinaverage(oct2up, 'direction', 'up', 'binBy', 'Depth', 'binSize', 1, 'boundary', [50 3]);
 %h = findobj(gcf, 'type', 'line');
 %set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
 
@@ -721,22 +723,7 @@ for i = 1:46
         surface_depth(k) = oct2up.data(p).values(index, 7);
         surface_temp(k) = oct2up.data(p).values(index, 2);
         surface_sal(k) = oct2up.data(p).values(index, 9);
-    elseif p == 32 %don't include surface data
-        m = k + 1;
-        stations(m) = oct2down.data(p).station;
-        CTD_depth(m) = max(oct2down_uncut.data(p).values(:, 7));
-        [depth, index] = max(oct2down.data(p).values(:, 7));
-        sal = oct2down.data(p).values(index, 9);
-        while isnan(sal)
-            index = index - 1;
-            depth = oct2down.data(p).values(index, 7);
-            temp = oct2down.data(p).values(index, 2);
-            sal = oct2down.data(p).values(index, 9);
-        end
-        bottom_depth(m) = depth;
-        bottom_temp(m) = temp;
-        bottom_sal(m) = sal;
-    elseif p == 33
+    elseif p == 33 %don't include surface data
         surface_depth(k) = NaN;
         surface_temp(k) = NaN;
         surface_sal(k) = NaN;
@@ -782,16 +769,37 @@ stations = str2double(stations);
 oct_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_depth surface_temp surface_sal];
 
 % determine whether doubled-up profiles are necessary
-oct_salinity(stations==49, :) % keep second!
+%oct_salinity(stations==49, :) % keep second!
 
-oct_salinity(stations==11, :) % salinity & temp on first seem more accurate; remove second
-RSKplotprofiles(oct1down_uncut, 'profile', 11:12, 'channel', {'temperature', 'conductivity'});
-RSKplotprofiles(oct1down, 'profile', 11:12, 'channel', {'temperature', 'salinity'});
+%oct_salinity(stations==11, :) % salinity & temp on first seem more accurate; remove second
+%RSKplotprofiles(oct1down_uncut, 'profile', 11:12, 'channel', {'temperature', 'conductivity'});
+%RSKplotprofiles(oct1down, 'profile', 11:12, 'channel', {'temperature', 'salinity'});
 
-oct_salinity(stations==92, :) % salinity & temp on first seem more accurate; remove second
-RSKplotprofiles(oct3down_uncut, 'profile', 28:29, 'channel', {'temperature', 'conductivity'});
-RSKplotprofiles(oct3down, 'profile', 28:29, 'channel', {'temperature', 'salinity'});
+%oct_salinity(stations==92, :) % salinity & temp on first seem more accurate; remove second
+%RSKplotprofiles(oct3down_uncut, 'profile', 28:29, 'channel', {'temperature', 'conductivity'});
+%SKplotprofiles(oct3down, 'profile', 28:29, 'channel', {'temperature', 'salinity'});
 
+% reconcile station 49 profiles
+i = 31;
+k = i + 22; 
+p = profiles2(i);
+n = p + 1;
+CTD_depth(k) = max(oct2down_uncut.data(n).values(:, 7));
+[depth, index] = max(oct2down.data(n).values(:, 7));
+sal = oct2down.data(n).values(index, 9);
+while isnan(sal)
+    index = index - 1;
+    depth = oct2down.data(n).values(index, 7);
+    temp = oct2down.data(n).values(index, 2);
+    sal = oct2down.data(n).values(index, 9);
+end
+bottom_depth(k) = depth;
+bottom_temp(k) = temp;
+bottom_sal(k) = sal;
+
+oct_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_depth surface_temp surface_sal];
+
+% remove duplicate station lines
 oct_salinity = array2table(oct_salinity);
 oct_salinity(isnan(surface_depth), :) = [];
 
