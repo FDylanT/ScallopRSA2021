@@ -109,6 +109,7 @@ ggplot(may, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
 ### definitely check 112 DIC
 ```
 
+### delete this ###
 ## Check questionable TA data
 ```{r}
 may <- may %>%
@@ -195,8 +196,8 @@ ggplot(bottom_sf, aes(x = Long, y = Lat)) +
   geom_point(aes(colour = Salinity)) +
   geom_text(aes(label = Station), hjust = 0.05, vjust = 0.05, size = 3) +
   scale_colour_viridis() +
-  #geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
-               #fill = "darkgrey", colour = NA) +
+  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+               fill = "darkgrey", colour = NA) +
   coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
   scale_y_continuous(breaks = c(40, 41, 42))
 ```
@@ -620,7 +621,6 @@ library(tidync)
 ## Get bathymetric data
 ```{r}
 library(marmap)
-library(mapdata)
 library(mapproj)
 # Create base map with NOAA data
 GB_bathy <- getNOAA.bathy(lon1 = -70.5, lon2 = -66, lat1 = 40, lat2 = 42.5, resolution = 1)
@@ -634,6 +634,8 @@ ggbathy <- GB_bathy %>%
 
 ## Get regional polygons
 ```{r}
+library(mapdata)
+
 reg = map_data("world2Hires")
 reg = subset(reg, region %in% 'USA')
 
