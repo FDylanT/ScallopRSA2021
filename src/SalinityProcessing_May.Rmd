@@ -82,7 +82,7 @@ gsw_SP_from_C(35.001, 7, 46.0566) - gsw_SP_from_C(35, 7, 46.0566) # ~0.0011 PSU
 ## Correct CTD data given bottle data
 ```{r}
 lm1 <- lm(bottle_sal ~ CTD_sal, comparison)
-summary(lm1) # bottle = 1.003579(CTD) - 0.138245 (bins start @ 1.0m)
+summary(lm1) # bottle = 1.003579(CTD) - 0.138245 (bins start @ 2.0m)
 
 mayCTD$BottomSal_Corr <- 1.003579 * mayCTD$BottomSalinity - 0.138245
 
