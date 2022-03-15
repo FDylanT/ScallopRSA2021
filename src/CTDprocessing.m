@@ -568,7 +568,6 @@ oct2down = RSKtrim(oct2down, 'reference', 'depth', 'range', [0, 2.5], 'profile',
 %set(h2, 'linewidth', 3)
 
 % bin-average by sea pressure (oct2 -- upcasts)
-## %get this to bound at 2.5m
 oct2up = RSKbinaverage(oct2up, 'direction', 'up', 'binBy', 'Depth', 'binSize', 1, 'boundary', [50 3]);
 %h = findobj(gcf, 'type', 'line');
 %set(h(1:2:end), 'marker', 'o', 'markerfacecolor', 'c')
