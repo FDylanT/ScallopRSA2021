@@ -423,7 +423,7 @@ for i = [1:7, 9, 13, 34:35]
     elseif i == 3
         a = max(oct2down.data(i).values(:, 7))-0.7;
     elseif i == 2
-        a = max(oct2down.data(i).values(:, 7))-0.8;
+        a = max(oct2down.data(i).values(:, 7))-1.0;
     end
     b = max(oct2down.data(i).values(:, 7));
     oct2down = RSKtrim(oct2down, 'reference', 'depth', 'range', [a, b], 'profile', i, 'action', 'remove'); 
@@ -778,25 +778,25 @@ oct_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_d
 %RSKplotprofiles(oct3down_uncut, 'profile', 28:29, 'channel', {'temperature', 'conductivity'});
 %SKplotprofiles(oct3down, 'profile', 28:29, 'channel', {'temperature', 'salinity'});
 
-% reconcile station 49 profiles
-i = 31;
-k = i + 22; 
-p = profiles2(i);
-n = p + 1;
-CTD_depth(k) = max(oct2down_uncut.data(n).values(:, 7));
-[depth, index] = max(oct2down.data(n).values(:, 7));
-sal = oct2down.data(n).values(index, 9);
-while isnan(sal)
-    index = index - 1;
-    depth = oct2down.data(n).values(index, 7);
-    temp = oct2down.data(n).values(index, 2);
-    sal = oct2down.data(n).values(index, 9);
-end
-bottom_depth(k) = depth;
-bottom_temp(k) = temp;
-bottom_sal(k) = sal;
+% reconcile station 49 profiles % actually don't do this because then sal is way off compared to bottle
+%i = 31;
+%k = i + 22; 
+%p = profiles2(i);
+%n = p + 1;
+%CTD_depth(k) = max(oct2down_uncut.data(n).values(:, 7));
+%[depth, index] = max(oct2down.data(n).values(:, 7));
+%sal = oct2down.data(n).values(index, 9);
+%while isnan(sal)
+%    index = index - 1;
+%    depth = oct2down.data(n).values(index, 7);
+%    temp = oct2down.data(n).values(index, 2);
+%    sal = oct2down.data(n).values(index, 9);
+%end
+%bottom_depth(k) = depth;
+%bottom_temp(k) = temp;
+%bottom_sal(k) = sal;
 
-oct_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_depth surface_temp surface_sal];
+%oct_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_depth surface_temp surface_sal];
 
 % remove duplicate station lines
 oct_salinity = array2table(oct_salinity);
