@@ -1,0 +1,201 @@
+---
+title: "SalinityProcessing_Oct"
+author: "Dylan Titmuss"
+date: "3/15/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+This script processes the salinity data output by the "CTDprocessing.m" MATLAB script.
+
+## Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(gsw)
+```
+
+## Load data
+```{r}
+setwd("~/Desktop/Repos/ScallopRSA2021")
+
+octCTD <- read.csv("./data/CTD/oct_CTD.csv")
+oct_bottle <- read.csv("./data/salinity/oct_salinity_bottles.csv")
+octBottomData <- read.csv("./data/OctCruiseData.csv") %>%
+  filter(Cast == "Bottom") %>%
+  filter(Filtered != "Y") %>%
+  arrange(Station)
+```
+
+## Calculate CTD offset
+```{r}
+for (i in 1:35) {
+  k <- oct_bottle$Station[i]
+  s <- octCTD$BottomSalinity[octCTD$Station == k]
+  print(c(k, s))
+}
+
+station <- rep(NA, 35)
+CTD_sal <- rep(NA, 35)
+bottle_sal <- rep(NA, 35)
+offset <- rep(NA, 35)
+
+for (i in c(1:35)) {
+  k <- oct_bottle$Station[i]
+  station[i] <- k
+  CTD_sal[i] <- octCTD$BottomSalinity[octCTD$Station == k]
+  bottle_sal[i] <- oct_bottle[i, 2]
+  offset[i] <- CTD_sal[i] - bottle_sal[i]
+}
+
+comparison <- as.data.frame(cbind(station, bottle_sal, CTD_sal, offset))
+
+mean(offset, na.rm = TRUE) # 0.05998327
+median(offset, na.rm = TRUE) # 0.0380174
+max(offset, na.rm = TRUE) # 0.3173934   # May max: 0.0473948
+```
+
+## Plot CTD data with bottle data
+```{r}
+ggplot(data = comparison, aes(x = station, y = CTD_sal)) +
+  geom_point() +
+  geom_point(aes(y = bottle_sal, col = "red")) +
+  ylim(32.5, 35.5) +
+  scale_color_discrete(labels = "bottle\nsample") +
+  theme_bw() +
+  theme(legend.title=element_blank())
+
+plot(comparison$bottle_sal ~ comparison$CTD_sal)
+abline(0, 1)
+plot(comparison$offset ~ comparison$bottle_sal)
+abline(h = 0, lty = 2)
+
+# uncertainty in CTD = 0.001 mS/cm
+gsw_SP_from_C(35.001, 7, 46.0566) - gsw_SP_from_C(35, 7, 46.0566) # ~0.0011 PSU
+
+# CTD salinity consistently slightly higher than bottle salinity -- let's do a correction
+```
+
+## Correct CTD data given bottle data
+```{r}
+lm1 <- lm(bottle_sal ~ CTD_sal, comparison)
+summary(lm1) # bottle = 0.98450(CTD) + 0.45644 (bins start @ 2.0m)
+
+comparison_filt <- comparison %>%
+  filter(station != 9, station != 64) # remove stations with outlier offsets
+lm2 <- lm(bottle_sal ~ CTD_sal, comparison_filt)
+summary(lm2) # bottle = 0.987626(CTD) + 0.365933
+
+octCTD$BottomSal_Corr <- 0.987626 * octCTD$BottomSalinity + 0.365933
+
+# check new offset
+CTD_sal_corr <- rep(NA, 35)
+corr_offset <- rep(NA, 35)
+
+for (i in c(1:35)) {
+  k <- oct_bottle$Station[i]
+  CTD_sal_corr[i] <- octCTD$BottomSal_Corr[octCTD$Station == k]
+  corr_offset[i] <- CTD_sal_corr[i] - bottle_sal[i]
+}
+
+comparison <- as.data.frame(cbind(comparison, CTD_sal_corr, corr_offset))
+
+mean(corr_offset, na.rm = TRUE) # -0.00007140976
+mean(abs(corr_offset), na.rm = TRUE) # 0.04123732
+
+plot(comparison$bottle_sal ~ comparison$CTD_sal_corr)
+abline(0, 1)
+plot(comparison$corr_offset ~ comparison$bottle_sal)
+abline(h = 0, lty = 2)
+
+ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
+  geom_point() +
+  geom_point(aes(y = bottle_sal, col = "red")) +
+  ylim(32.5, 35.5) +
+  scale_color_discrete(labels = "bottle\nsample") +
+  theme_bw() +
+  theme(legend.title=element_blank())
+
+# looks better!
+
+octCTD$SurfaceSal_Corr <- 0.98450 * octCTD$SurfaceSalinity + 0.45644
+#OR
+octCTD$SurfaceSal_Corr <- 0.987626 * octCTD$SurfaceSalinity + 0.365933
+```
+
+## Extract CTD depths
+```{r}
+CTDdepth <- rep(NA, 114)
+
+for (i in c(1:111)) {
+  k <- octCTD$Station[i]
+  CTDdepth[k] <- octCTD$CTDDepth[i]
+}
+```
+
+## Check station assignments using depths
+```{r}
+radarDepth <- octBottomData$Depth_meters
+
+depthCheck <- as.data.frame(cbind(octBottomData$Station, radarDepth, CTDdepth)) %>%
+  mutate(Diff = radarDepth - CTDdepth) %>%
+  mutate(Check = abs(Diff) > 5, Check2 = abs(Diff) > 3)
+
+which(depthCheck$Check == TRUE) # Helppp
+which(depthCheck$Check2 == TRUE) # 
+
+# station assignments look correct!
+```
+
+## Write temp values & corrected salinity values to file
+```{r}
+BottomTemp <- rep(NA, 114)
+SurfaceTemp <- rep(NA, 114)
+
+for (i in 1:length(octCTD$Station)) {
+  k <- octCTD$Station[i]
+  BottomTemp[k] <- octCTD$BottomTemp[i]
+  SurfaceTemp[k] <- octCTD$SurfaceTemp[i]
+}
+
+BottomSal_Corr <- rep(NA, 114)
+SurfaceSal_Corr <- rep(NA, 114)
+
+for (i in 1:length(octCTD$Station)) {
+  k <- octCTD$Station[i]
+  BottomSal_Corr[k] <- octCTD$BottomSal_Corr[i]
+  SurfaceSal_Corr[k] <- octCTD$SurfaceSal_Corr[i]
+}
+
+# remove duplicate instance of RSA_021A
+which(oct_bottle$BottleID == "RSA_021A")
+
+oct_bottle <- oct_bottle %>%
+    filter(!row_number() %in% 39)
+
+# add extra bottle sal values as replacements
+for (i in 1:length(oct_bottle$BottleID)) {
+  b <- oct_bottle$BottleID[i]
+  k <- as.numeric(str_remove(str_extract(b, "[0-9]{3}"), "^0+"))
+  c <- str_extract(b, ".$")
+  if(c == "A") {
+    BottomSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
+  } else if (c == "B") {
+    SurfaceSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
+  }
+}
+
+Station <- rep(octBottomData$Station, 2)
+Cast <- c(rep("Bottom", 114), rep("Surface", 114))
+CTD_depth <- rep(CTDdepth, 2)
+Temp <- c(BottomTemp, SurfaceTemp)
+Salinity_Corr <- c(BottomSal_Corr, SurfaceSal_Corr)
+
+oct_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Temp, Salinity_Corr)) %>%
+  mutate(Station = as.integer(Station)) %>%
+  arrange(Station)
+
+write.csv(oct_corrected, "./data/salinity/oct_salinity_corrected.csv", row.names = FALSE)
+```
