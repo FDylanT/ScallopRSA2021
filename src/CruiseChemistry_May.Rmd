@@ -109,7 +109,7 @@ ggplot(may, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
 ### definitely check 112 DIC
 ```
 
-### delete this ###
+### delete this after recording flags ###
 ## Check questionable TA data
 ```{r}
 may <- may %>%
