@@ -41,6 +41,7 @@ station <- rep(NA, 35)
 CTD_sal <- rep(NA, 35)
 bottle_sal <- rep(NA, 35)
 offset <- rep(NA, 35)
+CTD_temp <- rep(NA, 35)
 
 for (i in c(1:35)) {
   k <- oct_bottle$Station[i]
@@ -48,9 +49,10 @@ for (i in c(1:35)) {
   CTD_sal[i] <- octCTD$BottomSalinity[octCTD$Station == k]
   bottle_sal[i] <- oct_bottle[i, 2]
   offset[i] <- CTD_sal[i] - bottle_sal[i]
+  CTD_temp[i] <- octCTD$BottomTemp[octCTD$Station == k]
 }
 
-comparison <- as.data.frame(cbind(station, bottle_sal, CTD_sal, offset))
+comparison <- as.data.frame(cbind(station, bottle_sal, CTD_sal, offset, CTD_temp))
 
 mean(offset, na.rm = TRUE) # 0.05998327
 median(offset, na.rm = TRUE) # 0.0380174
@@ -62,29 +64,33 @@ max(offset, na.rm = TRUE) # 0.3173934   # May max: 0.0473948
 ggplot(data = comparison, aes(x = station, y = CTD_sal)) +
   geom_point() +
   geom_point(aes(y = bottle_sal, col = "red")) +
-  ylim(32.5, 35.5) +
+  ylim(32.5, 36) +
   scale_color_discrete(labels = "bottle\nsample") +
   theme_bw() +
   theme(legend.title=element_blank())
+
+plot(comparison$offset ~ comparison$CTD_sal)
+plot(comparison$offset ~ comparison$CTD_temp)
 
 plot(comparison$bottle_sal ~ comparison$CTD_sal)
 abline(0, 1)
 plot(comparison$offset ~ comparison$bottle_sal)
 abline(h = 0, lty = 2)
 
-# uncertainty in CTD = 0.001 mS/cm
-gsw_SP_from_C(35.001, 7, 46.0566) - gsw_SP_from_C(35, 7, 46.0566) # ~0.0011 PSU
+# uncertainty in CTD = 0.001 mS/cm = ~0.0011 PSU
 
 # CTD salinity consistently slightly higher than bottle salinity -- let's do a correction
 ```
 
 ## Correct CTD data given bottle data
 ```{r}
-lm1 <- lm(bottle_sal ~ CTD_sal, comparison)
-summary(lm1) # bottle = 0.98450(CTD) + 0.45644 (bins start @ 2.0m)
+# filter outliers in offset
+off_u <- mean(comparison$offset) # 0.05998327
+off_sd <- sd(comparison$offset) # 0.06564262
 
 comparison_filt <- comparison %>%
-  filter(station != 9, station != 64) # remove stations with outlier offsets
+  filter(offset < off_u + 2 * off_sd, # remove stations with offsets +/- 2 sd from mean
+         offset > off_u - 2 * off_sd) 
 lm2 <- lm(bottle_sal ~ CTD_sal, comparison_filt)
 summary(lm2) # bottle = 0.987626(CTD) + 0.365933
 
@@ -120,8 +126,6 @@ ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
 
 # looks better!
 
-octCTD$SurfaceSal_Corr <- 0.98450 * octCTD$SurfaceSalinity + 0.45644
-#OR
 octCTD$SurfaceSal_Corr <- 0.987626 * octCTD$SurfaceSalinity + 0.365933
 ```
 
@@ -146,7 +150,7 @@ depthCheck <- as.data.frame(cbind(octBottomData$Station, radarDepth, CTDdepth)) 
 which(depthCheck$Check == TRUE) # Helppp
 which(depthCheck$Check2 == TRUE) # 
 
-# station assignments look correct!
+# station assignments look correct! # but do they tho
 ```
 
 ## Write temp values & corrected salinity values to file
