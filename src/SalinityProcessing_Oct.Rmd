@@ -92,8 +92,8 @@ off_sd <- sd(comparison$offset) # 0.06564262
 comparison_filt <- comparison %>%
   filter(offset < off_u + 2 * off_sd, # remove stations with offsets +/- 2 sd from mean
          offset > off_u - 2 * off_sd) 
-lm2 <- lm(bottle_sal ~ CTD_sal, comparison_filt)
-summary(lm2) # bottle = 0.987626(CTD) + 0.365933
+lm1 <- lm(bottle_sal ~ CTD_sal, comparison_filt)
+summary(lm1) # bottle = 0.987626(CTD) + 0.365933
 
 octCTD$BottomSal_Corr <- 0.987626 * octCTD$BottomSalinity + 0.365933
 
@@ -174,17 +174,16 @@ for (i in 1:length(octCTD$Station)) {
   SurfaceSal_Corr[k] <- octCTD$SurfaceSal_Corr[i]
 }
 
-# add extra bottle sal values as replacements
-#for (i in 1:length(oct_bottle$BottleID)) {
-#  b <- oct_bottle$BottleID[i]
-#  k <- as.numeric(str_remove(str_extract(b, "[0-9]{3}"), "^0+"))
-#  c <- str_extract(b, ".$")
-#  if(c == "A") {
-#    BottomSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
-#  } else if (c == "B") {
-#    SurfaceSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
-#  }
-#}
+# add bottle sal values as replacements
+for (i in 1:length(oct_bottle$BottleID)) {
+  b <- oct_bottle$BottleID[i]
+  k <- oct_bottle$Station[i]
+  if(oct_bottle$Cast[i] == "Bottom") {
+    BottomSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
+  } else if (oct_bottle$Cast[i] == "Surface") {
+    SurfaceSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
+  }
+}
 
 Station <- rep(octBottomData$Station, 2)
 Cast <- c(rep("Bottom", 114), rep("Surface", 114))
