@@ -57,6 +57,10 @@ comparison <- as.data.frame(cbind(station, bottle_sal, CTD_sal, offset, CTD_temp
 mean(offset, na.rm = TRUE) # 0.05998327
 median(offset, na.rm = TRUE) # 0.0380174
 max(offset, na.rm = TRUE) # 0.3173934   # May max: 0.0473948
+
+# check poss causes of outlier offsets
+plot(comparison$offset ~ comparison$CTD_sal) # minimal if any correlation w/ sal
+plot(comparison$offset ~ comparison$CTD_temp) # no correlation w/ temp
 ```
 
 ## Plot CTD data with bottle data
@@ -68,9 +72,6 @@ ggplot(data = comparison, aes(x = station, y = CTD_sal)) +
   scale_color_discrete(labels = "bottle\nsample") +
   theme_bw() +
   theme(legend.title=element_blank())
-
-plot(comparison$offset ~ comparison$CTD_sal)
-plot(comparison$offset ~ comparison$CTD_temp)
 
 plot(comparison$bottle_sal ~ comparison$CTD_sal)
 abline(0, 1)
@@ -108,8 +109,8 @@ for (i in c(1:35)) {
 
 comparison <- as.data.frame(cbind(comparison, CTD_sal_corr, corr_offset))
 
-mean(corr_offset, na.rm = TRUE) # -0.00007140976
-mean(abs(corr_offset), na.rm = TRUE) # 0.04123732
+mean(corr_offset, na.rm = TRUE) # 0.0135869
+mean(abs(corr_offset), na.rm = TRUE) # 0.03522314
 
 plot(comparison$bottle_sal ~ comparison$CTD_sal_corr)
 abline(0, 1)
@@ -119,7 +120,7 @@ abline(h = 0, lty = 2)
 ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
   geom_point() +
   geom_point(aes(y = bottle_sal, col = "red")) +
-  ylim(32.5, 35.5) +
+  ylim(32.5, 36) +
   scale_color_discrete(labels = "bottle\nsample") +
   theme_bw() +
   theme(legend.title=element_blank())
