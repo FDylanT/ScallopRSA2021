@@ -146,12 +146,12 @@ radarDepth <- octBottomData$Depth_meters
 
 depthCheck <- as.data.frame(cbind(octBottomData$Station, radarDepth, CTDdepth)) %>%
   mutate(Diff = radarDepth - CTDdepth) %>%
-  mutate(Check = abs(Diff) > 5, Check2 = abs(Diff) > 3)
+  mutate(Check = abs(Diff) > 20, Check2 = abs(Diff) > 10)
 
-which(depthCheck$Check == TRUE) # Helppp
-which(depthCheck$Check2 == TRUE) # 
+which(depthCheck$Check == TRUE) # 2/111 stations don't agree w/in 20m
+which(depthCheck$Check2 == TRUE) # 14/111 stations don't agree w/in 10m
 
-# station assignments look correct! # but do they tho
+# station assignments seem correct! more extensive trimming of oct profiles compared to may -- greater divergence makes sense
 ```
 
 ## Write temp values & corrected salinity values to file
@@ -174,23 +174,17 @@ for (i in 1:length(octCTD$Station)) {
   SurfaceSal_Corr[k] <- octCTD$SurfaceSal_Corr[i]
 }
 
-# remove duplicate instance of RSA_021A
-which(oct_bottle$BottleID == "RSA_021A")
-
-oct_bottle <- oct_bottle %>%
-    filter(!row_number() %in% 39)
-
 # add extra bottle sal values as replacements
-for (i in 1:length(oct_bottle$BottleID)) {
-  b <- oct_bottle$BottleID[i]
-  k <- as.numeric(str_remove(str_extract(b, "[0-9]{3}"), "^0+"))
-  c <- str_extract(b, ".$")
-  if(c == "A") {
-    BottomSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
-  } else if (c == "B") {
-    SurfaceSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
-  }
-}
+#for (i in 1:length(oct_bottle$BottleID)) {
+#  b <- oct_bottle$BottleID[i]
+#  k <- as.numeric(str_remove(str_extract(b, "[0-9]{3}"), "^0+"))
+#  c <- str_extract(b, ".$")
+#  if(c == "A") {
+#    BottomSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
+#  } else if (c == "B") {
+#    SurfaceSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
+#  }
+#}
 
 Station <- rep(octBottomData$Station, 2)
 Cast <- c(rep("Bottom", 114), rep("Surface", 114))
