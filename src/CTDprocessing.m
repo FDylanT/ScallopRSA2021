@@ -612,6 +612,15 @@ oct3down = RSKtrim(oct3down, 'reference', 'depth', 'range', [0, 2.5], 'profile',
 
 %%% profile 6 surface DO is a bit wacky
 
+%% Check indiv profile
+
+figure
+channel = {'temperature', 'salinity', 'dissolved O2'};
+profile = 9;
+[h1, ax] = RSKplotprofiles(oct1, 'profile', profile, 'channel', channel, 'direction', 'up'); %#ok<*ASGLU> 
+h2 = RSKplotprofiles(oct1down, 'profile', profile, 'channel', channel);
+set(h2, 'linewidth', 3)
+
 %% Assign station numbers to profiles
 
 % oct1 file
