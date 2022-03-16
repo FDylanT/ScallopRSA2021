@@ -25,7 +25,7 @@ octCTD <- read.csv("./data/CTD/oct_CTD.csv")
 oct_bottle <- read.csv("./data/salinity/oct_salinity_bottles.csv")
 octBottomData <- read.csv("./data/OctCruiseData.csv") %>%
   filter(Cast == "Bottom") %>%
-  filter(Filtered != "Y") %>%
+  filter(Filtered == "") %>%
   arrange(Station)
 ```
 
@@ -109,7 +109,7 @@ for (i in c(1:35)) {
 
 comparison <- as.data.frame(cbind(comparison, CTD_sal_corr, corr_offset))
 
-mean(corr_offset, na.rm = TRUE) # 0.0135869
+mean(corr_offset, na.rm = TRUE) # 0.01358691
 mean(abs(corr_offset), na.rm = TRUE) # 0.03522314
 
 plot(comparison$bottle_sal ~ comparison$CTD_sal_corr)
