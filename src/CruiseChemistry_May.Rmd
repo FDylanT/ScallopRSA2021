@@ -39,21 +39,23 @@ may <- read.csv("./data/MayCruiseData.csv") %>%
 ## Prop-prop plots
 ```{r}
 # Temp vs. Sal, coloured cast
+#plot <-
 ggplot(may, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
   geom_point() +
   theme_bw()
 
+#ggplot_build(plot)$layout$panel_scales_x[[1]]$range$range # [32.29491 34.39670]
+#ggplot_build(plot)$layout$panel_scales_y[[1]]$range$range # [6.717487 10.080005]
+
 # Temp vs. Sal, bottom, coloured depth
-#plot <-
 may %>%
   filter(Cast == "Bottom") %>%
   ggplot(aes(x = Salinity, y = Temp, col = Depth)) +
   geom_point() +
   scale_colour_viridis(option = "mako", direction = -1) +
+  scale_x_continuous(limits = c(32.29, 34.40)) +
+  scale_y_continuous(limits = c(6.71, 10.09)) +
   theme_bw()
-  
-#ggplot_build(plot)$layout$panel_scales_x[[1]]$range$range
-#ggplot_build(plot)$layout$panel_scales_y[[1]]$range$range
 
 # Temp vs. Sal, surface, coloured bottom depth
 may %>%
@@ -61,8 +63,8 @@ may %>%
   ggplot(aes(x = Salinity, y = Temp, col = Depth)) +
   geom_point(shape = 17) +
   scale_colour_viridis(option = "mako", direction = -1) +
-  scale_x_continuous(limits = c(32.447, 34.397)) +
-  scale_y_continuous(limits = c(6.717487, 10.080005)) +
+  scale_x_continuous(limits = c(32.29, 34.40)) +
+  scale_y_continuous(limits = c(6.71, 10.09)) +
   theme_bw()
 
 # Temp vs. Sal, coloured DIC
