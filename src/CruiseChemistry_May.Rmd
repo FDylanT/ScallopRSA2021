@@ -429,19 +429,19 @@ ggplot() +
   labs(title = "Surface Temperature")
 
 ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_v3, aes(fill = Salinity), size = 0.25, colour = NA) +
   scale_fill_viridis() +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface Salinity")
 
 ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_v3, aes(fill = DIC), size = 0.25, colour = NA) +
   scale_fill_viridis() +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface DIC")
 
 ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_v3, aes(fill = TA), size = 0.25, colour = NA) +
   scale_fill_viridis(limits = c(2180, 2300)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface TA")
