@@ -25,7 +25,7 @@ library(gstat)
 
 ## Load data
 ```{r}
-setwd("./Repos/ScallopRSA2021")
+setwd("~/Desktop/Repos/ScallopRSA2021")
 
 oct_full <- read.csv("./data/OctCruiseData.csv") %>%
   rename(Lat = Latitude_degrees_start,
@@ -73,13 +73,13 @@ oct %>%
   guides(colour = guide_colourbar(reverse = TRUE)) +
   theme_bw()
 
-########## pick up here after data processing ##########
-
 # Temp vs. Sal, coloured DIC
 ggplot(oct, aes(x = Salinity, y = Temp, col = DIC, shape = Cast)) +
   geom_point() +
   scale_colour_viridis(option = "rocket") +
   theme_bw()
+
+########## pick up here after data processing ##########
 
 # Temp vs. Sal, coloured TA
 ggplot(oct, aes(x = Salinity, y = Temp, col = TA, shape = Cast)) +
@@ -144,11 +144,8 @@ Long_split_oct$V1 <- as.numeric(Long_split_oct$V1)
 
 oct$Long <- -(Long_split_oct$V1 + Long_split_oct$V2)
 
-# preserve oct file; update coords to fit within polygon
-#stationChem <- oct %>%
-#  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
-#         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
-#         Long = ifelse(Station == "089", Long - 0.04, Long))
+# preserve oct file
+stationChem <- oct
 ```
 
 ## Add chem to shapefile
@@ -174,8 +171,8 @@ ggplot(bottom_sf, aes(x = Long, y = Lat)) +
   geom_point(aes(colour = Salinity)) +
   geom_text(aes(label = Station), hjust = 0.05, vjust = 0.05, size = 3) +
   scale_colour_viridis() +
-  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
-               fill = "darkgrey", colour = NA) +
+  #geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+  #             fill = "darkgrey", colour = NA) +
   coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
   scale_y_continuous(breaks = c(40, 41, 42))
 ```
@@ -255,42 +252,17 @@ ggplot() +
   scale_y_continuous(breaks = c(40, 41, 42))
 ```
 
-## Move coordinates that are outside GB polygon
-```{r}
-#bottom_sf1 <- bottom_sf %>%
-#  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
-#         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
-#         Long = ifelse(Station == "089", Long - 0.04, Long))
-
-#surface_sf1 <- surface_sf %>%
-#  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
-#         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
-#         Long = ifelse(Station == "089", Long - 0.04, Long))
-```
-
 ## Begin interpolation round 1 (nearest-neighbor)
 ```{r}
-bottom_sf_geom <- st_union(bottom_sf1) %>%
+bottom_sf_geom <- st_union(bottom_sf) %>%
   st_transform(crs = 26919)
 bottom_sf_v <- st_voronoi(bottom_sf_geom)
 bottom_sf_v <- st_sf(bottom_sf_v)
 
-surface_sf_geom <- st_union(surface_sf1) %>%
+surface_sf_geom <- st_union(surface_sf) %>%
   st_transform(crs = 26919)
 surface_sf_v <- st_voronoi(surface_sf_geom)
 surface_sf_v <- st_sf(surface_sf_v)
-
-#GB_sf <- GB_sf %>%
-  #st_set_precision(1000000) %>%
-  #st_make_valid()
-
-#bottom_sf_v <- bottom_sf_v %>%
-  #st_set_precision(1000000) %>%
-  #st_make_valid()
-
-#surface_sf_v <- surface_sf_v %>%
-  #st_set_precision(1000000) %>%
-  #st_make_valid()
 
 # mask Voronoi with contour
 bottom_sf_v <- st_intersection(st_cast(bottom_sf_v), st_union(st_buffer(GB_sf, dist = 500)))
@@ -317,7 +289,7 @@ surface_sf_v2 <- st_join(surface_sf_v, surface_sf2)
 
 ## Fill in missing temps
 ```{r}
-bottom_sf_v3 <- bottom_sf_v2 %>%
+bottom_sf_v3 <- bottom_sf_v2 #%>%
   mutate(Temp = ifelse(Station == "022", mean(c(Temp[Station == "005"],
                                                 Temp[Station == "007"])), Temp),
          Temp = ifelse(Station == "023", 0.271 * Temp[Station == "011"] +
@@ -327,7 +299,7 @@ bottom_sf_v3 <- bottom_sf_v2 %>%
          Temp = ifelse(Station == "104", 0.333 * Temp[Station == "015"] +
                                          0.666 * Temp[Station == "017"], Temp))
 
-surface_sf_v3 <- surface_sf_v2 %>%
+surface_sf_v3 <- surface_sf_v2 #%>%
   mutate(Temp = ifelse(Station == "022", mean(c(Temp[Station == "005"],
                                                 Temp[Station == "007"])), Temp),
          Temp = ifelse(Station == "023", 0.271 * Temp[Station == "011"] +
