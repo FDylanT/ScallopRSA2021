@@ -304,18 +304,6 @@ surface_sf_geom <- st_union(surface_sf1) %>%
 surface_sf_v <- st_voronoi(surface_sf_geom)
 surface_sf_v <- st_sf(surface_sf_v)
 
-#GB_sf <- GB_sf %>%
-  #st_set_precision(1000000) %>%
-  #st_make_valid()
-
-#bottom_sf_v <- bottom_sf_v %>%
-  #st_set_precision(1000000) %>%
-  #st_make_valid()
-
-#surface_sf_v <- surface_sf_v %>%
-  #st_set_precision(1000000) %>%
-  #st_make_valid()
-
 # mask Voronoi with contour
 bottom_sf_v <- st_intersection(st_cast(bottom_sf_v), st_union(st_buffer(GB_sf, dist = 500)))
 bottom_sf_v <- st_sf(bottom_sf_v)
@@ -394,55 +382,82 @@ surface_sf_v3 <- surface_sf_v2 %>%
                                          0.387 * Temp[Station == "113"], Temp))
 ```
 
+## Find property ranges
+```{r}
+# Temp
+min(bottom_sf_v3$Temp) # 6.717487
+min(surface_sf_v3$Temp) # 6.962792
+max(bottom_sf_v3$Temp) # 10.08
+max(surface_sf_v3$Temp) # 8.874117
+
+# Sal
+min(bottom_sf_v3$Salinity) # 32.44675
+min(surface_sf_v3$Salinity) # 32.29491
+max(bottom_sf_v3$Salinity) # 34.3967
+max(surface_sf_v3$Salinity) # 33.07967
+
+# DIC
+min(bottom_sf_v3$DIC) # 1974.6
+min(surface_sf_v3$DIC) # 2011.3
+max(bottom_sf_v3$DIC) # 2137.4
+max(surface_sf_v3$DIC) # 2082
+
+# TA
+min(bottom_sf_v3$TA) # 2195.2
+min(surface_sf_v3$TA) # 2181.3
+max(bottom_sf_v3$TA) # 2291.8
+max(surface_sf_v3$TA) # 2234.9
+```
+
 ## Make interpolated plots
 ```{r}
 # make bottom plots
 ggplot() +
   geom_sf(data = bottom_sf_v3, aes(fill = Temp), size = 0.25, colour = NA) +
-  scale_fill_viridis() +
+  scale_fill_viridis(limits = c(6.5, 10.5), option = "inferno") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom Temperature")
 
 ggplot() +
   geom_sf(data = bottom_sf_v3, aes(fill = Salinity), size = 0.25, colour = NA) +
-  scale_fill_viridis() +
+  scale_fill_viridis(limits = c(32, 34.5)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom Salinity")
 
 ggplot() +
   geom_sf(data = bottom_sf_v3, aes(fill = DIC), size = 0.25, colour = NA) +
-  scale_fill_viridis() +
+  scale_fill_viridis(limits = c(1970, 2150), option = "rocket") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom DIC")
 
 ggplot() +
   geom_sf(data = bottom_sf_v3, aes(fill = TA), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(2180, 2300)) +
+  scale_fill_viridis(limits = c(2180, 2300), option = "mako") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom TA")
 
 # make surface plots
 ggplot() +
   geom_sf(data = surface_sf_v3, aes(fill = Temp), size = 0.25, colour = NA) +
-  scale_fill_viridis() +
+  scale_fill_viridis(limits = c(6.5, 10.5), option = "inferno") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface Temperature")
 
 ggplot() +
   geom_sf(data = surface_sf_v3, aes(fill = Salinity), size = 0.25, colour = NA) +
-  scale_fill_viridis() +
+  scale_fill_viridis(limits = c(32, 34.5)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface Salinity")
 
 ggplot() +
   geom_sf(data = surface_sf_v3, aes(fill = DIC), size = 0.25, colour = NA) +
-  scale_fill_viridis() +
+  scale_fill_viridis(limits = c(1970, 2150), option = "rocket") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface DIC")
 
 ggplot() +
   geom_sf(data = surface_sf_v3, aes(fill = TA), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(2180, 2300)) +
+  scale_fill_viridis(limits = c(2180, 2300), option = "mako") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface TA")
 ```
