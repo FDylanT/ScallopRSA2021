@@ -73,6 +73,9 @@ oct %>%
   guides(colour = guide_colourbar(reverse = TRUE)) +
   theme_bw()
 
+#plot(Temp ~ Salinity, data = oct)
+#identify(oct$Temp ~ oct$Salinity)
+
 # Temp vs. Sal, coloured DIC
 ggplot(oct, aes(x = Salinity, y = Temp, col = DIC, shape = Cast)) +
   geom_point() +
@@ -242,10 +245,21 @@ ggplot() +
 ```{r}
 ggplot() +
   geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5) +
-  geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = Salinity)) +
+  geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = DIC)) +
   geom_text(data = bottom_sf, aes(x = Long, y = Lat, label = Station),
-            hjust = 0.05, vjust = 0.05, size = 3) +
-  scale_colour_viridis() +
+            hjust = -0.05, vjust = 0.05, size = 3) +
+  scale_colour_viridis(option = "rocket") +
+  #geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+               #fill = "darkgrey", colour = NA) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  scale_y_continuous(breaks = c(40, 41, 42))
+
+ggplot() +
+  geom_sf(data = GB_sf, fill = "lightgrey", colour = "black", size = 0.5) +
+  geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = DIC), size = 6) +
+  #geom_text(data = bottom_sf, aes(x = Long, y = Lat, label = Station),
+  #          hjust = -0.05, vjust = 0.05, size = 3) +
+  scale_colour_viridis(option = "rocket") +
   #geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
                #fill = "darkgrey", colour = NA) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
@@ -323,9 +337,9 @@ max(bottom_sf_v3$Salinity, na.rm = TRUE) # 35.6009
 max(surface_sf_v3$Salinity, na.rm = TRUE) # 34.0014
 
 # DIC
-min(bottom_sf_v3$DIC, na.rm = TRUE) # 1947.8
+min(bottom_sf_v3$DIC, na.rm = TRUE) # 1934.6
 min(surface_sf_v3$DIC, na.rm = TRUE) # 1931.6
-max(bottom_sf_v3$DIC, na.rm = TRUE) # 2153.9
+max(bottom_sf_v3$DIC, na.rm = TRUE) # 2154.9
 max(surface_sf_v3$DIC, na.rm = TRUE) # 2154.9
 
 # TA
