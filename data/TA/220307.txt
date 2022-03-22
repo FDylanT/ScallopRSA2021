@@ -252,9 +252,6 @@ Slope = 	-3.71411e-005
 Sample#:	RSA_464
 C(HCl,M)=	 9.7721e-002		V(sample,ml)=	 18
 Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
-Sample#:	RSA_464
-C(HCl,M)=	 9.7721e-002		V(sample,ml)=	 18
-Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
  0	 0	13:46:08	-62.92	7.963		22.1	Time-out
  1	 0.742	13:53:43	233.9	2.871	3717.17412640441	22.1	
  2	 0.764	13:55:08	235.7	2.84	3995.8211274199	22.1	

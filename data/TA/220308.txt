@@ -417,10 +417,6 @@ Slope = 	 8.85058e-005
 Sample#:	RSA_483
 C(HCl,M)=	 9.757e-002		V(sample,ml)=	 18
 Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
- 0	 0	17:16:32	-73.82	8.149		22.1	Time-out
-Sample#:	RSA_483
-C(HCl,M)=	 9.757e-002		V(sample,ml)=	 18
-Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
  0	 0	17:36:07	-74	8.152		22.1	Time-out
  1	 0.4844167	17:39:27	189.4	3.636	630.053152554782	22.1	
  2	 0.5064167	17:40:42	197.6	3.496	871.897451079657	22.1	
@@ -459,12 +455,6 @@ Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
 Slope = 	 8.861125e-005
  32	Sample#:	RSA_484	V(sample,ml)=	 18	C(HCl,M)=	 9.757e-002	V(end,ml) = 	 0.4254948R = 	 0.9999686TA(mM) = 	 2.3064	Count = 	 7
 
-Sample#:	RSA_485
-C(HCl,M)=	 9.757e-002		V(sample,ml)=	 18
-Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
-Sample#:	RSA_485
-C(HCl,M)=	 9.757e-002		V(sample,ml)=	 18
-Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
 Sample#:	RSA_485
 C(HCl,M)=	 9.757e-002		V(sample,ml)=	 18
 Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit

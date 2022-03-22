@@ -1,9 +1,22 @@
 ﻿TA Ancillary File,,,
-Date:,,,
+Date:,2/25/22,,
 Operator:,DT,,
 Acid Batch (yymmdd):,211103,,
 Certified CRM TA (umolkg-1):,2118.1,,
 Certified CRM Salinity:,31.789,,
-Calibration Temperature:,,,
+Calibration Temperature:,22.1,,
 ,,,
 Sample Name ,Temperature,Salinity,Volume HgCl2 (uL)
+ESL09a_19,22.1,31.789,50
+RSA_382,22.1,32.691,100
+RSA_383,22.1,35.229,100
+RSA_384,22.1,35.229,100
+RSA_385,22.1,32.472,100
+RSA_386,22.1,33.913,100
+RSA_387,22.1,32.489,100
+RSA_388,22.1,32.821,100
+RSA_389,22.1,32.568,100
+RSA_390,22.1,32.779,100
+RSA_391,22.1,32.779,100
+RSA_392,22.1,32.559,100
+ESL09a_19,22.1,31.789,50
