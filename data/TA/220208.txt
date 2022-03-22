@@ -60,9 +60,6 @@ Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
 Slope = 	 8.570503e-005
  4	Sample#:	junk	V(sample,ml)=	 18	C(HCl,M)=	 9.7834e-002	V(end,ml) = 	 0.3978221R = 	 0.9999854TA(mM) = 	 2.1623	Count = 	 6
 
-Sample#:	ESL08a_20
-C(HCl,M)=	 9.7834e-002		V(sample,ml)=	 18
-Ser#	VHL(ml)	Time	EMF(mV)	pH	F2	Temp(C)	2min.limit
 Calibration Date & Time	02-08-2022	10:36:07
 T(C) = 	 22.1
 	pH	EMF(mV)
