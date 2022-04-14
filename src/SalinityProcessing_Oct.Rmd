@@ -109,7 +109,7 @@ for (i in c(1:35)) {
 
 comparison <- as.data.frame(cbind(comparison, CTD_sal_corr, corr_offset))
 
-mean(corr_offset, na.rm = TRUE) # 0.01358691
+mean(corr_offset, na.rm = TRUE) # 0.0135869
 mean(abs(corr_offset), na.rm = TRUE) # 0.03522314
 
 plot(comparison$bottle_sal ~ comparison$CTD_sal_corr)
@@ -158,11 +158,19 @@ which(depthCheck$Check2 == TRUE) # 14/111 stations don't agree w/in 10m
 ```{r}
 BottomTemp <- rep(NA, 114)
 SurfaceTemp <- rep(NA, 114)
+BottomPress <- rep(NA, 114)
+SurfacePress <- rep(NA, 114)
+BottomSeaPress <- rep(NA, 114)
+SurfaceSeaPress <- rep(NA, 114)
 
 for (i in 1:length(octCTD$Station)) {
   k <- octCTD$Station[i]
   BottomTemp[k] <- octCTD$BottomTemp[i]
   SurfaceTemp[k] <- octCTD$SurfaceTemp[i]
+  BottomPress[k] <- octCTD$BottomPress[i]
+  SurfacePress[k] <- octCTD$SurfacePress[i]
+  BottomSeaPress[k] <- octCTD$BottomSeaPress[i]
+  SurfaceSeaPress[k] <- octCTD$SurfaceSeaPress[i]
 }
 
 BottomSal_Corr <- rep(NA, 114)
@@ -187,13 +195,15 @@ for (i in 1:length(oct_bottle$BottleID)) {
 
 Station <- rep(octBottomData$Station, 2)
 Cast <- c(rep("Bottom", 114), rep("Surface", 114))
-CTD_depth <- rep(CTDdepth, 2)
+CTD_depth <- c(CTDdepth, rep(0, 114))
 Temp <- c(BottomTemp, SurfaceTemp)
+Press <- c(BottomPress, SurfacePress)
+SeaPress <- c(BottomSeaPress, SurfaceSeaPress)
 Salinity_Corr <- c(BottomSal_Corr, SurfaceSal_Corr)
 
-oct_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Temp, Salinity_Corr)) %>%
+oct_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Temp, Press, SeaPress, Salinity_Corr)) %>%
   mutate(Station = as.integer(Station)) %>%
   arrange(Station)
 
-write.csv(oct_corrected, "./data/salinity/oct_salinity_corrected.csv", row.names = FALSE)
+write.csv(oct_corrected, "./data/CTD/oct_sal_corrected.csv", row.names = FALSE)
 ```
