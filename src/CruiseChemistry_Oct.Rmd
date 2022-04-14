@@ -21,6 +21,7 @@ library(numform)
 library(sp)
 library(viridis)
 library(gstat)
+library(seacarb)
 ```
 
 ## Load data
@@ -40,15 +41,59 @@ oct <- oct_full %>%
   select(-Filtered)
 ```
 
+## Fill in missing temps
+```{r}
+oct <- oct %>%
+  mutate(Temp = ifelse(Station == "022", 0.611 * Temp[Station == "019"] +
+                                         0.389 * Temp[Station == "024"], Temp),
+         Temp = ifelse(Station == "023", Temp[Station == "021"], Temp),
+         Temp = ifelse(Station == "104", 0.249 * Temp[Station == "094"] +
+                                         0.303 * Temp[Station == "103"] +
+                                         0.212 * Temp[Station == "105"] +
+                                         0.236 * Temp[Station == "106"], Temp))
+
+oct <- oct %>%
+  mutate(Temp = ifelse(Station == "022", 0.611 * Temp[Station == "019"] +
+                                         0.389 * Temp[Station == "024"], Temp),
+         Temp = ifelse(Station == "023", Temp[Station == "021"], Temp),
+         Temp = ifelse(Station == "104", 0.249 * Temp[Station == "094"] +
+                                         0.303 * Temp[Station == "103"] +
+                                         0.212 * Temp[Station == "105"] +
+                                         0.236 * Temp[Station == "106"], Temp))
+```
+
+## Calculate carbon system parameters & density
+```{r}
+# get Patm and SeaPressure from MATLAB sometime
+# replace Depth with actual pressure :))
+
+oct$Salinity[which(is.na(oct$Salinity))] <- 32.9 # give dummy salinities
+
+octCarb <- carb(15, oct$TA / 10^6, oct$DIC / 10^6, S = oct$Salinity, T = oct$Temp, Patm = 1, P = oct$Depth / 10, k1k2 = "l", ks = "d", b = "l10") # flag:15 = ALK & DIC   # k1k2:l = Lueker et al. (2000)   # kf = unspecified b/c low temps   # ks:d = Dickson (1990)   # b:l10 = Lee et al. (2010)
+
+# calculate density
+oct$Density <- gsw_rho(oct$Salinity, oct$Temp, oct$Depth)
+```
+
+## Combine oct and carb data
+```{r}
+oct <- cbind(oct,
+             pH = octCarb$pH,
+             fCO2 = octCarb$fCO2,
+             OmegaAragonite = octCarb$OmegaAragonite,
+             OmegaCalcite = octCarb$OmegaCalcite)
+```
+
 ## Prop-prop plots
 ```{r}
 # Temp vs. Sal, coloured cast
 #plot <-
 ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
   geom_point() +
+  scale_shape_manual(values = c(16, 1)) +
   theme_bw()
 
-#ggplot_build(plot)$layout$panel_scales_x[[1]]$range$range # [31.58157 35.60089]
+#ggplot_build(plot)$layout$panel_scales_x[[1]]$range$range # [31.5816 35.6009]
 #ggplot_build(plot)$layout$panel_scales_y[[1]]$range$range # [8.317186 20.698551]
 
 # Temp vs. Sal, bottom, coloured depth
@@ -62,17 +107,6 @@ oct %>%
   guides(colour = guide_colourbar(reverse = TRUE)) + 
   theme_bw()
 
-# Temp vs. Sal, surface, coloured bottom depth
-oct %>%
-  filter(Cast == "Surface") %>%
-  ggplot(aes(x = Salinity, y = Temp, col = Depth)) +
-  geom_point(shape = 17) +
-  scale_colour_viridis(option = "mako", direction = -1) +
-  scale_x_continuous(limits = c(31.58, 35.61)) +
-  scale_y_continuous(limits = c(8.31, 20.70)) +
-  guides(colour = guide_colourbar(reverse = TRUE)) +
-  theme_bw()
-
 #plot(Temp ~ Salinity, data = oct)
 #identify(oct$Temp ~ oct$Salinity)
 
@@ -80,44 +114,116 @@ oct %>%
 ggplot(oct, aes(x = Salinity, y = Temp, col = DIC, shape = Cast)) +
   geom_point() +
   scale_colour_viridis(option = "rocket") +
+  scale_shape_manual(values = c(16, 1)) +
   theme_bw()
 
-########## pick up here after data processing ##########
+#plot(Temp ~ Salinity, data = oct, col = factor(DIC))
+#identify(oct$Temp ~ oct$Salinity)
+
+### maybe check 009 bottom DIC -- done
 
 # Temp vs. Sal, coloured TA
 ggplot(oct, aes(x = Salinity, y = Temp, col = TA, shape = Cast)) +
   geom_point() +
-  scale_colour_viridis() +
+  scale_colour_viridis(option = "mako") +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+# Temp vs. Sal, coloured pH
+ggplot(oct, aes(x = Salinity, y = Temp, col = pH, shape = Cast)) +
+  geom_point() +
+  scale_colour_viridis(name = "pH") +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+# Temp vs. Sal, coloured OmegaAragonite
+ggplot(oct, aes(x = Salinity, y = Temp, col = OmegaAragonite, shape = Cast)) +
+  geom_point() +
+  scale_colour_viridis(name = "OmegaAragonite") +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+# Temp vs. Sal, coloured density
+ggplot(oct, aes(x = Salinity, y = Temp, col = Density, shape = Cast)) +
+  geom_point() +
+  scale_colour_viridis(name = "Density") +
+  scale_shape_manual(values = c(16, 1)) +
   theme_bw()
 
 # DIC vs. Sal, coloured cast
 ggplot(oct, aes(x = Salinity, y = DIC, shape = Cast, col = Cast)) +
   geom_point() +
+  scale_shape_manual(values = c(16, 1)) +
   theme_bw()
 
-#plot(DIC ~ Salinity, data = oct)
+#plot(DIC ~ Salinity, data = oct, col = factor(Cast))
 #identify(oct$DIC ~ oct$Salinity)
-
-### check xxx DIC
 
 # TA vs. Sal, coloured cast
 ggplot(oct, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
   geom_point() +
+  scale_shape_manual(values = c(16, 1)) +
   theme_bw()
 
-#plot(oct$TA ~ oct$Salinity)
+#plot(TA ~ Salinity, data = oct, col = factor(Cast))
 #abline(lm(oct$TA ~ oct$Salinity))
 #identify(oct$TA ~ oct$Salinity)
 
-### check xxx TA
+### check 096, 098, 100 bottom TA + sal
 
-# DIC vs. TA, coloured cast
+# TA vs. DIC, coloured cast
 ggplot(oct, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
   geom_point() +
+  scale_shape_manual(values = c(16, 1)) +
   theme_bw()
 
-#plot(oct$TA ~ oct$DIC)
+#plot(oct$TA ~ oct$DIC, col = factor(oct$Cast))
 #identify(oct$TA ~ oct$DIC)
+```
+
+## Oct + May together
+```{r}
+# Temp vs. Sal, coloured season
+ggplot() +
+  geom_point(data = may, aes(x = Salinity, y = Temp, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = Salinity, y = Temp, shape = Cast, col = "October")) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+# DIC vs. Sal, coloured season
+ggplot() +
+  geom_point(data = may, aes(x = Salinity, y = DIC, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = Salinity, y = DIC, shape = Cast, col = "October")) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+# TA vs. Sal, coloured season
+ggplot() +
+  geom_point(data = may, aes(x = Salinity, y = TA, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = Salinity, y = TA, shape = Cast, col = "October")) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+# TA vs. DIC, coloured season
+ggplot() +
+  geom_point(data = may, aes(x = DIC, y = TA, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = Salinity, y = TA, shape = Cast, col = "October")) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+# DIC vs. density, coloured season
+ggplot() +
+  geom_point(data = may, aes(x = Density, y = DIC, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = Density, y = DIC, shape = Cast, col = "October")) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+# TA vs. density, coloured season
+ggplot() +
+  geom_point(data = may, aes(x = Density, y = TA, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = Density, y = TA, shape = Cast, col = "October")) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
 ```
 
 ## Convert coordinates
@@ -146,16 +252,12 @@ Long_split_oct$V2 <- Long_split_oct$V2/60
 Long_split_oct$V1 <- as.numeric(Long_split_oct$V1)
 
 oct$Long <- -(Long_split_oct$V1 + Long_split_oct$V2)
-
-# preserve oct file
-stationChem <- oct
 ```
 
 ## Add chem to shapefile
 ```{r}
-station_SPDF <- SpatialPointsDataFrame(coords = stationChem[ , c("Long","Lat")],
-                                        data = stationChem[ ,c("Long", "Lat", "Station", "Cast", "Depth",
-                                                             "Temp", "Salinity", "DIC", "TA")],
+station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
+                                        data = oct[ , c("Long", "Lat", "Station", "Cast", "Depth", "Temp", "Salinity", "Density", "DIC", "TA", "pH", "fCO2", "OmegaAragonite", "OmegaCalcite")],
                                         proj4string = CRS("+init=epsg:4326"))
 
 station_sf <- st_as_sf(station_SPDF) %>%
@@ -236,7 +338,10 @@ GB_sf <- st_union(NLS_North2, CL1_South2) %>%
   st_transform(crs = 26919)
   
 #summary(GB_sf)
+```
 
+## Check polygon join
+```{r}
 ggplot() +
   geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5)
 ```
@@ -244,22 +349,11 @@ ggplot() +
 ## Check point placement on polygon
 ```{r}
 ggplot() +
-  geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5) +
-  geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = DIC)) +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", size = 0.5) +
+  geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = OmegaAragonite)) +
   geom_text(data = bottom_sf, aes(x = Long, y = Lat, label = Station),
             hjust = -0.05, vjust = 0.05, size = 3) +
-  scale_colour_viridis(option = "rocket") +
-  #geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
-               #fill = "darkgrey", colour = NA) +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  scale_y_continuous(breaks = c(40, 41, 42))
-
-ggplot() +
-  geom_sf(data = GB_sf, fill = "lightgrey", colour = "black", size = 0.5) +
-  geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = DIC), size = 6) +
-  #geom_text(data = bottom_sf, aes(x = Long, y = Lat, label = Station),
-  #          hjust = -0.05, vjust = 0.05, size = 3) +
-  scale_colour_viridis(option = "rocket") +
+  scale_colour_viridis(option = "mako", name = "OmegaA") +
   #geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
                #fill = "darkgrey", colour = NA) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
@@ -301,110 +395,199 @@ bottom_sf_v2 <- st_join(bottom_sf_v, bottom_sf2)
 surface_sf_v2 <- st_join(surface_sf_v, surface_sf2)
 ```
 
-## Fill in missing temps
+## Create shapefiles for 3 central points
 ```{r}
-bottom_sf_v3 <- bottom_sf_v2 %>%
-  mutate(Temp = ifelse(Station == "022", 0.611 * Temp[Station == "019"] +
-                                         0.389 * Temp[Station == "024"], Temp),
-         Temp = ifelse(Station == "023", Temp[Station == "021"], Temp),
-         Temp = ifelse(Station == "104", 0.249 * Temp[Station == "094"] +
-                                         0.303 * Temp[Station == "103"] +
-                                         0.212 * Temp[Station == "105"] +
-                                         0.236 * Temp[Station == "106"], Temp))
+bottom_sf3 <- bottom_sf2 %>%
+  filter(Station == "033" | Station == "034" | Station == "035")
 
-surface_sf_v3 <- surface_sf_v2 %>%
-  mutate(Temp = ifelse(Station == "022", 0.611 * Temp[Station == "019"] +
-                                         0.389 * Temp[Station == "024"], Temp),
-         Temp = ifelse(Station == "023", Temp[Station == "021"], Temp),
-         Temp = ifelse(Station == "104", 0.249 * Temp[Station == "094"] +
-                                         0.303 * Temp[Station == "103"] +
-                                         0.212 * Temp[Station == "105"] +
-                                         0.236 * Temp[Station == "106"], Temp))
+surface_sf3 <- surface_sf2 %>%
+  filter(Station == "033" | Station == "034" | Station == "035")
+```
+
+## Create coastline polygon
+```{r}
+# get Massachusetts coastline
+library(maps)
+library(mapdata)
+library(maptools)
+
+mass <- map("worldHires", "USA", xlim = c(-73.5, -69.9), ylim = c(41.2, 42.9), fill = TRUE, col = "transparent", plot = FALSE)
+IDs <- sapply(strsplit(mass$names, ":"), function(x) x[1])
+mass_SP <- map2SpatialPolygons(mass, IDs = IDs, proj4string = CRS("+init=epsg:4326"))
+#plot(mass_SP)
+#st_crs(mass_SP)
+
+data <- data.frame(f = 99.9)
+row.names(data) <- mass_SP@polygons[[1]]@ID
+mass_SPDF <- SpatialPolygonsDataFrame(mass_SP, data)
+
+mass_sf <- st_as_sf(mass_SPDF) %>%
+  st_transform(crs = 26919)
+#st_crs(mass_sf)
+
+#ggplot() +
+#  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+#  coord_sf(xlim = c(371957.88, 756099.58), ylim = c(4428833.79, 4709654.16), crs = st_crs(26919))
 ```
 
 ## Find property ranges
 ```{r}
 # Temp
-min(bottom_sf_v3$Temp, na.rm = TRUE) # 8.317186
-min(surface_sf_v3$Temp, na.rm = TRUE) # 14.26168
-max(bottom_sf_v3$Temp, na.rm = TRUE) # 17.79557
-max(surface_sf_v3$Temp, na.rm = TRUE) # 20.69855
+min(bottom_sf_v2$Temp, na.rm = TRUE) # 8.317186
+min(surface_sf_v2$Temp, na.rm = TRUE) # 14.26168
+max(bottom_sf_v2$Temp, na.rm = TRUE) # 17.79557
+max(surface_sf_v2$Temp, na.rm = TRUE) # 20.69855
 
 # Sal
-min(bottom_sf_v3$Salinity, na.rm = TRUE) # 32.4402
-min(surface_sf_v3$Salinity, na.rm = TRUE) # 31.5816
-max(bottom_sf_v3$Salinity, na.rm = TRUE) # 35.6009
-max(surface_sf_v3$Salinity, na.rm = TRUE) # 34.0014
+min(bottom_sf_v2$Salinity, na.rm = TRUE) # 32.4402
+min(surface_sf_v2$Salinity, na.rm = TRUE) # 31.5816
+max(bottom_sf_v2$Salinity, na.rm = TRUE) # 35.6009
+max(surface_sf_v2$Salinity, na.rm = TRUE) # 34.0014
 
 # DIC
-min(bottom_sf_v3$DIC, na.rm = TRUE) # 1934.6
-min(surface_sf_v3$DIC, na.rm = TRUE) # 1931.6
-max(bottom_sf_v3$DIC, na.rm = TRUE) # 2154.9
-max(surface_sf_v3$DIC, na.rm = TRUE) # 2154.9
+min(bottom_sf_v2$DIC, na.rm = TRUE) # 2004.8
+min(surface_sf_v2$DIC, na.rm = TRUE) # 1931.6
+max(bottom_sf_v2$DIC, na.rm = TRUE) # 2154.9
+max(surface_sf_v2$DIC, na.rm = TRUE) # 2035.2
 
 # TA
-min(bottom_sf_v3$TA, na.rm = TRUE) # 
-min(surface_sf_v3$TA, na.rm = TRUE) # 
-max(bottom_sf_v3$TA, na.rm = TRUE) # 
-max(surface_sf_v3$TA, na.rm = TRUE) # 
+min(bottom_sf_v2$TA, na.rm = TRUE) # 2185.3
+min(surface_sf_v2$TA, na.rm = TRUE) # 2143.2
+max(bottom_sf_v2$TA, na.rm = TRUE) # 2355
+max(surface_sf_v2$TA, na.rm = TRUE) # 2281.1
+
+# pH
+min(bottom_sf_v2$pH, na.rm = TRUE) # 7.854839
+min(surface_sf_v2$pH, na.rm = TRUE) # 7.959847
+max(bottom_sf_v2$pH, na.rm = TRUE) # 8.097387
+max(surface_sf_v2$pH, na.rm = TRUE) # 8.097527
+
+# OmegaAragonite
+min(bottom_sf_v2$OmegaAragonite, na.rm = TRUE) # 1.300235
+min(surface_sf_v2$OmegaAragonite, na.rm = TRUE) # 1.946104
+max(bottom_sf_v2$OmegaAragonite, na.rm = TRUE) # 2.508693
+max(surface_sf_v2$OmegaAragonite, na.rm = TRUE) # 3.059272
+
+# Density
+min(bottom_sf_v2$Density, na.rm = TRUE) # 
+min(surface_sf_v2$Density, na.rm = TRUE) # 
+max(bottom_sf_v2$Density, na.rm = TRUE) # 
+max(surface_sf_v2$Density, na.rm = TRUE) # 
 ```
 
 ## Make interpolated plots
 ```{r}
 # make bottom plots
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = Temp), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(8, 21), option = "inferno") +
+  geom_sf(data = bottom_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = Temp), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu", aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom Temperature")
+  labs(title = "Bottom Temperature [Oct]")
 
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = Salinity), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(31, 36)) +
+  geom_sf(data = bottom_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = Salinity), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(31, 36), aesthetics = c("fill", "colour"), name = "Sal") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom Salinity")
+  labs(title = "Bottom Salinity [Oct]")
 
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = DIC), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(1930, 2155), option = "rocket") +
+  geom_sf(data = bottom_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = DIC), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1930, 2155), option = "rocket", direction = -1, aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom DIC")
+  labs(title = "Bottom DIC [Oct]")
 
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = TA), size = 0.25, colour = NA) +
-  scale_fill_viridis(option = "mako") +
+  geom_sf(data = bottom_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = TA), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom TA")
+  labs(title = "Bottom Alkalinity [Oct]")
+
+ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = pH), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(7.8, 8.25), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom pH [Oct]")
+
+ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = OmegaAragonite), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1.3, 3.1), option = "mako", direction = -1, aesthetics = c("fill", "colour"), name = "OmegaA") +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom Aragonite [Oct]")
+
+ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = Density), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = Density), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1022, 1027), option = "mako", direction = -1, aesthetics = c("fill", "colour"), name = "Density") +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom Density [Oct]")
 
 # make surface plots
 ggplot() +
-  geom_sf(data = surface_sf_v3, aes(fill = Temp), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(8, 21), option = "inferno") +
+  geom_sf(data = surface_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = Temp), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu", aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface Temperature")
+  labs(title = "Surface Temperature [Oct]")
 
 ggplot() +
-  geom_sf(data = surface_sf_v3, aes(fill = Salinity), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(31, 36)) +
+  geom_sf(data = surface_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = Salinity), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(31, 36), aesthetics = c("fill", "colour"), name = "Sal") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface Salinity")
+  labs(title = "Surface Salinity [Oct]")
 
 ggplot() +
-  geom_sf(data = surface_sf_v3, aes(fill = DIC), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(1930, 2155), option = "rocket") +
+  geom_sf(data = surface_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = DIC), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1930, 2155), option = "rocket", direction = -1, aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface DIC")
+  labs(title = "Surface DIC [Oct]")
 
 ggplot() +
-  geom_sf(data = surface_sf_v3, aes(fill = TA), size = 0.25, colour = NA) +
-  scale_fill_viridis(option = "mako") +
+  geom_sf(data = surface_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = TA), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface TA")
-```
+  labs(title = "Surface Alkalinity [Oct]")
 
-## Calculate carbon system parameters
-```{r}
-library(seacarb)
+ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = pH), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(7.8, 8.25), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface pH [Oct]")
 
-carb(15, may$TA, may$DIC, S = may$Salinity, T = Temp, Patm = *, P = SeaPressure, k1k2 = 1) # flag:15 = ALK & DIC   # k1k2:1 = Lueker et al. (2000)   # 
+ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = OmegaAragonite), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1.3, 3.1), option = "mako", direction = -1, aesthetics = c("fill", "colour"), name = "OmegaA") +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface Aragonite [Oct]")
+
+ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = Density), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = Density), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1022, 1027), option = "mako", direction = -1, aesthetics = c("fill", "colour"), name = "Density") +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface Density [Oct]")
 ```
