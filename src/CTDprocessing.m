@@ -231,11 +231,15 @@ may2down = RSKaddstationdata(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27,
 %% Extract salinity data
 stations = cell(112, 1);
 CTD_depth = NaN(112, 1);
-bottom_depth = NaN(112, 1);
 bottom_temp = NaN(112, 1);
+bottom_press = NaN(112, 1);
+bottom_seapress = NaN(112, 1);
+bottom_depth = NaN(112, 1);
 bottom_sal = NaN(112, 1);
-surface_depth = NaN(112, 1);
 surface_temp = NaN(112, 1);
+surface_press = NaN(112, 1);
+surface_seapress = NaN(112, 1);
+surface_depth = NaN(112, 1);
 surface_sal = NaN(112, 1);
 
 % may1 file
@@ -247,21 +251,25 @@ for i = 1:62
     sal = may1down.data(p).values(index, 8);
     while isnan(sal)
         index = index - 1;
-        depth = may1down.data(p).values(index, 7);
         temp = may1down.data(p).values(index, 2);
+        press = may1down.data(p).values(index, 3);
+        seapress = may1down.data(p).values(index, 6);
+        depth = may1down.data(p).values(index, 7);
         sal = may1down.data(p).values(index, 8);
     end
-    bottom_depth(i) = depth;
     bottom_temp(i) = temp;
+    bottom_press(i) = press;
+    bottom_seapress(i) = seapress;
+    bottom_depth(i) = depth;
     bottom_sal(i) = sal;
     if p == 14 || p == 78 || p == 80 || p == 84 %don't include surface data
         surface_depth(i) = NaN;
-        surface_temp(i) = NaN;
-        surface_sal(i) = NaN;
     else
-        [m, index] = min(abs(may1down.data(p).values(:, 7) - 1)); %find closest datapoint to 1m
-        surface_depth(i) = may1down.data(p).values(index, 7);
+        [m, index] = min(may1down.data(p).values(:, 7));
         surface_temp(i) = may1down.data(p).values(index, 2);
+        surface_press(i) = may1down.data(p).values(index, 3);
+        surface_seapress(i) = may1down.data(p).values(index, 6);
+        surface_depth(i) = may1down.data(p).values(index, 7);
         surface_sal(i) = may1down.data(p).values(index, 8);
     end
 end
@@ -276,28 +284,32 @@ for i = 1:50
     sal = may2down.data(p).values(index, 8);
     while isnan(sal)
         index = index - 1;
-        depth = may2down.data(p).values(index, 7);
         temp = may2down.data(p).values(index, 2);
+        press = may2down.data(p).values(index, 3);
+        seapress = may2down.data(p).values(index, 6);
+        depth = may2down.data(p).values(index, 7);
         sal = may2down.data(p).values(index, 8);
     end
-    bottom_depth(k) = depth;
-    bottom_temp(k) = temp;
-    bottom_sal(k) = sal;
+    bottom_temp(k) = may2down.data(p).values(index, 2);
+    bottom_press(k) = may2down.data(p).values(index, 3);
+    bottom_seapress(k) = may2down.data(p).values(index, 6);
+    bottom_depth(k) = may2down.data(p).values(index, 7);
+    bottom_sal(k) = may2down.data(p).values(index, 8);
     if p == 24 || p == 54 %don't include surface data
         surface_depth(k) = NaN;
-        surface_temp(k) = NaN;
-        surface_sal(k) = NaN;
     else
-        [m, index] = min(abs(may2down.data(p).values(:, 7) - 1)); %find closest datapoint to 1m
-        surface_depth(k) = may2down.data(p).values(index, 7);
+        [m, index] = min(may2down.data(p).values(:, 7));
         surface_temp(k) = may2down.data(p).values(index, 2);
+        surface_press(k) = may2down.data(p).values(index, 3);
+        surface_seapress(k) = may2down.data(p).values(index, 6);
+        surface_depth(k) = may2down.data(p).values(index, 7);
         surface_sal(k) = may2down.data(p).values(index, 8);
     end
 end
 
 stations = str2double(stations);
 
-may_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_depth surface_temp surface_sal];
+may_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_press bottom_seapress bottom_sal surface_depth surface_temp surface_press surface_seapress surface_sal];
 
 % determine whether doubled-up profiles are necessary
 %may_salinity(stations==13, :) % first goes deeper after binning; remove second
@@ -316,7 +328,7 @@ may_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_d
 may_salinity = array2table(may_salinity);
 may_salinity(isnan(surface_depth), :) = [];
 
-may_salinity.Properties.VariableNames = {'Station', 'CTDDepth', 'BottomDepth', 'BottomTemp', 'BottomSalinity', 'SurfaceDepth', 'SurfaceTemp', 'SurfaceSalinity'};
+may_salinity.Properties.VariableNames = {'Station', 'CTDDepth', 'BottomDepth', 'BottomTemp', 'BottomPress', 'BottomSeaPress', 'BottomSalinity', 'SurfaceDepth', 'SurfaceTemp', 'SurfacePress', 'SurfaceSeaPress', 'SurfaceSalinity'};
 
 writetable(may_salinity, "data/CTD/may_CTD.csv");
 
@@ -674,12 +686,18 @@ oct3down = RSKaddstationdata(oct3down, 'profile', profiles3, 'station', stations
 %% Extract salinity data
 stations = cell(112, 1);
 CTD_depth = NaN(112, 1);
-bottom_depth = NaN(112, 1);
 bottom_temp = NaN(112, 1);
+bottom_press = NaN(112, 1);
+bottom_seapress = NaN(112, 1);
+bottom_depth = NaN(112, 1);
 bottom_sal = NaN(112, 1);
-surface_depth = NaN(112, 1);
 surface_temp = NaN(112, 1);
+surface_press = NaN(112, 1);
+surface_seapress = NaN(112, 1);
+surface_depth = NaN(112, 1);
 surface_sal = NaN(112, 1);
+
+RSKprintchannels(oct1down)
 
 % oct1 file
 for i = 1:22
@@ -690,21 +708,25 @@ for i = 1:22
     sal = oct1down.data(p).values(index, 9);
     while isnan(sal)
         index = index - 1;
-        depth = oct1down.data(p).values(index, 7);
         temp = oct1down.data(p).values(index, 2);
+        press = oct1down.data(p).values(index, 3);
+        seapress = oct1down.data(p).values(index, 6);
+        depth = oct1down.data(p).values(index, 7);
         sal = oct1down.data(p).values(index, 9);
     end
-    bottom_depth(i) = depth;
     bottom_temp(i) = temp;
+    bottom_press(i) = press;
+    bottom_seapress(i) = seapress;
+    bottom_depth(i) = depth;
     bottom_sal(i) = sal;
     if p == 12 %don't include surface data
         surface_depth(i) = NaN;
-        surface_temp(i) = NaN;
-        surface_sal(i) = NaN;
     else
-        [m, index] = min(abs(oct1down.data(p).values(:, 7) - 1)); %find closest datapoint to 1m
-        surface_depth(i) = oct1down.data(p).values(index, 7);
+        [m, index] = min(oct1down.data(p).values(:, 7));
         surface_temp(i) = oct1down.data(p).values(index, 2);
+        surface_press(i) = oct1down.data(p).values(index, 3);
+        surface_seapress(i) = oct1down.data(p).values(index, 6);
+        surface_depth(i) = oct1down.data(p).values(index, 7);
         surface_sal(i) = oct1down.data(p).values(index, 9);
     end
 end
@@ -719,26 +741,32 @@ for i = 1:46
     sal = oct2down.data(p).values(index, 9);
     while isnan(sal)
         index = index - 1;
-        depth = oct2down.data(p).values(index, 7);
         temp = oct2down.data(p).values(index, 2);
+        press = oct2down.data(p).values(index, 3);
+        seapress = oct2down.data(p).values(index, 6);
+        depth = oct2down.data(p).values(index, 7);
         sal = oct2down.data(p).values(index, 9);
     end
-    bottom_depth(k) = depth;
     bottom_temp(k) = temp;
+    bottom_press(k) = press;
+    bottom_seapress(k) = seapress;
+    bottom_depth(k) = depth;
     bottom_sal(k) = sal;
     if p == 12 %use upcast data
-        [m, index] = min(abs(oct2up.data(p).values(:, 7) - 1)); %find closest datapoint to 1m
-        surface_depth(k) = oct2up.data(p).values(index, 7);
+        [m, index] = min(oct2up.data(p).values(:, 7));
         surface_temp(k) = oct2up.data(p).values(index, 2);
+        surface_press(k) = oct2up.data(p).values(index, 3);
+        surface_seapress(k) = oct2up.data(p).values(index, 6);
+        surface_depth(k) = oct2up.data(p).values(index, 7);
         surface_sal(k) = oct2up.data(p).values(index, 9);
     elseif p == 33 %don't include surface data
         surface_depth(k) = NaN;
-        surface_temp(k) = NaN;
-        surface_sal(k) = NaN;
     else
-        [m, index] = min(abs(oct2down.data(p).values(:, 7) - 1)); %find closest datapoint to 1m
-        surface_depth(k) = oct2down.data(p).values(index, 7);
+        [m, index] = min(oct2down.data(p).values(:, 7));
         surface_temp(k) = oct2down.data(p).values(index, 2);
+        surface_press(k) = oct2down.data(p).values(index, 3);
+        surface_seapress(k) = oct2down.data(p).values(index, 6);
+        surface_depth(k) = oct2down.data(p).values(index, 7);
         surface_sal(k) = oct2down.data(p).values(index, 9);
     end
 end
@@ -753,28 +781,32 @@ for i = 1:46
     sal = oct3down.data(p).values(index, 9);
     while isnan(sal)
         index = index - 1;
-        depth = oct3down.data(p).values(index, 7);
         temp = oct3down.data(p).values(index, 2);
+        press = oct3down.data(p).values(index, 3);
+        seapress = oct3down.data(p).values(index, 6);
+        depth = oct3down.data(p).values(index, 7);
         sal = oct3down.data(p).values(index, 9);
     end
-    bottom_depth(k) = depth;
     bottom_temp(k) = temp;
+    bottom_press(k) = press;
+    bottom_seapress(k) = seapress;
+    bottom_depth(k) = depth;
     bottom_sal(k) = sal;
     if p == 29 %don't include surface data
         surface_depth(k) = NaN;
-        surface_temp(k) = NaN;
-        surface_sal(k) = NaN;
     else
-        [m, index] = min(abs(oct3down.data(p).values(:, 7) - 1)); %find closest datapoint to 1m
-        surface_depth(k) = oct3down.data(p).values(index, 7);
+        [m, index] = min(oct3down.data(p).values(:, 7));
         surface_temp(k) = oct3down.data(p).values(index, 2);
+        surface_press(k) = oct3down.data(p).values(index, 3);
+        surface_seapress(k) = oct3down.data(p).values(index, 6);
+        surface_depth(k) = oct3down.data(p).values(index, 7);
         surface_sal(k) = oct3down.data(p).values(index, 9);
     end
 end
 
 stations = str2double(stations);
 
-oct_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_depth surface_temp surface_sal];
+oct_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_press bottom_seapress bottom_sal surface_depth surface_temp surface_press surface_seapress surface_sal];
 
 % determine whether doubled-up profiles are necessary
 %oct_salinity(stations==49, :) % keep second!
@@ -811,7 +843,7 @@ oct_salinity = [stations CTD_depth bottom_depth bottom_temp bottom_sal surface_d
 oct_salinity = array2table(oct_salinity);
 oct_salinity(isnan(surface_depth), :) = [];
 
-oct_salinity.Properties.VariableNames = {'Station', 'CTDDepth', 'BottomDepth', 'BottomTemp', 'BottomSalinity', 'SurfaceDepth', 'SurfaceTemp', 'SurfaceSalinity'};
+oct_salinity.Properties.VariableNames = {'Station', 'CTDDepth', 'BottomDepth', 'BottomTemp', 'BottomPress', 'BottomSeaPress', 'BottomSalinity', 'SurfaceDepth', 'SurfaceTemp', 'SurfacePress', 'SurfaceSeaPress', 'SurfaceSalinity'};
 
 writetable(oct_salinity, "data/CTD/oct_CTD.csv");
 
