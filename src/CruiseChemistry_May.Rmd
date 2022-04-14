@@ -21,11 +21,12 @@ library(numform)
 library(sp)
 library(viridis)
 library(gstat)
+library(seacarb)
 ```
 
 ## Load data
 ```{r}
-setwd("./Repos/ScallopRSA2021")
+setwd("~/Desktop/Repos/ScallopRSA2021")
 
 may <- read.csv("./data/MayCruiseData.csv") %>%
   rename(Lat = Latitude_degrees_start,
@@ -34,6 +35,74 @@ may <- read.csv("./data/MayCruiseData.csv") %>%
          Temp = Temperature) %>%
   select(Station, Cast, Lat, Long, Depth, Temp, Salinity, DIC, TA) %>%
   mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
+```
+
+## Fill in missing temps
+```{r}
+may <- may %>%
+  mutate(Temp = ifelse(Station == "006", mean(c(Temp[Station == "005"],
+                                                Temp[Station == "007"])), Temp),
+         Temp = ifelse(Station == "012", 0.271 * Temp[Station == "011"] +
+                                         0.305 * Temp[Station == "013"] +
+                                         0.203 * Temp[Station == "014"] +
+                                         0.221 * Temp[Station == "091"], Temp),
+         Temp = ifelse(Station == "016", 0.333 * Temp[Station == "015"] +
+                                         0.666 * Temp[Station == "017"], Temp),
+         Temp = ifelse(Station == "022", 0.333 * Temp[Station == "023"] +
+                                         0.666 * Temp[Station == "019"], Temp),
+         Temp = ifelse(Station == "030", mean(c(Temp[Station == "029"],
+                                                Temp[Station == "031"])), Temp),
+         Temp = ifelse(Station == "081", 0.179 * Temp[Station == "077"] +
+                                         0.220 * Temp[Station == "080"] +
+                                         0.238 * Temp[Station == "082"] +
+                                         0.204 * Temp[Station == "083"] +
+                                         0.159 * Temp[Station == "084"], Temp),
+         Temp = ifelse(Station == "111", 0.304 * Temp[Station == "107"] +
+                                         0.348 * Temp[Station == "108"] +
+                                         0.348 * Temp[Station == "112"], Temp),
+         Temp = ifelse(Station == "114", 0.205 * Temp[Station == "107"] +
+                                         0.178 * Temp[Station == "108"] +
+                                         0.230 * Temp[Station == "112"] +
+                                         0.387 * Temp[Station == "113"], Temp))
+
+may <- may %>%
+  mutate(Temp = ifelse(Station == "006", mean(c(Temp[Station == "005"],
+                                                Temp[Station == "007"])), Temp),
+         Temp = ifelse(Station == "012", 0.271 * Temp[Station == "011"] +
+                                         0.305 * Temp[Station == "013"] +
+                                         0.203 * Temp[Station == "014"] +
+                                         0.221 * Temp[Station == "091"], Temp),
+         Temp = ifelse(Station == "016", 0.333 * Temp[Station == "015"] +
+                                         0.666 * Temp[Station == "017"], Temp),
+         Temp = ifelse(Station == "022", 0.333 * Temp[Station == "023"] +
+                                         0.666 * Temp[Station == "019"], Temp),
+         Temp = ifelse(Station == "030", mean(c(Temp[Station == "029"],
+                                                Temp[Station == "031"])), Temp),
+         Temp = ifelse(Station == "081", 0.179 * Temp[Station == "077"] +
+                                         0.220 * Temp[Station == "080"] +
+                                         0.238 * Temp[Station == "082"] +
+                                         0.204 * Temp[Station == "083"] +
+                                         0.159 * Temp[Station == "084"], Temp),
+         Temp = ifelse(Station == "111", 0.304 * Temp[Station == "107"] +
+                                         0.348 * Temp[Station == "108"] +
+                                         0.348 * Temp[Station == "112"], Temp),
+         Temp = ifelse(Station == "114", 0.205 * Temp[Station == "107"] +
+                                         0.178 * Temp[Station == "108"] +
+                                         0.230 * Temp[Station == "112"] +
+                                         0.387 * Temp[Station == "113"], Temp))
+```
+
+## Calculate carbon system parameters & density
+```{r}
+# get Patm and SeaPressure from MATLAB sometime
+# replace Depth with actual pressure :))
+
+may$Salinity[which(is.na(may$Salinity))] <- 32.9 # give dummy salinities
+
+mayCarb <- carb(15, may$TA / 10^6, may$DIC / 10^6, S = may$Salinity, T = may$Temp, Patm = 1, P = may$Depth / 10, k1k2 = "l", ks = "d", b = "l10") # flag:15 = ALK & DIC   # k1k2:l = Lueker et al. (2000)   # kf = unspecified b/c low temps   # ks:d = Dickson (1990)   # b:l10 = Lee et al. (2010)
+
+# calculate density
+may$Density <- gsw_rho(may$Salinity, may$Temp, may$Depth)
 ```
 
 ## Prop-prop plots
@@ -55,16 +124,7 @@ may %>%
   scale_colour_viridis(option = "mako", direction = -1) +
   scale_x_continuous(limits = c(32.29, 34.40)) +
   scale_y_continuous(limits = c(6.71, 10.09)) +
-  theme_bw()
-
-# Temp vs. Sal, surface, coloured bottom depth
-may %>%
-  filter(Cast == "Surface") %>%
-  ggplot(aes(x = Salinity, y = Temp, col = Depth)) +
-  geom_point(shape = 17) +
-  scale_colour_viridis(option = "mako", direction = -1) +
-  scale_x_continuous(limits = c(32.29, 34.40)) +
-  scale_y_continuous(limits = c(6.71, 10.09)) +
+  guides(colour = guide_colourbar(reverse = TRUE)) +
   theme_bw()
 
 # Temp vs. Sal, coloured DIC
@@ -94,9 +154,9 @@ ggplot(may, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
   geom_point() +
   theme_bw()
 
-plot(may$TA ~ may$Salinity)
-abline(lm(may$TA ~ may$Salinity))
-identify(may$TA ~ may$Salinity)
+#plot(may$TA ~ may$Salinity)
+#abline(lm(may$TA ~ may$Salinity))
+#identify(may$TA ~ may$Salinity)
 
 ### check 053B TA; maybe check 052B TA
 
@@ -111,34 +171,13 @@ ggplot(may, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
 ### definitely check 112 DIC
 ```
 
-### delete this after recording flags ###
-## Check questionable TA data
+## Combine with carb data
 ```{r}
 may <- may %>%
-  mutate(Ratio = TA / Salinity) %>%
-  arrange(TA)
-
-lm(may$TA ~ may$Salinity)
-
-may <- may %>%
-  mutate(line = Salinity * 45.19 + 736.94,
-         resid = TA - line) %>%
-  arrange(desc(abs(resid)))
-
-### ***TA or sal value for 053B (surface) seems wrong***
-
-# TA value for 052B (surface) is questionable; salinity seems okay
-# 049B salinity is questionable (took screenshot)
-# 113A & 113B both questionable
-
-# RSA_053B: -38.73061
-# RSA_052B: -26.84136
-# RSA_113B: -20.71048
-# RSA_049B: -20.69908
-# RSA_082A: 19.15330
-# RSA_113A: -17.34985
-# RSA_097B: 17.07788
-# RSA_114A: -14.15680
+  cbind(pH = mayCarb$pH,
+        fCO2 = mayCarb$fCO2,
+        OmegaAragonite = mayCarb$OmegaAragonite,
+        OmegaCalcite = mayCarb$OmegaCalcite)
 ```
 
 ## Convert coordinates
@@ -167,9 +206,11 @@ Long_split_may$V2 <- Long_split_may$V2/60
 Long_split_may$V1 <- as.numeric(Long_split_may$V1)
 
 may$Long <- -(Long_split_may$V1 + Long_split_may$V2)
+```
 
-# preserve may file; update coords to fit within polygon
-stationChem <- may %>%
+## Update coords to fit within polygon
+```{r}
+may <- may %>%
   mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
          Lat = ifelse(Station == "026", Lat + 0.02, Lat),
          Long = ifelse(Station == "089", Long - 0.04, Long))
@@ -177,31 +218,30 @@ stationChem <- may %>%
 
 ## Add chem to shapefile
 ```{r}
-station_SPDF <- SpatialPointsDataFrame(coords = stationChem[ , c("Long","Lat")],
-                                        data = stationChem[ ,c("Long", "Lat", "Station", "Cast", "Depth",
-                                                             "Temp", "Salinity", "DIC", "TA")],
+station_SPDF_m <- SpatialPointsDataFrame(coords = may[ , c("Long", "Lat")],
+                                        data = may[ , c("Long", "Lat", "Station", "Cast", "Depth", "Temp", "Salinity", "DIC", "TA", "pH", "fCO2", "OmegaAragonite", "OmegaCalcite")],
                                         proj4string = CRS("+init=epsg:4326"))
 
-station_sf <- st_as_sf(station_SPDF) %>%
+station_sf_m <- st_as_sf(station_SPDF_m) %>%
   st_transform(crs = 4326)
 
-bottom_sf <- station_sf %>%
+bottom_sf_m <- station_sf_m %>%
   filter(Cast == "Bottom")
 
-surface_sf <- station_sf %>%
+surface_sf_m <- station_sf_m %>%
   filter(Cast == "Surface")
 ```
 
 ## Check mapping
 ```{r}
-ggplot(bottom_sf, aes(x = Long, y = Lat)) +
-  geom_point(aes(colour = Salinity)) +
-  geom_text(aes(label = Station), hjust = 0.05, vjust = 0.05, size = 3) +
-  scale_colour_viridis() +
-  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
-               fill = "darkgrey", colour = NA) +
-  coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
-  scale_y_continuous(breaks = c(40, 41, 42))
+#ggplot(bottom_sf_m, aes(x = Long, y = Lat)) +
+#  geom_point(aes(colour = Salinity)) +
+#  geom_text(aes(label = Station), hjust = 0.05, vjust = 0.05, size = 3) +
+#  scale_colour_viridis() +
+#  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
+#               fill = "darkgrey", colour = NA) +
+#  coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
+#  scale_y_continuous(breaks = c(40, 41, 42))
 ```
 
 ## Load GB shapefiles
@@ -260,7 +300,10 @@ GB_sf <- st_union(NLS_North2, CL1_South2) %>%
   st_transform(crs = 26919)
   
 #summary(GB_sf)
+```
 
+## Check polygon join
+```{r}
 ggplot() +
   geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5)
 ```
@@ -269,8 +312,8 @@ ggplot() +
 ```{r}
 ggplot() +
   geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5) +
-  geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = Salinity)) +
-  geom_text(data = bottom_sf, aes(x = Long, y = Lat, label = Station),
+  geom_point(data = bottom_sf_m, aes(x = Long, y = Lat, colour = Salinity)) +
+  geom_text(data = bottom_sf_m, aes(x = Long, y = Lat, label = Station),
             hjust = 0.05, vjust = 0.05, size = 3) +
   scale_colour_viridis() +
   #geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
@@ -281,12 +324,12 @@ ggplot() +
 
 ## Move coordinates that are outside GB polygon
 ```{r}
-bottom_sf1 <- bottom_sf %>%
+bottom_sf_m1 <- bottom_sf_m %>%
   mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
          Lat = ifelse(Station == "026", Lat + 0.02, Lat),
          Long = ifelse(Station == "089", Long - 0.04, Long))
 
-surface_sf1 <- surface_sf %>%
+surface_sf_m1 <- surface_sf_m %>%
   mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
          Lat = ifelse(Station == "026", Lat + 0.02, Lat),
          Long = ifelse(Station == "089", Long - 0.04, Long))
@@ -294,173 +337,224 @@ surface_sf1 <- surface_sf %>%
 
 ## Begin interpolation round 1 (nearest-neighbor)
 ```{r}
-bottom_sf_geom <- st_union(bottom_sf1) %>%
+bottom_sf_m_geom <- st_union(bottom_sf_m1) %>%
   st_transform(crs = 26919)
-bottom_sf_v <- st_voronoi(bottom_sf_geom)
-bottom_sf_v <- st_sf(bottom_sf_v)
+bottom_sf_m_v <- st_voronoi(bottom_sf_m_geom)
+bottom_sf_m_v <- st_sf(bottom_sf_m_v)
 
-surface_sf_geom <- st_union(surface_sf1) %>%
+surface_sf_m_geom <- st_union(surface_sf_m1) %>%
   st_transform(crs = 26919)
-surface_sf_v <- st_voronoi(surface_sf_geom)
-surface_sf_v <- st_sf(surface_sf_v)
+surface_sf_m_v <- st_voronoi(surface_sf_m_geom)
+surface_sf_m_v <- st_sf(surface_sf_m_v)
 
 # mask Voronoi with contour
-bottom_sf_v <- st_intersection(st_cast(bottom_sf_v), st_union(st_buffer(GB_sf, dist = 500)))
-bottom_sf_v <- st_sf(bottom_sf_v)
+bottom_sf_m_v <- st_intersection(st_cast(bottom_sf_m_v), st_union(st_buffer(GB_sf, dist = 500)))
+bottom_sf_m_v <- st_sf(bottom_sf_m_v)
 
-#st_crs(bottom_sf_v)
+#st_crs(bottom_sf_m_v)
 
-bottom_sf2 <- bottom_sf %>%
+bottom_sf_m2 <- bottom_sf_m %>%
   st_transform(crs = 26919)
 
-surface_sf_v <- st_intersection(st_cast(surface_sf_v), st_union(st_buffer(GB_sf, dist = 500)))
-surface_sf_v <- st_sf(surface_sf_v)
+surface_sf_m_v <- st_intersection(st_cast(surface_sf_m_v), st_union(st_buffer(GB_sf, dist = 500)))
+surface_sf_m_v <- st_sf(surface_sf_m_v)
 
-#st_crs(surface_sf_v)
+#st_crs(surface_sf_m_v)
 
-surface_sf2 <- surface_sf %>%
+surface_sf_m2 <- surface_sf_m %>%
   st_transform(crs = 26919)
 
 # complete spatial join
-bottom_sf_v2 <- st_join(bottom_sf_v, bottom_sf2)
-#glimpse(bottom_sf_v2)
-surface_sf_v2 <- st_join(surface_sf_v, surface_sf2)
+bottom_sf_m_v2 <- st_join(bottom_sf_m_v, bottom_sf_m2)
+#glimpse(bottom_sf_m_v2)
+surface_sf_m_v2 <- st_join(surface_sf_m_v, surface_sf_m2)
 ```
 
-## Fill in missing temps
+## Create shapefiles for 3 central points
 ```{r}
-bottom_sf_v3 <- bottom_sf_v2 %>%
-  mutate(Temp = ifelse(Station == "006", mean(c(Temp[Station == "005"],
-                                                Temp[Station == "007"])), Temp),
-         Temp = ifelse(Station == "012", 0.271 * Temp[Station == "011"] +
-                                         0.305 * Temp[Station == "013"] +
-                                         0.203 * Temp[Station == "014"] +
-                                         0.221 * Temp[Station == "091"], Temp),
-         Temp = ifelse(Station == "016", 0.333 * Temp[Station == "015"] +
-                                         0.666 * Temp[Station == "017"], Temp),
-         Temp = ifelse(Station == "022", 0.333 * Temp[Station == "023"] +
-                                         0.666 * Temp[Station == "019"], Temp),
-         Temp = ifelse(Station == "030", mean(c(Temp[Station == "029"],
-                                                Temp[Station == "031"])), Temp),
-         Temp = ifelse(Station == "081", 0.179 * Temp[Station == "077"] +
-                                         0.220 * Temp[Station == "080"] +
-                                         0.238 * Temp[Station == "082"] +
-                                         0.204 * Temp[Station == "083"] +
-                                         0.159 * Temp[Station == "084"], Temp),
-         Temp = ifelse(Station == "111", 0.304 * Temp[Station == "107"] +
-                                         0.348 * Temp[Station == "108"] +
-                                         0.348 * Temp[Station == "112"], Temp),
-         Temp = ifelse(Station == "114", 0.205 * Temp[Station == "107"] +
-                                         0.178 * Temp[Station == "108"] +
-                                         0.230 * Temp[Station == "112"] +
-                                         0.387 * Temp[Station == "113"], Temp))
+bottom_sf_m3 <- bottom_sf_m2 %>%
+  filter(Station == "033" | Station == "034" | Station == "035")
 
-surface_sf_v3 <- surface_sf_v2 %>%
-  mutate(Temp = ifelse(Station == "006", mean(c(Temp[Station == "005"],
-                                                Temp[Station == "007"])), Temp),
-         Temp = ifelse(Station == "012", 0.271 * Temp[Station == "011"] +
-                                         0.305 * Temp[Station == "013"] +
-                                         0.203 * Temp[Station == "014"] +
-                                         0.221 * Temp[Station == "091"], Temp),
-         Temp = ifelse(Station == "016", 0.333 * Temp[Station == "015"] +
-                                         0.666 * Temp[Station == "017"], Temp),
-         Temp = ifelse(Station == "022", 0.333 * Temp[Station == "023"] +
-                                         0.666 * Temp[Station == "019"], Temp),
-         Temp = ifelse(Station == "030", mean(c(Temp[Station == "029"],
-                                                Temp[Station == "031"])), Temp),
-         Temp = ifelse(Station == "081", 0.179 * Temp[Station == "077"] +
-                                         0.220 * Temp[Station == "080"] +
-                                         0.238 * Temp[Station == "082"] +
-                                         0.204 * Temp[Station == "083"] +
-                                         0.159 * Temp[Station == "084"], Temp),
-         Temp = ifelse(Station == "111", 0.304 * Temp[Station == "107"] +
-                                         0.348 * Temp[Station == "108"] +
-                                         0.348 * Temp[Station == "112"], Temp),
-         Temp = ifelse(Station == "114", 0.205 * Temp[Station == "107"] +
-                                         0.178 * Temp[Station == "108"] +
-                                         0.230 * Temp[Station == "112"] +
-                                         0.387 * Temp[Station == "113"], Temp))
+surface_sf_m3 <- surface_sf_m2 %>%
+  filter(Station == "033" | Station == "034" | Station == "035")
+```
+
+## Create coastline polygon
+```{r}
+# get Massachusetts coastline
+library(maps)
+library(mapdata)
+library(maptools)
+
+mass <- map("worldHires", "USA", xlim = c(-73.5, -69.9), ylim = c(41.2, 42.9), fill = TRUE, col = "transparent", plot = FALSE)
+IDs <- sapply(strsplit(mass$names, ":"), function(x) x[1])
+mass_SP <- map2SpatialPolygons(mass, IDs = IDs, proj4string = CRS("+init=epsg:4326"))
+#plot(mass_SP)
+#st_crs(mass_SP)
+
+data <- data.frame(f = 99.9)
+row.names(data) <- mass_SP@polygons[[1]]@ID
+mass_SPDF <- SpatialPolygonsDataFrame(mass_SP, data)
+
+mass_sf <- st_as_sf(mass_SPDF) %>%
+  st_transform(crs = 26919)
+#st_crs(mass_sf)
+
+#ggplot() +
+#  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+#  coord_sf(xlim = c(371957.88, 756099.58), ylim = c(4428833.79, 4709654.16), crs = st_crs(26919))
 ```
 
 ## Find property ranges
 ```{r}
 # Temp
-min(bottom_sf_v3$Temp) # 6.717487
-min(surface_sf_v3$Temp) # 6.962792
-max(bottom_sf_v3$Temp) # 10.08
-max(surface_sf_v3$Temp) # 8.874117
+min(bottom_sf_m_v2$Temp) # 6.717487
+min(surface_sf_m_v2$Temp) # 6.962792
+max(bottom_sf_m_v2$Temp) # 10.08
+max(surface_sf_m_v2$Temp) # 8.874117
 
 # Sal
-min(bottom_sf_v3$Salinity) # 32.44675
-min(surface_sf_v3$Salinity) # 32.29491
-max(bottom_sf_v3$Salinity) # 34.3967
-max(surface_sf_v3$Salinity) # 33.07967
+min(bottom_sf_m_v2$Salinity) # 32.44675
+min(surface_sf_m_v2$Salinity) # 32.29491
+max(bottom_sf_m_v2$Salinity) # 34.3967
+max(surface_sf_m_v2$Salinity) # 33.07967
 
 # DIC
-min(bottom_sf_v3$DIC) # 1974.6
-min(surface_sf_v3$DIC) # 2011.3
-max(bottom_sf_v3$DIC) # 2137.4
-max(surface_sf_v3$DIC) # 2082
+min(bottom_sf_m_v2$DIC) # 1974.6
+min(surface_sf_m_v2$DIC) # 2011.3
+max(bottom_sf_m_v2$DIC) # 2137.4
+max(surface_sf_m_v2$DIC) # 2082
 
 # TA
-min(bottom_sf_v3$TA) # 2195.2
-min(surface_sf_v3$TA) # 2181.3
-max(bottom_sf_v3$TA) # 2291.8
-max(surface_sf_v3$TA) # 2234.9
+min(bottom_sf_m_v2$TA) # 2195.2
+min(surface_sf_m_v2$TA) # 2181.3
+max(bottom_sf_m_v2$TA) # 2291.8
+max(surface_sf_m_v2$TA) # 2234.9
+
+# pH
+min(bottom_sf_m_v2$pH) # 7.958684
+min(surface_sf_m_v2$pH) # 8.001122
+max(bottom_sf_m_v2$pH) # 8.233954
+max(surface_sf_m_v2$pH) # 8.167257
+
+# OmegaAragonite
+min(bottom_sf_m_v2$OmegaAragonite) # 1.447193
+min(surface_sf_m_v2$OmegaAragonite) # 1.547841
+max(bottom_sf_m_v2$OmegaAragonite) # 2.499379
+max(surface_sf_m_v2$OmegaAragonite) # 2.215415
 ```
 
 ## Make interpolated plots
 ```{r}
 # make bottom plots
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = Temp), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(6.5, 10.5), option = "inferno") +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = Temp), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu", aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom Temperature")
+  labs(title = "Bottom Temperature [May]")
 
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = Salinity), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(32, 34.5)) +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = Salinity), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(31, 36), aesthetics = c("fill", "colour"), name = "Sal") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom Salinity")
+  labs(title = "Bottom Salinity [May]")
 
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = DIC), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(1970, 2150), option = "rocket") +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = DIC), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1930, 2155), option = "rocket", direction = -1, aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom DIC")
+  labs(title = "Bottom DIC [May]")
 
 ggplot() +
-  geom_sf(data = bottom_sf_v3, aes(fill = TA), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(2180, 2300), option = "mako") +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = TA), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom TA")
+  labs(title = "Bottom Alkalinity [May]")
+
+ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = pH), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(7.8, 8.25), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom pH [May]")
+
+ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = OmegaAragonite), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1.3, 3.1), option = "mako", direction = -1, aesthetics = c("fill", "colour"), name = "OmegaA") +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom Aragonite [May]")
 
 # make surface plots
 ggplot() +
-  geom_sf(data = surface_sf_v3, aes(fill = Temp), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(6.5, 10.5), option = "inferno") +
+  geom_sf(data = surface_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = Temp), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu", aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface Temperature")
+  labs(title = "Surface Temperature [May]")
 
 ggplot() +
-  geom_sf(data = surface_sf_v3, aes(fill = Salinity), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(32, 34.5)) +
+  geom_sf(data = surface_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = Salinity), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(31, 36), aesthetics = c("fill", "colour"), name = "Sal") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface Salinity")
+  labs(title = "Surface Salinity [May]")
 
 ggplot() +
-  geom_sf(data = surface_sf_v3, aes(fill = DIC), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(1970, 2150), option = "rocket") +
+  geom_sf(data = surface_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = DIC), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1930, 2155), option = "rocket", direction = -1, aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface DIC")
+  labs(title = "Surface DIC [May]")
 
 ggplot() +
-  geom_sf(data = surface_sf_v3, aes(fill = TA), size = 0.25, colour = NA) +
-  scale_fill_viridis(limits = c(2180, 2300), option = "mako") +
+  geom_sf(data = surface_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = TA), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface TA")
+  labs(title = "Surface Alkalinity [May]")
+
+ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = pH), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(7.8, 8.25), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface pH [May]")
+
+ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = OmegaAragonite), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1.3, 3.1), option = "mako", direction = -1, aesthetics = c("fill", "colour"), name = "OmegaA") +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface Aragonite [May]")
 ```
+
+
+
+
+
+
+
+
+
+
+
 
 ## Attempt to add coastline polygon -- not working rn
 ```{r}
@@ -615,13 +709,6 @@ ggplot() +
         axis.title = element_blank())
 ```
 
-## Calculate carbon system parameters
-```{r}
-library(seacarb)
-
-carb(15, may$TA, may$DIC, S = may$Salinity, T = Temp, Patm = *, P = SeaPressure, k1k2 = 1) # flag:15 = ALK & DIC   # k1k2:1 = Lueker et al. (2000)   # 
-```
-
 ## Look at chlorophyll data
 ```{r}
 library(tidync)
@@ -656,7 +743,7 @@ library(mapdata)
 reg = map_data("world2Hires")
 reg = subset(reg, region %in% 'USA')
 
-# convert lat longs
+# convert longs
 reg$long = (360 - reg$long)*-1
 ```
 
@@ -875,6 +962,17 @@ max(joined$diffLong)
 which(joined$diffLat > 0.05)
 which(joined$diffLong > 0.05)
 ```
+
+
+
+
+
+
+
+
+
+
+
 
 ## Extracting casts
 ```{r}
