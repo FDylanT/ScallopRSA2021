@@ -191,7 +191,7 @@ for (i in 1:length(may_bottle$BottleID)) {
 
 Station <- rep(mayBottomData$Station, 2)
 Cast <- c(rep("Bottom", 114), rep("Surface", 114))
-CTD_depth <- c(CTDdepth, rep(0, 114))
+CTD_depth <- c(CTDdepth, rep(2.5, 114))
 Temp <- c(BottomTemp, SurfaceTemp)
 Press <- c(BottomPress, SurfacePress)
 SeaPress <- c(BottomSeaPress, SurfaceSeaPress)
