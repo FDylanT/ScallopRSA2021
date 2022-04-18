@@ -33,7 +33,7 @@ may <- read.csv("./data/MayCruiseData.csv") %>%
          Long = Longitude_degrees_start,
          Depth = Depth_m_CTD,
          Temp = Temperature) %>%
-  select(Station, Cast, Lat, Long, Depth, Temp, Salinity, DIC, TA) %>%
+  select(Station, Cast, Lat, Long, Depth, Temp, Pressure, SeaPressure, Salinity, DIC, TA) %>%
   mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
 ```
 
@@ -99,10 +99,15 @@ may <- may %>%
 
 may$Salinity[which(is.na(may$Salinity))] <- 32.9 # give dummy salinities
 
-mayCarb <- carb(15, may$TA / 10^6, may$DIC / 10^6, S = may$Salinity, T = may$Temp, Patm = 1, P = may$Depth / 10, k1k2 = "l", ks = "d", b = "l10") # flag:15 = ALK & DIC   # k1k2:l = Lueker et al. (2000)   # kf = unspecified b/c low temps   # ks:d = Dickson (1990)   # b:l10 = Lee et al. (2010)
+for(i in which(is.na(may$SeaPressure))) { 
+    may$SeaPressure[i] <- may$Depth[i] # substitude depth for sites without sea pressure
+    may$Pressure[i] <- may$SeaPressure[i] + 10.1325 # calculate surface pressure from depth
+}
+
+mayCarb <- carb(15, may$TA / 10^6, may$DIC / 10^6, S = may$Salinity, T = may$Temp, Patm = may$Pressure * 0.098692326671601, P = may$SeaPressure / 10, k1k2 = "l", ks = "d", b = "l10") # flag:15 = ALK & DIC   # k1k2:l = Lueker et al. (2000)   # kf = unspecified b/c low temps   # ks:d = Dickson (1990)   # b:l10 = Lee et al. (2010)
 
 # calculate density
-may$Density <- gsw_rho(may$Salinity, may$Temp, may$Depth)
+may$Density <- gsw_rho(may$Salinity, may$Temp, may$SeaPressure)
 ```
 
 ## Prop-prop plots
