@@ -1,0 +1,366 @@
+---
+title: "MixingCalc"
+author: "Dylan Titmuss"
+date: "4/19/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(numform)
+```
+
+## Load data
+```{r}
+setwd("~/Desktop/Repos/ScallopRSA2021")
+
+oct_full <- read.csv("./data/OctCruiseData.csv") %>%
+  rename(Lat = Latitude_degrees_start,
+         Long = Longitude_degrees_start,
+         Depth = Depth_m_CTD,
+         Temp = Temperature,
+         DO = Dissolved_oxygen) %>%
+  select(Station, Cast, BottleID, Filtered, Lat, Long, Depth, Temp, Pressure, SeaPressure, Salinity, DIC, TA, DO, DO_sat) %>%
+  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
+
+oct <- oct_full %>%
+  filter(Filtered == "") %>%
+  select(-Filtered)
+```
+
+## Fill in missing temps
+```{r}
+oct <- oct %>%
+  mutate(Temp = ifelse(Station == "022", 0.611 * Temp[Station == "019"] +
+                                         0.389 * Temp[Station == "024"], Temp),
+         Temp = ifelse(Station == "023", Temp[Station == "021"], Temp),
+         Temp = ifelse(Station == "104", 0.249 * Temp[Station == "094"] +
+                                         0.303 * Temp[Station == "103"] +
+                                         0.212 * Temp[Station == "105"] +
+                                         0.236 * Temp[Station == "106"], Temp))
+
+oct <- oct %>%
+  mutate(Temp = ifelse(Station == "022", 0.611 * Temp[Station == "019"] +
+                                         0.389 * Temp[Station == "024"], Temp),
+         Temp = ifelse(Station == "023", Temp[Station == "021"], Temp),
+         Temp = ifelse(Station == "104", 0.249 * Temp[Station == "094"] +
+                                         0.303 * Temp[Station == "103"] +
+                                         0.212 * Temp[Station == "105"] +
+                                         0.236 * Temp[Station == "106"], Temp))
+```
+
+## Convert coordinates
+```{r}
+oct <- oct %>%
+  arrange(Station)
+
+chd <- substr(oct$Lat, 3, 3)[1]
+
+# convert latitude from DM to DD
+Lat_split_oct <- str_split_fixed(oct$Lat, chd, 2) %>%
+  as.data.frame()
+Lat_split_oct$V2 <- str_remove_all(Lat_split_oct$V2, pattern = "'") %>%
+  as.numeric()
+Lat_split_oct$V2 <- Lat_split_oct$V2/60
+Lat_split_oct$V1 <- as.numeric(Lat_split_oct$V1)
+
+oct$Lat <- Lat_split_oct$V1 + Lat_split_oct$V2
+
+# convert longitude from DM to DD
+Long_split_oct <- str_split_fixed(oct$Long, chd, 2) %>%
+  as.data.frame()
+Long_split_oct$V2 <- str_remove_all(Long_split_oct$V2, pattern = "'") %>%
+  as.numeric()
+Long_split_oct$V2 <- Long_split_oct$V2/60
+Long_split_oct$V1 <- as.numeric(Long_split_oct$V1)
+
+oct$Long <- -(Long_split_oct$V1 + Long_split_oct$V2)
+```
+
+## Find endmember property values
+```{r}
+#EM1 <- which(oct$Station == "005" & oct$Cast == "Surface")
+#EM1 <- which(oct$Station == "020" & oct$Cast == "Surface")
+#EM1 <- which(oct$Station == "001" & oct$Cast == "Surface")
+#EM1 <- which(oct$Station == "004" & oct$Cast == "Surface")
+EM1 <- which(oct$Station == "009" & oct$Cast == "Surface")
+#EM2 <- which(oct$Station == "021" & oct$Cast == "Bottom")
+EM2 <- which(oct$Station == "003" & oct$Cast == "Bottom")
+EM3 <- which(oct$Station == "113" & oct$Cast == "Surface")
+EM4 <- which(oct$Station == "053" & oct$Cast == "Bottom")
+
+# pull values for endmembers
+S1 <- oct$Salinity[EM1]
+S2 <- oct$Salinity[EM2]
+S3 <- oct$Salinity[EM3]
+S4 <- oct$Salinity[EM4]
+
+T1 <- oct$Temp[EM1]
+T2 <- oct$Temp[EM2]
+T3 <- oct$Temp[EM3]
+T4 <- oct$Temp[EM4]
+
+DIC1 <- oct$DIC[EM1]
+DIC2 <- oct$DIC[EM2]
+DIC3 <- oct$DIC[EM3]
+DIC4 <- oct$DIC[EM4]
+
+TA1 <- oct$TA[EM1]
+TA2 <- oct$TA[EM2]
+TA3 <- oct$TA[EM3]
+TA4 <- oct$TA[EM4]
+```
+
+## Solve system to find mixing-normalized coefficients
+```{r}
+i = 1
+
+### TRIANGLE 1
+
+### a1*S1 + a2*S2 + a3*S3 = oct$Salinity[i]
+# a1 = (oct$Salinity[i] - (a2*S2 + a3*S3)) / S1
+# 1 - (a2 + a3) = (oct$Salinity[i] - (a2*S2 + a3*S3)) / S1
+# S1 - a2*S1 - a3*S1 = oct$Salinity[i] - a2*S2 - a3*S3
+# a2*(S2-S1) + a3*(S3-S1) = oct$Salinity[i] - S1
+# (oct$Temp[i] - T1 - a3*(T3-T1)) / (T2-T1) * (S2-S1) + a3*(S3-S1) = oct$Salinity[i] - S1
+# a3*(S3-S1) - a3*(T3-T1)*(S2-S1)/(T2-T1) = oct$Salinity[i] - S1 - oct$Temp[i]*(S2-S1)/(T2-T1) + T1*(S2-S1)/(T2-T1)
+a3 = (oct$Salinity[i] - S1 - oct$Temp[i]*(S2-S1)/(T2-T1) + T1*(S2-S1)/(T2-T1)) / ((S3-S1) - (T3-T1)*(S2-S1)/(T2-T1))
+
+### a1*T1 + a2*T2 + a3*T3 = oct$Temp[i]
+# a1 = (oct$Temp[i] - (a2*T2 + a3*T3)) / T1
+# 1 - (a2 + a3) = (oct$Temp[i] - (a2*T2 + a3*T3)) / T1
+# T1 - a2*T1 - a3*T1 = oct$Temp[i] - a2*T2 - a3*T3
+# a2*(T2-T1) + a3*(T3-T1) = oct$Temp[i] - T1
+a2 = (oct$Temp[i] - T1 - a3*(T3-T1)) / (T2-T1)
+
+### a1 + a2 + a3 = 1
+a1 = 1 - (a2 + a3)
+
+### TRIANGLE 2
+
+a3 = (oct$Salinity[i] - S4 - oct$Temp[i]*(S2-S4)/(T2-T4) + T4*(S2-S4)/(T2-T4)) / ((S3-S4) - (T3-T4)*(S2-S4)/(T2-T4))
+
+a2 = (oct$Temp[i] - T4 - a3*(T3-T4)) / (T2-T4)
+
+a4 = 1 - (a2 + a3)
+```
+
+## Calculate mixing-normalized DIC & TA values
+```{r}
+oct$DICn = rep(NA, 228)
+oct$TAn = rep(NA, 228)
+oct$dDIC = rep(NA, 228)
+oct$dTA = rep(NA, 228)
+
+# a1*DIC1 + a2*DIC2 + a3*DIC3 = oct$DICn[i]
+# a1*TA1 + a2*TA2 + a3*TA3 = oct$TAn[i]
+# oct$DIC[i] - oct$DICn[i] = oct$dDICn[i]
+# oct$TA[i] - oct$TAn[i] = oct$dTAn[i]
+
+for(i in 1:nrow(oct)) {
+  if(i == which(oct$Station == "053" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "076" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "072" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "059" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "043" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "077" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "047" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "042" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "093" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "087" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "094" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "086" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "064" & oct$Cast == "Bottom") |
+     i == which(oct$Station == "048" & oct$Cast == "Bottom")) {
+       a3 = (oct$Salinity[i] - S4 - oct$Temp[i]*(S2-S4)/(T2-T4) + T4*(S2-S4)/(T2-T4)) / ((S3-S4) - (T3-T4)*(S2-S4)/(T2-T4))
+       a2 = (oct$Temp[i] - T4 - a3*(T3-T4)) / (T2-T4)
+       a4 = 1 - (a2 + a3)
+     } else {
+       a3 = (oct$Salinity[i] - S1 - oct$Temp[i]*(S2-S1)/(T2-T1) + T1*(S2-S1)/(T2-T1)) / ((S3-S1) - (T3-T1)*(S2-S1)/(T2-T1))
+       a2 = (oct$Temp[i] - T1 - a3*(T3-T1)) / (T2-T1)
+       a1 = 1 - (a2 + a3)
+     }
+  oct$DICn[i] = a1*DIC1 + a2*DIC2 + a3*DIC3
+  oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
+  oct$TAn[i] = a1*TA1 + a2*TA2 + a3*TA3
+  oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
+}
+
+######fix this^^
+
+```
+
+## Plot delta values
+```{r}
+oct %>%
+  filter(Station != "042" &
+           Station != "043" &
+           Station != "047" &
+           Station != "048" &
+           Station != "053" &
+           Station != "059" & 
+           Station != "064" &
+           Station != "072" & 
+           Station != "076" & 
+           Station != "077" & 
+           Station != "081" & 
+           Station != "086" & 
+           Station != "087" & 
+           Station != "093" & 
+           Station != "094") %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+# bottom
+oct %>%
+  filter(Cast == "Bottom" &
+           Station != "042" &
+           Station != "043" &
+           Station != "047" &
+           Station != "048" &
+           Station != "053" &
+           Station != "059" & 
+           Station != "064" &
+           Station != "072" & 
+           Station != "076" & 
+           Station != "077" & 
+           Station != "081" & 
+           Station != "086" & 
+           Station != "087" & 
+           Station != "093" & 
+           Station != "094") %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = 16) +
+  xlim(c(-63, 52)) +
+  ylim(c(-27, 44)) +
+  theme_bw()
+
+# surface
+oct %>%
+  filter(Cast == "Surface" &
+           Station != "042" &
+           Station != "043" &
+           Station != "047" &
+           Station != "048" &
+           Station != "053" &
+           Station != "059" & 
+           Station != "064" &
+           Station != "072" & 
+           Station != "076" & 
+           Station != "077" & 
+           Station != "081" & 
+           Station != "086" & 
+           Station != "087" & 
+           Station != "093" & 
+           Station != "094") %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = 1) +
+  xlim(c(-63, 52)) +
+  ylim(c(-27, 44)) +
+  theme_bw()
+
+# positive DIC means that > DIC than expected --> respiration-dominant
+# negative TA is combination of respiration + calcification/precipitation
+```
+
+## Prop-prop dDIC vs AOU
+```{r}
+ggplot(oct, aes(x = AOU, y = dDIC, shape = Cast)) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+```
+
+## Calculate AOU
+```{r}
+library(gsw)
+
+oct$AbsSal <- rep(NA, 228)
+oct$ConsTemp <- rep(NA, 228)
+oct$AOU <- rep(NA, 228)
+
+# calc absolute sal
+oct$AbsSal <- gsw_SA_from_SP(SP = oct$Salinity, p = oct$SeaPressure, longitude = oct$Long, latitude = oct$Lat)
+
+# calc conservative temp
+oct$ConsTemp <- gsw_CT_from_t(SA = oct$AbsSal, t = oct$Temp, p = oct$SeaPressure)
+
+data <- as.data.frame(cbind(oct$AbsSal, oct$ConsTemp, oct$SeaPressure, oct$Long, oct$Lat))
+write_csv(data, "oxy_data.csv")
+```
+
+## after MATLAB
+```{r}
+#oct$O2sol <- gsw_O2sol(oct$AbsSal, oct$ConsTemp, oct$SeaPressure, oct$Long, oct$Lat)
+oxy <- read.csv("oxy_data.csv")
+oct$O2sol <- oxy$O2sol
+
+# calc AOU
+oct$AOU <- oct$O2sol - oct$DO
+```
+
+
+
+
+
+## Try two EM mixing curves (2 bottom, 2 surface)
+```{r}
+EM1 <- which(oct$Salinity == min(oct$Salinity[oct$Cast == "Bottom"], na.rm = TRUE)) # 002 bottom
+EM2 <- which(oct$Salinity == max(oct$Salinity[oct$Cast == "Bottom"], na.rm = TRUE)) # 053 bottom
+
+EM3 <- which(oct$Salinity == min(oct$Salinity[oct$Cast == "Surface"], na.rm = TRUE)) # 005 surface
+EM4 <- which(oct$Salinity == max(oct$Salinity[oct$Cast == "Surface"], na.rm = TRUE)) # 043 surface
+
+S1 <- oct$Salinity[EM1]
+S2 <- oct$Salinity[EM2]
+S3 <- oct$Salinity[EM3]
+S4 <- oct$Salinity[EM4]
+
+TA1 <- oct$TA[EM1]
+TA2 <- oct$TA[EM2]
+TA3 <- oct$TA[EM3]
+TA4 <- oct$TA[EM4]
+
+#TA1 = m * S1 + b
+#TA2 = m * S2 + b
+m1 = (TA2 - TA1) / (S2 - S1) # m = 47.10982
+b1 = TA1 - (m1*S1) # b = 677.8481
+
+#TA3 = m * S3 + b
+#TA4 = m * S4 + b
+m2 = (TA4 - TA3) / (S4 - S3) # m = 56.98818
+b2 = TA3 - (m2*S3) # b = 343.4221
+
+for(i in 1:nrow(oct)) {
+  if(Cast == "Bottom") {
+    oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
+    oct$dTA[i] = oct$TA[i] - (m1*Sal[i] + b1)   # observed - expected
+  } else {
+    oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
+    oct$dTA[i] = oct$TA[i] - (m2*Sal[i] + b2)   # observed - expected
+  }
+}
+```
