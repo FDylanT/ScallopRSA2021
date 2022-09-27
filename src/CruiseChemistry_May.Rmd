@@ -9,12 +9,10 @@ editor_options:
 
 This script visualizes the chemistry data from the May RSA cruise.
 
+## Load packages
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
-```
 
-## Load packages
-```{r}
 library(tidyverse)
 library(sf)
 library(numform)
@@ -94,12 +92,7 @@ may <- may %>%
 
 ## Calculate carbon system parameters & density
 ```{r}
-# get Patm and SeaPressure from MATLAB sometime
-# replace Depth with actual pressure :))
-
-may$Salinity[which(is.na(may$Salinity))] <- 32.9 # give dummy salinities
-
-for(i in which(is.na(may$SeaPressure))) { 
+for(i in which(is.na(may$SeaPressure))) {
     may$SeaPressure[i] <- may$Depth[i] # substitude depth for sites without sea pressure
     may$Pressure[i] <- may$SeaPressure[i] + 10.1325 # calculate surface pressure from depth
 }
@@ -108,6 +101,15 @@ mayCarb <- carb(15, may$TA / 10^6, may$DIC / 10^6, S = may$Salinity, T = may$Tem
 
 # calculate density
 may$Density <- gsw_rho(may$Salinity, may$Temp, may$SeaPressure)
+```
+
+## Combine may & carb data
+```{r}
+may <- cbind(may,
+             pH = mayCarb$pH,
+             fCO2 = mayCarb$fCO2,
+             OmegaAragonite = mayCarb$OmegaAragonite,
+             OmegaCalcite = mayCarb$OmegaCalcite)
 ```
 
 ## Prop-prop plots
@@ -174,15 +176,6 @@ ggplot(may, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
 #identify(may$TA ~ may$DIC)
 
 ### definitely check 112 DIC
-```
-
-## Combine with carb data
-```{r}
-may <- may %>%
-  cbind(pH = mayCarb$pH,
-        fCO2 = mayCarb$fCO2,
-        OmegaAragonite = mayCarb$OmegaAragonite,
-        OmegaCalcite = mayCarb$OmegaCalcite)
 ```
 
 ## Convert coordinates
