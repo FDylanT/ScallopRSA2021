@@ -7,7 +7,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-This script processes the salinity data output by the "CTDprocessing.m" MATLAB script.
+This script processes the salinity data output by the "CTDprocessing_Oct.m" MATLAB script.
 
 ## Load packages
 ```{r setup, include=FALSE}
@@ -152,6 +152,16 @@ which(depthCheck$Check == TRUE) # 2/111 stations don't agree w/in 20m
 which(depthCheck$Check2 == TRUE) # 14/111 stations don't agree w/in 10m
 
 # station assignments seem correct! more extensive trimming of oct profiles compared to may -- greater divergence makes sense
+
+# salinity check
+oct_bottle$CTDsal <- rep(NA, 35)
+oct_bottle$offset <- rep(NA, 35)
+
+for (i in 1:nrow(oct_bottle)) {
+  k <- oct_bottle$Station[i]
+  oct_bottle$CTDsal[i] <- octCTD$BottomSal_Corr[octCTD$Station == k]
+  oct_bottle$offset[i] <- abs(oct_bottle$Salinity[i] - oct_bottle$CTDsal[i])
+}
 ```
 
 ## Write temp values & corrected salinity values to file
@@ -162,6 +172,10 @@ BottomPress <- rep(NA, 114)
 SurfacePress <- rep(NA, 114)
 BottomSeaPress <- rep(NA, 114)
 SurfaceSeaPress <- rep(NA, 114)
+BottomO2 <- rep(NA, 114)
+SurfaceO2 <- rep(NA, 114)
+BottomO2Sat <- rep(NA, 114)
+SurfaceO2Sat <- rep(NA, 114)
 
 for (i in 1:length(octCTD$Station)) {
   k <- octCTD$Station[i]
@@ -171,6 +185,10 @@ for (i in 1:length(octCTD$Station)) {
   SurfacePress[k] <- octCTD$SurfacePress[i]
   BottomSeaPress[k] <- octCTD$BottomSeaPress[i]
   SurfaceSeaPress[k] <- octCTD$SurfaceSeaPress[i]
+  BottomO2[k] <- octCTD$BottomO2[i]
+  SurfaceO2[k] <- octCTD$SurfaceO2[i]
+  BottomO2Sat[k] <- octCTD$BottomO2Sat[i]
+  SurfaceO2Sat[k] <- octCTD$SurfaceO2Sat[i]
 }
 
 BottomSal_Corr <- rep(NA, 114)
@@ -199,9 +217,11 @@ CTD_depth <- c(CTDdepth, rep(2.5, 114))
 Temp <- c(BottomTemp, SurfaceTemp)
 Press <- c(BottomPress, SurfacePress)
 SeaPress <- c(BottomSeaPress, SurfaceSeaPress)
+O2 <- c(BottomO2, SurfaceO2)
+O2Sat <- c(BottomO2Sat, SurfaceO2Sat)
 Salinity_Corr <- c(BottomSal_Corr, SurfaceSal_Corr)
 
-oct_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Temp, Press, SeaPress, Salinity_Corr)) %>%
+oct_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Temp, Press, SeaPress, Salinity_Corr, O2, O2Sat)) %>%
   mutate(Station = as.integer(Station)) %>%
   arrange(Station)
 
