@@ -7,7 +7,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-This script processes the salinity data output by the "CTDprocessing.m" MATLAB script.
+This script processes the salinity data output by the "CTDprocessing_May.m" MATLAB script.
 
 ## Load packages
 ```{r setup, include=FALSE}
