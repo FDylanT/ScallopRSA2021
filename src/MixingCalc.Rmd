@@ -84,11 +84,11 @@ oct$Long <- -(Long_split_oct$V1 + Long_split_oct$V2)
 
 ## Find endmember property values
 ```{r}
-#EM1 <- which(oct$Station == "005" & oct$Cast == "Surface")
+EM1 <- which(oct$Station == "005" & oct$Cast == "Surface")
 #EM1 <- which(oct$Station == "020" & oct$Cast == "Surface")
-#EM1 <- which(oct$Station == "001" & oct$Cast == "Surface")
+#EM1 <- which(oct$Station == "001" & oct$Cast == "Surface") # definitely not
 #EM1 <- which(oct$Station == "004" & oct$Cast == "Surface")
-EM1 <- which(oct$Station == "009" & oct$Cast == "Surface")
+#EM1 <- which(oct$Station == "009" & oct$Cast == "Surface")
 #EM2 <- which(oct$Station == "021" & oct$Cast == "Bottom")
 EM2 <- which(oct$Station == "003" & oct$Cast == "Bottom")
 EM3 <- which(oct$Station == "113" & oct$Cast == "Surface")
@@ -219,7 +219,8 @@ oct %>%
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(intercept = 0, slope = 2) +
   geom_abline(intercept = 0, slope = -17/106) +
-  scale_shape_manual(values = c(16, 1)) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
   theme_bw()
 
 # bottom
@@ -294,36 +295,6 @@ ggplot(oct, aes(x = AOU, y = dDIC, shape = Cast)) +
   theme_bw()
 ```
 
-## Calculate AOU
-```{r}
-library(gsw)
-
-oct$AbsSal <- rep(NA, 228)
-oct$ConsTemp <- rep(NA, 228)
-oct$AOU <- rep(NA, 228)
-
-# calc absolute sal
-oct$AbsSal <- gsw_SA_from_SP(SP = oct$Salinity,
-                             p = oct$SeaPressure,
-                             longitude = oct$Long,
-                             latitude = oct$Lat)
-
-# calc conservative temp
-oct$ConsTemp <- gsw_CT_from_t(SA = oct$AbsSal, t = oct$Temp, p = oct$SeaPressure)
-
-data <- as.data.frame(cbind(oct$AbsSal, oct$ConsTemp, oct$SeaPressure, oct$Long, oct$Lat))
-write_csv(data, "oxy_data.csv")
-```
-
-## after MATLAB
-```{r}
-#oct$O2sol <- gsw_O2sol(oct$AbsSal, oct$ConsTemp, oct$SeaPressure, oct$Long, oct$Lat)
-oxy <- read.csv("oxy_data.csv")
-oct$O2sol <- oxy$O2sol
-
-# calc AOU
-oct$AOU <- oct$O2sol - oct$DO
-```
 
 
 
