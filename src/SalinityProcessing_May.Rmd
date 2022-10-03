@@ -30,6 +30,7 @@ mayBottomData <- read.csv("./data/MayCruiseData.csv") %>%
 
 ## Calculate CTD offset
 ```{r}
+# check all bottle samples have corresp. CTD value
 for (i in 1:33) {
   k <- may_bottle$Station[i]
   s <- mayCTD$BottomSalinity[mayCTD$Station == k]
@@ -48,14 +49,14 @@ for (i in c(1:4, 6:7, 9:33)) {
   station[i] <- k
   CTD_sal[i] <- mayCTD$BottomSalinity[mayCTD$Station == k]
   bottle_sal[i] <- may_bottle[i, 2]
-  offset[i] <- CTD_sal[i] - bottle_sal[i]
+  sal_offset[i] <- CTD_sal[i] - bottle_sal[i]
 }
 
-comparison <- as.data.frame(cbind(station, bottle_sal, CTD_sal, offset))
+comparison <- as.data.frame(cbind(station, bottle_sal, CTD_sal, sal_offset))
 
-mean(offset, na.rm = TRUE) # 0.0196598
-median(offset, na.rm = TRUE) # 0.01988623
-max(offset, na.rm = TRUE) # 0.0473948
+mean(sal_offset, na.rm = TRUE) # 0.0196598
+median(sal_offset, na.rm = TRUE) # 0.01988623
+max(sal_offset, na.rm = TRUE) # 0.0473948
 ```
 
 ## Plot CTD data with bottle data
@@ -66,7 +67,7 @@ ggplot(data = comparison, aes(x = station, y = CTD_sal)) +
   ylim(32.5, 35) +
   scale_color_discrete(labels = "bottle\nsample") +
   theme_bw() +
-  theme(legend.title=element_blank())
+  theme(legend.title = element_blank())
 
 plot(comparison$bottle_sal ~ comparison$CTD_sal)
 abline(0, 1)
@@ -112,7 +113,7 @@ ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
   ylim(32.5, 35) +
   scale_color_discrete(labels = "bottle\nsample") +
   theme_bw() +
-  theme(legend.title=element_blank())
+  theme(legend.title = element_blank())
 
 # looks better!
 
@@ -177,7 +178,7 @@ which(may_bottle$BottleID == "RSA_021A")
 may_bottle <- may_bottle %>%
     filter(!row_number() %in% 39)
 
-# add extra bottle sal values as replacements
+# add bottle sal values as replacements
 for (i in 1:length(may_bottle$BottleID)) {
   b <- may_bottle$BottleID[i]
   k <- as.numeric(str_remove(str_extract(b, "[0-9]{3}"), "^0+"))
@@ -219,8 +220,11 @@ mayCTD2.5 <- read.csv("./data/salinity/may_salinity_CTD_2-5.csv")
 mayCTD3 <- read.csv("./data/salinity/may_salinity_CTD_3.csv")
 mayCTD3.5 <- read.csv("./data/salinity/may_salinity_CTD_3-5.csv")
 
-cutoff <- as.data.frame(cbind(1:114, rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114), rep(NA, 114)))
-colnames(cutoff) <- c("Station", "BottleSal", "CTDSal0.5", "CTDSal1", "CTDSal1.5", "CTDSal2", "CTDSal2.5", "CTDSal3", "CTDSal3.5")
+c <- rep(NA, 114)
+
+cutoff <- as.data.frame(cbind(1:114, matrix(ncol = 8, nrow = 114)))
+colnames(cutoff) <- c("Station", "BottleSal", "CTDSal0.5", "CTDSal1", "CTDSal1.5", 
+                      "CTDSal2", "CTDSal2.5", "CTDSal3", "CTDSal3.5")
 
 for (i in 1:length(may_bottle$BottleID)) {
   b <- may_bottle$BottleID[i]
