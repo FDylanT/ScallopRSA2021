@@ -31,7 +31,8 @@ may <- read.csv("./data/MayCruiseData.csv") %>%
          Long = Longitude_degrees_start,
          Depth = Depth_m_CTD,
          Temp = Temperature) %>%
-  select(Station, Cast, Lat, Long, Depth, Temp, Pressure, SeaPressure, Salinity, DIC, TA) %>%
+  select(Station, Cast, Lat, Long, Depth, Temp, Pressure, SeaPressure, Salinity, 
+         DIC, TA) %>%
   mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
 ```
 
@@ -97,7 +98,17 @@ for(i in which(is.na(may$SeaPressure))) {
     may$Pressure[i] <- may$SeaPressure[i] + 10.1325 # calculate surface pressure from depth
 }
 
-mayCarb <- carb(15, may$TA / 10^6, may$DIC / 10^6, S = may$Salinity, T = may$Temp, Patm = may$Pressure * 0.098692326671601, P = may$SeaPressure / 10, k1k2 = "l", ks = "d", b = "l10") # flag:15 = ALK & DIC   # k1k2:l = Lueker et al. (2000)   # kf = unspecified b/c low temps   # ks:d = Dickson (1990)   # b:l10 = Lee et al. (2010)
+mayCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
+                var1 = may$TA / 10^6,                    # in mol/kg
+                var2 = may$DIC / 10^6,                   # in mol/kg
+                S = may$Salinity,
+                T = may$Temp,                            # in deg C
+                Patm = may$Pressure * 0.098692326671601, # in atm
+                P = may$SeaPressure / 10,                # in bar
+                k1k2 = "l",                              # l = Lueker et al. (2000)
+                                                         # kf: unspecified b/c low temps
+                ks = "d",                                # d = Dickson (1990)
+                b = "l10")                               # l10 = Lee et al. (2010)
 
 # calculate density
 may$Density <- gsw_rho(may$Salinity, may$Temp, may$SeaPressure)
@@ -217,7 +228,14 @@ may <- may %>%
 ## Add chem to shapefile
 ```{r}
 station_SPDF_m <- SpatialPointsDataFrame(coords = may[ , c("Long", "Lat")],
-                                        data = may[ , c("Long", "Lat", "Station", "Cast", "Depth", "Temp", "Salinity", "DIC", "TA", "pH", "fCO2", "OmegaAragonite", "OmegaCalcite")],
+                                        data = may[ , c("Long", "Lat",
+                                                        "Station", "Cast",
+                                                        "Depth",
+                                                        "Temp", "Salinity",
+                                                        "DIC", "TA",
+                                                        "pH", "fCO2",
+                                                        "OmegaAragonite",
+                                                        "OmegaCalcite")],
                                         proj4string = CRS("+init=epsg:4326"))
 
 station_sf_m <- st_as_sf(station_SPDF_m) %>%
@@ -346,7 +364,8 @@ surface_sf_m_v <- st_voronoi(surface_sf_m_geom)
 surface_sf_m_v <- st_sf(surface_sf_m_v)
 
 # mask Voronoi with contour
-bottom_sf_m_v <- st_intersection(st_cast(bottom_sf_m_v), st_union(st_buffer(GB_sf, dist = 500)))
+bottom_sf_m_v <- st_intersection(st_cast(bottom_sf_m_v),
+                                 st_union(st_buffer(GB_sf, dist = 500)))
 bottom_sf_m_v <- st_sf(bottom_sf_m_v)
 
 #st_crs(bottom_sf_m_v)
@@ -354,7 +373,8 @@ bottom_sf_m_v <- st_sf(bottom_sf_m_v)
 bottom_sf_m2 <- bottom_sf_m %>%
   st_transform(crs = 26919)
 
-surface_sf_m_v <- st_intersection(st_cast(surface_sf_m_v), st_union(st_buffer(GB_sf, dist = 500)))
+surface_sf_m_v <- st_intersection(st_cast(surface_sf_m_v),
+                                  st_union(st_buffer(GB_sf, dist = 500)))
 surface_sf_m_v <- st_sf(surface_sf_m_v)
 
 #st_crs(surface_sf_m_v)
@@ -384,7 +404,12 @@ library(maps)
 library(mapdata)
 library(maptools)
 
-mass <- map("worldHires", "USA", xlim = c(-73.5, -69.9), ylim = c(41.2, 42.9), fill = TRUE, col = "transparent", plot = FALSE)
+mass <- map("worldHires", "USA",
+            xlim = c(-73.5, -69.9),
+            ylim = c(41.2, 42.9),
+            fill = TRUE,
+            col = "transparent",
+            plot = FALSE)
 IDs <- sapply(strsplit(mass$names, ":"), function(x) x[1])
 mass_SP <- map2SpatialPolygons(mass, IDs = IDs, proj4string = CRS("+init=epsg:4326"))
 #plot(mass_SP)
@@ -400,7 +425,9 @@ mass_sf <- st_as_sf(mass_SPDF) %>%
 
 #ggplot() +
 #  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-#  coord_sf(xlim = c(371957.88, 756099.58), ylim = c(4428833.79, 4709654.16), crs = st_crs(26919))
+#  coord_sf(xlim = c(371957.88, 756099.58),
+#           ylim = c(4428833.79, 4709654.16),
+#           crs = st_crs(26919))
 ```
 
 ## Find property ranges
@@ -449,7 +476,8 @@ ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = Temp), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu", aesthetics = c("fill", "colour")) +
+  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
+                       aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom Temperature [May]")
 
@@ -457,7 +485,8 @@ ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = Salinity), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(31, 36), aesthetics = c("fill", "colour"), name = "Sal") +
+  scale_fill_viridis(limits = c(31, 36), aesthetics = c("fill", "colour"),
+                     name = "Sal") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom Salinity [May]")
 
@@ -465,7 +494,8 @@ ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = DIC), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1930, 2155), option = "rocket", direction = -1, aesthetics = c("fill", "colour")) +
+  scale_fill_viridis(limits = c(1930, 2155), option = "rocket", direction = -1,
+                     aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom DIC [May]")
 
@@ -473,7 +503,8 @@ ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = TA), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
+  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1,
+                     aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom Alkalinity [May]")
 
@@ -481,7 +512,8 @@ ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = pH), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(7.8, 8.25), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
+  scale_fill_viridis(limits = c(7.8, 8.25), option = "mako", direction = -1,
+                     aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom pH [May]")
 
@@ -489,7 +521,8 @@ ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = OmegaAragonite), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1.3, 3.1), option = "mako", direction = -1, aesthetics = c("fill", "colour"), name = "OmegaA") +
+  scale_fill_viridis(limits = c(1.3, 3.1), option = "mako", direction = -1,
+                     aesthetics = c("fill", "colour"), name = "OmegaA") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom Aragonite [May]")
 
@@ -498,7 +531,8 @@ ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = Temp), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu", aesthetics = c("fill", "colour")) +
+  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
+                       aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface Temperature [May]")
 
@@ -506,7 +540,8 @@ ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = Salinity), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(31, 36), aesthetics = c("fill", "colour"), name = "Sal") +
+  scale_fill_viridis(limits = c(31, 36), aesthetics = c("fill", "colour"),
+                     name = "Sal") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface Salinity [May]")
 
@@ -514,7 +549,8 @@ ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = DIC), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1930, 2155), option = "rocket", direction = -1, aesthetics = c("fill", "colour")) +
+  scale_fill_viridis(limits = c(1930, 2155), option = "rocket", direction = -1,
+                     aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface DIC [May]")
 
@@ -522,7 +558,8 @@ ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = TA), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
+  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1,
+                     aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface Alkalinity [May]")
 
@@ -530,7 +567,8 @@ ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = pH), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(7.8, 8.25), option = "mako", direction = -1, aesthetics = c("fill", "colour")) +
+  scale_fill_viridis(limits = c(7.8, 8.25), option = "mako", direction = -1,
+                     aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface pH [May]")
 
@@ -538,7 +576,8 @@ ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = OmegaAragonite), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1.3, 3.1), option = "mako", direction = -1, aesthetics = c("fill", "colour"), name = "OmegaA") +
+  scale_fill_viridis(limits = c(1.3, 3.1), option = "mako", direction = -1,
+                     aesthetics = c("fill", "colour"), name = "OmegaA") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface Aragonite [May]")
 ```
@@ -570,7 +609,9 @@ reg_sf <- st_as_sf(reg_SPDF) %>%
 
 ggplot(data = reg_sf) +
   geom_sf(fill = "lightblue") +
-  coord_sf(xlim = c(371957.88, 756099.58), ylim = c(4428833.79, 4709654.16), crs = st_crs(26919))
+  coord_sf(xlim = c(371957.88, 756099.58),
+           ylim = c(4428833.79, 4709654.16),
+           crs = st_crs(26919))
 
 #756099.58, 4432068.12
 #746508.34, 4709654.16
@@ -588,7 +629,8 @@ grd_extent <- st_bbox(GB_sf)
 # create grid
 x.range <- as.numeric(c(grd_extent[1], grd_extent[3])) # min/max longitude of the interpolation area
 y.range <- as.numeric(c(grd_extent[2], grd_extent[4])) # min/max latitude of the interpolation area
-grd <- expand.grid(x = seq(from = x.range[1], to = x.range[2], by = 500), y = seq(from = y.range[1], to = y.range[2], by = 500)) # expand points to grid
+grd <- expand.grid(x = seq(from = x.range[1], to = x.range[2], by = 500),
+                   y = seq(from = y.range[1], to = y.range[2], by = 500)) # expand points to grid
 
 # convert grid to spatial object
 coordinates(grd) <- ~x + y 
@@ -725,13 +767,15 @@ library(tidync)
 library(marmap)
 library(mapproj)
 # Create base map with NOAA data
-GB_bathy <- getNOAA.bathy(lon1 = -70.5, lon2 = -66, lat1 = 40, lat2 = 42.5, resolution = 1)
+GB_bathy <- getNOAA.bathy(lon1 = -70.5, lon2 = -66, lat1 = 40, lat2 = 42.5,
+                          resolution = 1)
 
 ggbathy <- GB_bathy %>%
   fortify() %>%
   mutate(lat = y, long = x, depth = z) %>%
   select(-c(x, y, z)) %>%
-  mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180, -780, -1380, -1980, -2580, -3180, -Inf)))
+  mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180,
+                                            -780, -1380, -1980, -2580, -3180, -Inf)))
 ```
 
 ## Get regional polygons
@@ -748,8 +792,12 @@ reg$long = (360 - reg$long)*-1
 ## Create bathy map
 ```{r}
 map <- ggplot() +
-  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
-  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), guide = "none") +
+  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE,
+              alpha = 0.75) +
+  scale_fill_manual(values = c("#08306B", "#084184", "#08519C","#1561A9", "#2171B5",
+                               "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC",
+                               "#9ECAE1", "#B2D3E8", "#C6DBEF"),
+                    guide = "none") +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(breaks = c(40, 41, 42), expand = c(0, 0)) +
   geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
@@ -768,7 +816,8 @@ max(may$Temp, na.rm = TRUE)
 
 bottomTemp <- map +
   geom_sf(data = bottom_sf1, aes(size = Temp, colour = Temp), inherit.aes = FALSE) +
-  #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
+  #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09,
+  #             size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(6.5, 10.5), option = "rocket") +
   scale_size_continuous(limits = c(6.5, 10.5), range = c(2, 6)) +
   guides(colour = guide_legend(reverse = TRUE, title = "Temperature (C)"), size = guide_legend(reverse = TRUE, title = "Temperature (C)")) +
@@ -782,7 +831,8 @@ bottomTemp
 
 surfaceTemp <- map +
   geom_sf(data = surface_sf1, aes(size = Temp, colour = Temp), inherit.aes = FALSE) +
-  #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
+  #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09,
+  #             size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(6.5, 10.5), option = "rocket") +
   scale_size_continuous(limits = c(6.5, 10.5), range = c(2, 6)) +
   guides(colour = guide_legend(reverse = TRUE, title = "Temperature (C)"), size = guide_legend(reverse = TRUE, title = "Temperature (C)")) +
@@ -798,8 +848,10 @@ min(may$Salinity)
 max(may$Salinity)
 
 bottomSal <- map +
-  geom_sf(data = bottom_sf1, aes(size = Salinity, colour = Salinity), inherit.aes = FALSE) +
-  #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
+  geom_sf(data = bottom_sf1, aes(size = Salinity, colour = Salinity),
+          inherit.aes = FALSE) +
+  #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09,
+  #             size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(32, 34.5), option = "rocket") +
   scale_size_continuous(limits = c(32, 34.5), range = c(2, 6)) +
   guides(colour = guide_legend(reverse = TRUE, title = "Salinity (PSU)"), size = guide_legend(reverse = TRUE, title = "Salinity (PSU)")) +
@@ -812,8 +864,10 @@ bottomSal <- map +
 bottomSal
 
 surfaceSal <- map +
-  geom_sf(data = surface_sf1, aes(size = Salinity, colour = Salinity), inherit.aes = FALSE) +
-  #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
+  geom_sf(data = surface_sf1, aes(size = Salinity, colour = Salinity),
+          inherit.aes = FALSE) +
+  #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09,
+  #             size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(32, 34.5), option = "rocket") +
   scale_size_continuous(limits = c(32, 34.5), range = c(2, 6)) +
   guides(colour = guide_legend(reverse = TRUE, title = "Salinity (PSU)"), size = guide_legend(reverse = TRUE, title = "Salinity (PSU)")) +
@@ -830,7 +884,8 @@ max(may$DIC)
 
 bottomDIC <- map +
   geom_sf(data = bottom_sf1, aes(colour = DIC), size = 5, inherit.aes = FALSE) +
-  #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
+  #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09,
+  #             size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(2000, 2150), option = "rocket") +
   #scale_size_continuous(limits = c(1950, 2150), range = c(2, 6)) +
   guides(colour = guide_legend(reverse = TRUE, title = "DIC (umol/kg)"), size = guide_legend(reverse = TRUE, title = "DIC (umol/kg)")) +
@@ -844,7 +899,8 @@ bottomDIC
 
 surfaceDIC <- map +
   geom_sf(data = surface_sf1, aes(colour = DIC), size = 5, inherit.aes = FALSE) +
-  #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
+  #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09,
+  #             size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(2000, 2150), option = "rocket") +
   #scale_size_continuous(limits = c(1950, 2150), range = c(2, 6)) +
   guides(colour = guide_legend(reverse = TRUE, title = "DIC (umol/kg)"), size = guide_legend(reverse = TRUE, title = "DIC (umol/kg)")) +
@@ -861,10 +917,12 @@ max(may$TA)
 
 bottomTA <- map +
   geom_sf(data = bottom_sf1, aes(size = TA, colour = TA), inherit.aes = FALSE) +
-  #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
+  #geom_sf_text(data = bottom_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09,
+  #             size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(2175, 2300), option = "rocket") +
   scale_size_continuous(limits = c(2175, 2300), range = c(2, 6)) +
-  guides(colour = guide_legend(reverse = TRUE, title = "TA (umol/kg)"), size = guide_legend(reverse = TRUE, title = "TA (umol/kg)")) +
+  guides(colour = guide_legend(reverse = TRUE, title = "TA (umol/kg)"),
+         size = guide_legend(reverse = TRUE, title = "TA (umol/kg)")) +
   labs(title = "Bottom Alkalinity") +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   theme(legend.key = element_blank(),
@@ -875,10 +933,12 @@ bottomTA
 
 surfaceTA <- map +
   geom_sf(data = surface_sf1, aes(size = TA, colour = TA), inherit.aes = FALSE) +
-  #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
+  #geom_sf_text(data = surface_sf1, aes(label = Station), nudge_x = 0, nudge_y = 0.09,
+  #             size = 3.5, inherit.aes = FALSE) +
   scale_colour_viridis(limits = c(2175, 2300), option = "rocket") +
   scale_size_continuous(limits = c(2175, 2300), range = c(2, 6)) +
-  guides(colour = guide_legend(reverse = TRUE, title = "TA (umol/kg)"), size = guide_legend(reverse = TRUE, title = "TA (umol/kg)")) +
+  guides(colour = guide_legend(reverse = TRUE, title = "TA (umol/kg)"),
+         size = guide_legend(reverse = TRUE, title = "TA (umol/kg)")) +
   labs(title = "Surface Alkalinity") +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   theme(legend.key = element_blank(),
