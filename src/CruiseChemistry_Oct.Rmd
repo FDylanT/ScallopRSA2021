@@ -71,7 +71,17 @@ for(i in which(is.na(oct$SeaPressure))) {
     oct$Pressure[i] <- oct$SeaPressure[i] + 10.1325 # calculate surface pressure from depth
 }
 
-octCarb <- carb(15, oct$TA / 10^6, oct$DIC / 10^6, S = oct$Salinity, T = oct$Temp, Patm = oct$Pressure * 0.098692326671601, P = oct$SeaPressure / 10, k1k2 = "l", ks = "d", b = "l10") # flag:15 = ALK & DIC   # k1k2:l = Lueker et al. (2000)   # kf = unspecified b/c low temps   # ks:d = Dickson (1990)   # b:l10 = Lee et al. (2010)
+octCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
+                var1 = oct$TA / 10^6,                    # in mol/kg
+                var2 = oct$DIC / 10^6,                   # in mol/kg
+                S = oct$Salinity,
+                T = oct$Temp,                            # in deg C
+                Patm = oct$Pressure * 0.098692326671601, # in atm
+                P = oct$SeaPressure / 10,                # in bar
+                k1k2 = "l",                              # l = Lueker et al. (2000)
+                                                         # kf: unspecified b/c low temps
+                ks = "d",                                # d = Dickson (1990)
+                b = "l10")                               # l10 = Lee et al. (2010)
 
 # calculate density
 oct$Density <- gsw_rho(oct$Salinity, oct$Temp, oct$SeaPressure)
@@ -407,7 +417,16 @@ oct$Long <- -(Long_split_oct$V1 + Long_split_oct$V2)
 ## Add chem to shapefile
 ```{r}
 station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
-                                        data = oct[ , c("Long", "Lat", "Station", "Cast", "Depth", "Temp", "Salinity", "Density", "DIC", "TA", "DO", "DO_sat", "AOU", "pH", "fCO2", "OmegaAragonite", "OmegaCalcite", "dDIC", "dTA")],
+                                        data = oct[ , c("Long", "Lat",
+                                                        "Station", "Cast",
+                                                        "Depth",
+                                                        "Temp", "Salinity", "Density",
+                                                        "DIC", "TA",
+                                                        "DO", "DO_sat", "AOU",
+                                                        "pH", "fCO2",
+                                                        "OmegaAragonite",
+                                                        "OmegaCalcite",
+                                                        "dDIC", "dTA")],
                                         proj4string = CRS("+init=epsg:4326"))
 
 station_sf <- st_as_sf(station_SPDF) %>%
