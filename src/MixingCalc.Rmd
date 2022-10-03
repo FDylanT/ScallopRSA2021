@@ -303,7 +303,10 @@ oct$ConsTemp <- rep(NA, 228)
 oct$AOU <- rep(NA, 228)
 
 # calc absolute sal
-oct$AbsSal <- gsw_SA_from_SP(SP = oct$Salinity, p = oct$SeaPressure, longitude = oct$Long, latitude = oct$Lat)
+oct$AbsSal <- gsw_SA_from_SP(SP = oct$Salinity,
+                             p = oct$SeaPressure,
+                             longitude = oct$Long,
+                             latitude = oct$Lat)
 
 # calc conservative temp
 oct$ConsTemp <- gsw_CT_from_t(SA = oct$AbsSal, t = oct$Temp, p = oct$SeaPressure)
