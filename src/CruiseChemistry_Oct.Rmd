@@ -862,7 +862,7 @@ ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = AOU), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-55, 45), palette = "YlGnBu",
+  scale_fill_distiller(limits = c(-55, 45), palette = "RdBu",
                        aesthetics = c("fill", "colour"), name = "AOU") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom AOU [Oct]")
@@ -872,7 +872,7 @@ ggplot() +
   geom_sf(data = bottom_sf3, aes(col = dDIC), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-65, 75), palette = "YlGnBu",
-                       aesthetics = c("fill", "colour"), name = "AOU") +
+                       aesthetics = c("fill", "colour"), name = "dDIC") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom delta DIC [Oct]")
 
@@ -966,7 +966,7 @@ ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = AOU), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-55, 45), palette = "YlGnBu",
+  scale_fill_distiller(limits = c(-55, 45), palette = "RdBu",
                        aesthetics = c("fill", "colour"), name = "AOU") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface AOU [Oct]")
@@ -976,7 +976,7 @@ ggplot() +
   geom_sf(data = surface_sf3, aes(col = dDIC), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-65, 75), palette = "YlGnBu",
-                       aesthetics = c("fill", "colour"), name = "AOU") +
+                       aesthetics = c("fill", "colour"), name = "dDIC") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface delta DIC [Oct]")
 ```
