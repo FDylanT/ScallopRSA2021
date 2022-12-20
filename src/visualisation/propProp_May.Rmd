@@ -1,0 +1,84 @@
+---
+title: "MayCruiseChemistry"
+author: "Dylan Titmuss"
+date: "1/19/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+This script visualizes the chemistry data from the May RSA cruise.
+Run chunks 1-7 of `Chemistry_May.Rmd` to load data.
+
+## Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
+
+library(tidyverse)
+```
+
+## Prop-prop plots
+```{r}
+# Temp vs. Sal, coloured cast
+#plot <-
+ggplot(may, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
+  geom_point() +
+  theme_bw()
+
+#ggplot_build(plot)$layout$panel_scales_x[[1]]$range$range # [32.29491 34.39670]
+#ggplot_build(plot)$layout$panel_scales_y[[1]]$range$range # [6.717487 10.080005]
+
+# Temp vs. Sal, bottom, coloured depth
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = Salinity, y = Temp, col = Depth)) +
+  geom_point() +
+  scale_colour_viridis(option = "mako", direction = -1) +
+  scale_x_continuous(limits = c(32.29, 34.40)) +
+  scale_y_continuous(limits = c(6.71, 10.09)) +
+  guides(colour = guide_colourbar(reverse = TRUE)) +
+  theme_bw()
+
+# Temp vs. Sal, coloured DIC
+ggplot(may, aes(x = Salinity, y = Temp, col = DIC, shape = Cast)) +
+  geom_point() +
+  scale_colour_viridis(option = "rocket") +
+  theme_bw()
+
+# Temp vs. Sal, coloured TA
+ggplot(may, aes(x = Salinity, y = Temp, col = TA, shape = Cast)) +
+  geom_point() +
+  scale_colour_viridis() +
+  theme_bw()
+
+# DIC vs. Sal, coloured cast
+ggplot(may, aes(x = Salinity, y = DIC, shape = Cast, col = Cast)) +
+  geom_point() +
+  theme_bw()
+
+#plot(DIC ~ Salinity, data = may)
+#identify(may$DIC ~ may$Salinity)
+
+### check 112A DIC
+
+# TA vs. Sal, coloured cast
+ggplot(may, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
+  geom_point() +
+  theme_bw()
+
+#plot(may$TA ~ may$Salinity)
+#abline(lm(may$TA ~ may$Salinity))
+#identify(may$TA ~ may$Salinity)
+
+### check 053B TA; maybe check 052B TA
+
+# DIC vs. TA, coloured cast
+ggplot(may, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
+  geom_point() +
+  theme_bw()
+
+#plot(may$TA ~ may$DIC)
+#identify(may$TA ~ may$DIC)
+
+### definitely check 112 DIC
+```

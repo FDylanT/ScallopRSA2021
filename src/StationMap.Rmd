@@ -1,0 +1,239 @@
+---
+title: "GeorgesBank_SAMs"
+author: "Dylan Titmuss"
+date: "9/30/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+This script creates a map of the planned October 2021 RSA stations overlaid on the 2020 SAM zones.
+
+## Register Google API key
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+register_google(key = "AIzaSyBvvS_nvTml09h56OWd0Oniktayi0L8WDU")
+```
+
+## Load packages
+```{r}
+library(tidyverse)
+library(sf)
+library(marmap)
+library(ggmap)
+library(sp)
+library(devtools)
+library(ggOceanMaps)
+```
+
+## Upload shapefile
+```{r}
+setwd("~/Repos/ScallopRSA2021")
+GB <- st_read("./data/2020SAMZones/GB_Estimation_Areas_2019_UTM19_PDT_SFModified.shp")
+```
+
+## Subset shapefile to SAMs
+```{r}
+NLS_North <- subset(GB, NewSAMS == "NLS-North")
+CL1_South <- subset(GB, NewSAMS == "CL1-South")
+CL1_Sliver <- subset(GB, NewSAMS == "CL1-Sliver")
+CL2_AccessSoutheast <- subset(GB, NewSAMS == "CL2-Access-Southeast")
+SF <- subset(GB, NewSAMS == "SF")
+CL2_North <- subset(GB, NewSAMS == "CL2-North")
+CL1_Access <- subset(GB, NewSAMS == "CL1-Access")
+NF <- subset(GB, NewSAMS == "NF")
+CL2_Ext <- subset(GB, NewSAMS == "CL2-Ext")
+GSC <- subset(GB, NewSAMS == "GSC")
+NLS_SouthDeep <- subset(GB, NewSAMS == "NLS-South-Deep")
+NLS_West <- subset(GB, NewSAMS == "NLS-West")
+NLS_SouthShallow <- subset(GB, NewSAMS == "NLS-South-Shallow")
+CL2_AccessSouthwest <- subset(GB, NewSAMS == "CL2-Access-Southwest")
+SF_East <- subset(GB, NewSAMS == "SF-East")
+```
+
+## Fortify regions for use with ggplot
+```{r}
+NLS_North2 <- fortify(NLS_North)
+CL1_South2 <- fortify(CL1_South)
+CL1_Sliver2 <- fortify(CL1_Sliver)
+CL2_AccessSoutheast2 <- fortify(CL2_AccessSoutheast)
+SF2 <- fortify(SF)
+CL2_North2 <- fortify(CL2_North)
+CL1_Access2 <- fortify(CL1_Access)
+NF2 <- fortify(NF)
+CL2_Ext2 <- fortify(CL2_Ext)
+GSC2 <- fortify(GSC)
+NLS_SouthDeep2 <- fortify(NLS_SouthDeep)
+NLS_West2 <- fortify(NLS_West)
+NLS_SouthShallow2 <- fortify(NLS_SouthShallow)
+CL2_AccessSouthwest2 <- fortify(CL2_AccessSouthwest)
+SF_East2 <- fortify(SF_East)
+```
+
+## Using satellite map
+```{r}
+GB_map <- get_map(c(-68.5247, 40.8155), maptype = "satellite", zoom = 7, source = "google")
+
+map <- ggmap(GB_map) +
+  geom_sf(data = NLS_North2, fill = "palegreen2", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL1_South2, fill = "firebrick3", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL1_Sliver2, fill = "mediumorchid3", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL2_AccessSoutheast2, fill = "lightskyblue", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = SF2, fill = "darkorange2", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL2_North2, fill = "seagreen2", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL1_Access2, fill = "chartreuse3", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = NF2, fill = "peachpuff2", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL2_Ext2, fill = "slateblue1", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = GSC2, fill = "steelblue1", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = NLS_SouthDeep2, fill = "blueviolet", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = NLS_West2, fill = "lightpink2", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = NLS_SouthShallow2, fill = "tan3", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL2_AccessSouthwest2, fill = "yellow2", col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = SF_East2, fill = "darkturquoise", col = "transparent", inherit.aes = FALSE) +
+  coord_sf(crs = st_crs(4326)) +
+  xlim(c(-70.5, -66)) +
+  scale_y_continuous(breaks = c(40, 41, 42), limits = c(40, 42.5)) +
+  theme(axis.title = element_blank())
+map
+```
+
+## Load station data & convert coordinates
+```{r}
+stations <- read.csv("./data/CruiseTrack_October.csv")
+str(stations)
+
+chd <- substr(stations$Lat, 3, 4)[1]
+
+# convert latitude from DM to DD
+Lat_split <- str_split_fixed(stations$Lat, chd, 2) %>%
+  as.data.frame()
+Lat_split$V2 <- str_remove_all(Lat_split$V2, pattern = "'") %>%
+  as.numeric()
+Lat_split$V2 <- Lat_split$V2/60
+Lat_split$V1 <- as.numeric(Lat_split$V1)
+
+stations$Lat <- Lat_split$V1 + Lat_split$V2
+
+# convert longitude from DM to DD
+Long_split <- str_split_fixed(stations$Long, chd, 2) %>%
+  as.data.frame()
+Long_split$V2 <- str_remove_all(Long_split$V2, pattern = "'") %>%
+  as.numeric()
+Long_split$V2 <- Long_split$V2/60
+Long_split$V1 <- as.numeric(Long_split$V1)
+
+stations$Long <- -(Long_split$V1 + Long_split$V2)
+```
+
+## Add station points to map
+```{r}
+stations_SPDF <- SpatialPointsDataFrame(coords = stations[ , c("Long","Lat")],
+                                        data = stations[ ,c("Long", "Lat", "Station", "Tow")],
+                                        proj4string = CRS("+init=epsg:4326"))
+
+stations_sf <- st_as_sf(stations_SPDF)
+stations_sf <- st_transform(stations_sf, crs = 4326)
+
+map +
+  geom_sf(data = stations_sf, aes(color = Tow), inherit.aes = FALSE) +
+  geom_sf_text(data = stations_sf, aes(label = Station), nudge_x = 0.034, nudge_y = 0.039, size = 2.5, inherit.aes = FALSE) +
+  scale_colour_manual(values = c("black", "white")) +
+  coord_sf(crs = st_crs(4326)) +
+  theme(legend.position = "none")
+```
+
+## marmap version (no polygons)
+```{r}
+# Create base map with NOAA data
+GB_bathy <- getNOAA.bathy(lon1 = -70.5, lon2 = -66,
+lat1 = 40, lat2 = 42.5, resolution = 1)
+
+summary(GB_bathy)
+
+map <- plot(GB_bathy, image = TRUE, land = TRUE, n = 0, lwd = 1, bpal = list(c(min(GB_bathy), -175, "#08306B","#08519C", "#2171B5", "#4292C6"), 
+            c(-175, 0, "#4292C6", "#6BAED6", "#9ECAE1", "#C6DBEF"), 
+            c(0, max(GB_bathy), "grey")))
+```
+
+## raster version
+```{r}
+# fortify for use with ggplot
+ggbathy <- GB_bathy %>%
+  fortify() %>%
+  mutate(lat = y, long = x, depth = z) %>%
+  select(-c(x, y, z)) %>%
+  mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180, -780, -1380, -1980, -2580, -3180, -Inf)))
+
+ggplot() +
+  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
+  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF")) +
+  geom_sf(data = NLS_North2, fill = "palegreen", col = "grey") +
+  geom_sf(data = CL1_South2, fill = "deepskyblue", col = "grey") +
+  geom_sf(data = CL1_Sliver2, fill = "mediumorchid1", col = "grey") +
+  geom_sf(data = CL2_AccessSoutheast2, fill = "goldenrod1", col = "grey") +
+  geom_sf(data = SF2, fill = "darkgrey", col = "grey") +
+  geom_sf(data = CL2_North2, fill = "orange", col = "grey") +
+  geom_sf(data = CL1_Access2, fill = "peachpuff", col = "grey") +
+  geom_sf(data = NF2, fill = "grey", col = "grey") +
+  geom_sf(data = CL2_Ext2, fill = "cyan", col = "grey") +
+  geom_sf(data = GSC2, fill = "navyblue", col = "grey") +
+  geom_sf(data = NLS_SouthDeep2, fill = "maroon", col = "grey") +
+  geom_sf(data = NLS_West2, fill = "darkgreen", col = "grey") +
+  geom_sf(data = NLS_SouthShallow2, fill = "limegreen", col = "grey") +
+  geom_sf(data = CL2_AccessSouthwest2, fill = "lightpink1", col = "grey") +
+  geom_sf(data = SF_East2, fill = "yellow", col = "grey") +
+  coord_sf(crs = st_crs(4326)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.title = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.position = "none")
+
+# something funky happens with the coordinates when I try to add the shapefile -- not sure how to sort out the CRS
+
+# oh fantastic, this one works too now
+```
+
+#### Playing around
+st_crs(NLS_North2)
+NLS_North2 <- st_transform(NLS_North2, crs = 4326)
+st_crs(NLS_North2)
+
+## ggOceanMaps
+```{r}
+basemap(limits = c(-70.5, -66, 40, 42.5), grid.col = NA, bathymetry = TRUE, rotate = TRUE) +
+  theme(legend.position = "none") +
+  annotation_spatial(NLS_North2, fill = "palegreen", col = "grey") +
+  annotation_spatial(CL1_South2, fill = "deepskyblue") +
+  annotation_spatial(CL1_Sliver2, fill = "mediumorchid1") +
+  annotation_spatial(CL2_AccessSoutheast2, fill = "goldenrod1") +
+  annotation_spatial(SF2, fill = "darkgrey") +
+  annotation_spatial(CL2_North2, fill = "orange") +
+  annotation_spatial(CL1_Access2, fill = "peachpuff") +
+  annotation_spatial(NF2, fill = "grey") +
+  annotation_spatial(CL2_Ext2, fill = "aquamarine1") +
+  annotation_spatial(GSC2, fill = "navyblue") +
+  annotation_spatial(NLS_SouthDeep2, fill = "maroon") +
+  annotation_spatial(NLS_West2, fill = "darkgreen") +
+  annotation_spatial(NLS_SouthShallow2, fill = "limegreen") +
+  annotation_spatial(CL2_AccessSouthwest2, fill = "lightpink1") +
+  annotation_spatial(SF_East2, fill = "yellow")
+```
+
+NLS_North
+CL1_South
+CL1_Sliver
+CL2_AccessSoutheast
+SF
+CL2_North
+CL1_Access
+NF
+CL2_Ext
+GSC
+NLS_SouthDeep
+NLS_West
+NLS_SouthShallow
+CL2_AccessSouthwest
+SF_East

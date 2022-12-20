@@ -1,0 +1,195 @@
+---
+title: "MayCruiseChemistry"
+author: "Dylan Titmuss"
+date: "1/19/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+This script manipulates the chemistry data from the May RSA cruise.
+
+## Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
+
+library(tidyverse)
+library(numform) # for f_pad_zero()
+library(seacarb)
+library(gsw) # for AOU
+```
+
+## Load data
+```{r}
+setwd("~/Desktop/Repos/ScallopRSA2021")
+
+may <- read.csv("./data/MayCruiseData.csv") %>%
+  rename(Lat = Latitude_degrees_start,
+         Long = Longitude_degrees_start,
+         Depth = Depth_m_CTD,
+         Temp = Temperature,
+         DO = Dissolved_oxygen) %>%
+  select(Station, Cast, BottleID, Lat, Long,
+         Depth, Temp, Pressure, SeaPressure, Salinity,
+         DIC, TA, DO) %>%
+  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to stations
+```
+
+## Convert coordinates from DM to DD
+```{r}
+chd <- substr(may$Lat, 3, 3)[1]
+
+# latitude
+Lat_split_may <- str_split_fixed(may$Lat, chd, 2) %>%
+  as.data.frame()
+Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Lat_split_may$V2 <- Lat_split_may$V2/60
+Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
+
+may$Lat <- Lat_split_may$V1 + Lat_split_may$V2
+rm(Lat_split_may)
+
+# longitude
+Long_split_may <- str_split_fixed(may$Long, chd, 2) %>%
+  as.data.frame()
+Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Long_split_may$V2 <- Long_split_may$V2/60
+Long_split_may$V1 <- as.numeric(Long_split_may$V1)
+
+may$Long <- -(Long_split_may$V1 + Long_split_may$V2)
+rm(Long_split_may)
+rm(chd)
+```
+
+## Fill in missing temp & DO values
+```{r}
+# temp
+may <- may %>%
+  mutate(Temp = ifelse(Station == "006", mean(c(Temp[Station == "005"],
+                                                Temp[Station == "007"])), Temp),
+         Temp = ifelse(Station == "012", 0.271 * Temp[Station == "011"] +
+                                         0.305 * Temp[Station == "013"] +
+                                         0.203 * Temp[Station == "014"] +
+                                         0.221 * Temp[Station == "091"], Temp),
+         Temp = ifelse(Station == "016", 0.333 * Temp[Station == "015"] +
+                                         0.666 * Temp[Station == "017"], Temp),
+         Temp = ifelse(Station == "022", 0.333 * Temp[Station == "023"] +
+                                         0.666 * Temp[Station == "019"], Temp),
+         Temp = ifelse(Station == "030", mean(c(Temp[Station == "029"],
+                                                Temp[Station == "031"])), Temp),
+         Temp = ifelse(Station == "081", 0.179 * Temp[Station == "077"] +
+                                         0.220 * Temp[Station == "080"] +
+                                         0.238 * Temp[Station == "082"] +
+                                         0.204 * Temp[Station == "083"] +
+                                         0.159 * Temp[Station == "084"], Temp),
+         Temp = ifelse(Station == "111", 0.304 * Temp[Station == "107"] +
+                                         0.348 * Temp[Station == "108"] +
+                                         0.348 * Temp[Station == "112"], Temp),
+         Temp = ifelse(Station == "114", 0.205 * Temp[Station == "107"] +
+                                         0.178 * Temp[Station == "108"] +
+                                         0.230 * Temp[Station == "112"] +
+                                         0.387 * Temp[Station == "113"], Temp))
+
+# DO
+may <- may %>%
+  mutate(DO = ifelse(Station == "006", mean(c(DO[Station == "005"],
+                                              DO[Station == "007"])), DO),
+         DO = ifelse(Station == "012", 0.271 * DO[Station == "011"] +
+                                       0.305 * DO[Station == "013"] +
+                                       0.203 * DO[Station == "014"] +
+                                       0.221 * DO[Station == "091"], DO),
+         DO = ifelse(Station == "016", 0.333 * DO[Station == "015"] +
+                                       0.666 * DO[Station == "017"], DO),
+         DO = ifelse(Station == "022", 0.333 * DO[Station == "023"] +
+                                       0.666 * DO[Station == "019"], DO),
+         DO = ifelse(Station == "030", mean(c(DO[Station == "029"],
+                                              DO[Station == "031"])), DO),
+         DO = ifelse(Station == "081", 0.179 * DO[Station == "077"] +
+                                       0.220 * DO[Station == "080"] +
+                                       0.238 * DO[Station == "082"] +
+                                       0.204 * DO[Station == "083"] +
+                                       0.159 * DO[Station == "084"], DO),
+         DO = ifelse(Station == "111", 0.304 * DO[Station == "107"] +
+                                       0.348 * DO[Station == "108"] +
+                                       0.348 * DO[Station == "112"], DO),
+         DO = ifelse(Station == "114", 0.205 * DO[Station == "107"] +
+                                       0.178 * DO[Station == "108"] +
+                                       0.230 * DO[Station == "112"] +
+                                       0.387 * DO[Station == "113"], DO))
+```
+
+## Calculate carbon system parameters & density
+```{r}
+for(i in which(is.na(may$SeaPressure))) {
+    may$SeaPressure[i] <- may$Depth[i] # substitude depth for sites without sea pressure
+    may$Pressure[i] <- may$SeaPressure[i] + 10.1325 # calculate surface pressure
+}
+
+mayCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
+                var1 = may$TA / 10^6,                    # in mol/kg
+                var2 = may$DIC / 10^6,                   # in mol/kg
+                S = may$Salinity,
+                T = may$Temp,                            # in deg C
+                Patm = may$Pressure * 0.098692326671601, # in atm
+                P = may$SeaPressure / 10,                # in bar
+                k1k2 = "l",                              # l = Lueker et al. (2000)
+                                                         # kf: unspecified b/c low temps
+                ks = "d",                                # d = Dickson (1990)
+                b = "l10")                               # l10 = Lee et al. (2010)
+
+# calculate density
+may$Density <- gsw_rho(may$Salinity, may$Temp, may$SeaPressure)
+```
+
+## Combine may & carb data
+```{r}
+may <- cbind(may,
+             pH = mayCarb$pH,
+             fCO2 = mayCarb$fCO2,
+             pCO2 = mayCarb$pCO2,
+             OmegaAragonite = mayCarb$OmegaAragonite,
+             OmegaCalcite = mayCarb$OmegaCalcite)
+```
+
+## Calculate AOU
+```{r}
+# calc absolute sal
+may$AbsSal <- gsw_SA_from_SP(SP = may$Salinity,
+                             p = may$SeaPressure,
+                             longitude = may$Long,
+                             latitude = may$Lat)
+
+# calc conservative temp
+may$ConsTemp <- gsw_CT_from_t(SA = may$AbsSal,
+                              t = may$Temp,
+                              p = may$SeaPressure)
+
+# calc O2 sol
+may$O2sol <- gsw_O2sol(SA = may$AbsSal,
+                       CT = may$ConsTemp,
+                       p = may$SeaPressure,
+                       longitude = may$Long,
+                       latitude = may$Lat)
+
+# calc AOU
+may$AOU <- may$O2sol - may$DO
+```
+
+
+
+
+
+
+## Compare May vs Oct coordinates
+Run chunks 1-7 of `Chemistry_Oct.Rmd` to load October data.
+```{r}
+joined <- left_join(may, oct, by = c("Station", "Cast"), suffix = c("_may", "_oct")) %>%
+  mutate(diffLat = abs(mayLat - octLat), diffLong = abs(mayLong - octLong))
+
+max(joined$diffLat)
+max(joined$diffLong)
+which(joined$diffLat > 0.05)
+which(joined$diffLong > 0.05)
+```

@@ -1,0 +1,250 @@
+---
+title: "SalinityProcessing_Oct"
+author: "Dylan Titmuss"
+date: "3/15/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+This script processes the salinity data output by the "CTDprocessing_Oct.m" MATLAB script.
+
+## Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+#library(gsw)
+```
+
+## Load data
+```{r}
+setwd("~/Desktop/Repos/ScallopRSA2021")
+
+octCTD <- read.csv("./data/CTD/oct_CTD.csv")
+oct_bottle <- read.csv("./data/salinity/oct_salinity_bottles.csv")
+octBottomData <- read.csv("./data/OctCruiseData.csv") %>%
+  filter(Cast == "Bottom") %>%
+  filter(Filtered == "") %>%
+  arrange(Station)
+```
+
+## Calculate CTD offset
+```{r}
+# check all bottle samples have corresp. CTD value
+for (i in 1:35) {
+  k <- oct_bottle$Station[i]
+  s <- octCTD$BottomSalinity[octCTD$Station == k]
+  print(c(k, s))
+}
+
+station <- rep(NA, 35)
+CTD_sal <- rep(NA, 35)
+bottle_sal <- rep(NA, 35)
+sal_offset <- rep(NA, 35)
+CTD_temp <- rep(NA, 35)
+
+for (i in c(1:35)) {
+  k <- oct_bottle$Station[i]
+  station[i] <- k
+  CTD_sal[i] <- octCTD$BottomSalinity[octCTD$Station == k]
+  bottle_sal[i] <- oct_bottle[i, 2]
+  sal_offset[i] <- CTD_sal[i] - bottle_sal[i]
+  CTD_temp[i] <- octCTD$BottomTemp[octCTD$Station == k]
+}
+
+comparison <- as.data.frame(cbind(station, bottle_sal, CTD_sal, sal_offset, CTD_temp))
+
+mean(sal_offset, na.rm = TRUE) # 0.05998327
+median(sal_offset, na.rm = TRUE) # 0.0380174
+max(sal_offset, na.rm = TRUE) # 0.3173934   # May max: 0.0473948
+
+# check poss causes of outlier offsets
+plot(comparison$sal_offset ~ comparison$CTD_sal) # minimal if any correlation w/ sal
+plot(comparison$sal_offset ~ comparison$CTD_temp) # no correlation w/ temp
+```
+
+## Plot CTD data with bottle data
+```{r}
+ggplot(data = comparison, aes(x = station, y = CTD_sal)) +
+  geom_point() +
+  geom_point(aes(y = bottle_sal, col = "red")) +
+  ylim(32.5, 36) +
+  scale_color_discrete(labels = "bottle\nsample") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+plot(comparison$bottle_sal ~ comparison$CTD_sal)
+abline(0, 1)
+plot(comparison$offset ~ comparison$bottle_sal)
+abline(h = 0, lty = 2)
+
+# uncertainty in CTD = 0.001 mS/cm = ~0.0011 PSU
+
+# CTD salinity consistently slightly higher than bottle salinity -- let's do a correction
+```
+
+## Correct CTD data given bottle data
+```{r}
+# filter outliers in offset
+off_u <- mean(comparison$offset) # 0.05998327
+off_sd <- sd(comparison$offset) # 0.06564262
+
+comparison_filt <- comparison %>%
+  filter(offset < off_u + 2 * off_sd, # remove stations with offsets +/- 2 sd from mean
+         offset > off_u - 2 * off_sd) 
+lm1 <- lm(bottle_sal ~ CTD_sal, comparison_filt)
+summary(lm1) # bottle = 0.987626(CTD) + 0.365933
+
+octCTD$BottomSal_Corr <- 0.987626 * octCTD$BottomSalinity + 0.365933
+
+# check new offset
+CTD_sal_corr <- rep(NA, 35)
+corr_offset <- rep(NA, 35)
+
+for (i in c(1:35)) {
+  k <- oct_bottle$Station[i]
+  CTD_sal_corr[i] <- octCTD$BottomSal_Corr[octCTD$Station == k]
+  corr_offset[i] <- CTD_sal_corr[i] - bottle_sal[i]
+}
+
+comparison <- as.data.frame(cbind(comparison, CTD_sal_corr, corr_offset))
+
+mean(corr_offset, na.rm = TRUE) # 0.0135869
+mean(abs(corr_offset), na.rm = TRUE) # 0.03522314
+
+plot(comparison$bottle_sal ~ comparison$CTD_sal_corr)
+abline(0, 1)
+plot(comparison$corr_offset ~ comparison$bottle_sal)
+abline(h = 0, lty = 2)
+
+ggplot(data = comparison, aes(x = station, y = CTD_sal_corr)) +
+  geom_point() +
+  geom_point(aes(y = bottle_sal, col = "red")) +
+  ylim(32.5, 36) +
+  scale_color_discrete(labels = "bottle\nsample") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+# looks better!
+
+octCTD$SurfaceSal_Corr <- 0.987626 * octCTD$SurfaceSalinity + 0.365933
+```
+
+## Extract CTD depths
+```{r}
+CTDdepth <- rep(NA, 114)
+
+for (i in c(1:111)) {
+  k <- octCTD$Station[i]
+  CTDdepth[k] <- octCTD$CTDDepth[i]
+}
+```
+
+## Check station assignments using depths
+```{r}
+radarDepth <- octBottomData$Depth_meters
+
+depthCheck <- as.data.frame(cbind(octBottomData$Station, radarDepth, CTDdepth)) %>%
+  mutate(Diff = radarDepth - CTDdepth) %>%
+  mutate(Check = abs(Diff) > 20, Check2 = abs(Diff) > 10)
+
+which(depthCheck$Check == TRUE) # 2/111 stations don't agree w/in 20m
+which(depthCheck$Check2 == TRUE) # 14/111 stations don't agree w/in 10m
+
+# station assignments seem correct! more extensive trimming of oct profiles compared to may -- greater divergence makes sense
+
+# salinity check
+oct_bottle$CTDsal <- rep(NA, 59)
+oct_bottle$offset <- rep(NA, 59)
+
+for (i in 1:nrow(oct_bottle)) {
+  k <- oct_bottle$Station[i]
+  if(is.number(octCTD$BottomSal_Corr[octCTD$Station == k])) {
+    if(oct_bottle$Cast[i] == "Bottom") {
+      oct_bottle$CTDsal[i] <- octCTD$BottomSal_Corr[octCTD$Station == k]
+    } else if(oct_bottle$Cast[i] == "Surface") {
+      oct_bottle$CTDsal[i] <- octCTD$SurfaceSal_Corr[octCTD$Station == k]
+    }
+    oct_bottle$offset[i] <- abs(oct_bottle$Salinity[i] - oct_bottle$CTDsal[i])
+  } else {
+    oct_bottle$CTDsal[i] <- NA
+    oct_bottle$offset[i] <- NA
+  }
+}
+```
+
+## Write temp values & corrected salinity values to file
+```{r}
+BottomTemp <- rep(NA, 114)
+SurfaceTemp <- rep(NA, 114)
+BottomPress <- rep(NA, 114)
+SurfacePress <- rep(NA, 114)
+BottomSeaPress <- rep(NA, 114)
+SurfaceSeaPress <- rep(NA, 114)
+BottomO2 <- rep(NA, 114)
+SurfaceO2 <- rep(NA, 114)
+BottomO2Sat <- rep(NA, 114)
+SurfaceO2Sat <- rep(NA, 114)
+
+for (i in 1:length(octCTD$Station)) {
+  k <- octCTD$Station[i]
+  BottomTemp[k] <- octCTD$BottomTemp[i]
+  SurfaceTemp[k] <- octCTD$SurfaceTemp[i]
+  BottomPress[k] <- octCTD$BottomPress[i]
+  SurfacePress[k] <- octCTD$SurfacePress[i]
+  BottomSeaPress[k] <- octCTD$BottomSeaPress[i]
+  SurfaceSeaPress[k] <- octCTD$SurfaceSeaPress[i]
+  BottomO2[k] <- octCTD$BottomO2[i]
+  SurfaceO2[k] <- octCTD$SurfaceO2[i]
+  BottomO2Sat[k] <- octCTD$BottomO2Sat[i]
+  SurfaceO2Sat[k] <- octCTD$SurfaceO2Sat[i]
+}
+
+BottomSal_Corr <- rep(NA, 114)
+SurfaceSal_Corr <- rep(NA, 114)
+
+for (i in 1:length(octCTD$Station)) {
+  k <- octCTD$Station[i]
+  BottomSal_Corr[k] <- octCTD$BottomSal_Corr[i]
+  SurfaceSal_Corr[k] <- octCTD$SurfaceSal_Corr[i]
+}
+
+# remove duplicate instance of RSA_252, RSA_386 & RSA_472
+which(oct_bottle$BottleID == "RSA_252")
+which(oct_bottle$BottleID == "RSA_386")
+which(oct_bottle$BottleID == "RSA_472")
+
+oct_bottle <- oct_bottle %>%
+  filter(!row_number() %in% 37) %>%
+  filter(!row_number() %in% 46) %>%
+  filter(!row_number() %in% 56)
+
+# add bottle sal values as replacements
+for (i in 1:length(oct_bottle$BottleID)) {
+  b <- oct_bottle$BottleID[i]
+  k <- oct_bottle$Station[i]
+  if(oct_bottle$Cast[i] == "Bottom") {
+    BottomSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2] # col 2 = Salinity
+  } else if (oct_bottle$Cast[i] == "Surface") {
+    SurfaceSal_Corr[k] <- oct_bottle[oct_bottle$BottleID == b, 2]
+  }
+}
+
+Station <- rep(octBottomData$Station, 2)
+Cast <- c(rep("Bottom", 114), rep("Surface", 114))
+CTD_depth <- c(CTDdepth, rep(2.5, 114))
+Temp <- c(BottomTemp, SurfaceTemp)
+Press <- c(BottomPress, SurfacePress)
+SeaPress <- c(BottomSeaPress, SurfaceSeaPress)
+O2 <- c(BottomO2, SurfaceO2)
+O2Sat <- c(BottomO2Sat, SurfaceO2Sat)
+Salinity_Corr <- c(BottomSal_Corr, SurfaceSal_Corr)
+
+oct_corrected <- as.data.frame(cbind(Station, Cast, CTD_depth, Temp, Press, SeaPress, 
+                                     Salinity_Corr, O2, O2Sat)) %>%
+  mutate(Station = as.integer(Station)) %>%
+  arrange(Station)
+
+write.csv(oct_corrected, "./data/CTD/oct_sal_corrected.csv", row.names = FALSE)
+```
