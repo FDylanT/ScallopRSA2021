@@ -292,7 +292,7 @@ oct %>%
   theme_bw()
 ```
 
-## AOU plots
+## Plot AOU data
 ```{r}
 oct %>%
   filter(Cast == "Bottom") %>%
@@ -544,15 +544,18 @@ octBuoy <- read.table("./data/winds/44008h2021.txt", header = TRUE) %>%
   #%>%
   #mutate(WSPD10 = WSPD * (10/4.1)^1/7)   # buoy 44008 anemometer height 4.1m
 
-U10 <- mean(octBuoy$WSPD)       ##### this is not corrected to 10m
-# U10 <- mean(octBuoy$WSPD10)   # m/s
+U <- mean(octBuoy$WSPD)   # m/s
+U10 <- U * log(10/0.0002) / log(4.1/0.0002)   # m/s
+# 0.0002 is "roughness length" (z0) for water surface
 
 oct$k <- NA   # gas transfer velocity (cm/hr)
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
+    # Wanninkhof 2014
     oct$k[i] = 0.251 * U10^2 * (oct$Sc[i]/660)^-0.5
-    oct$k2[i] = 0.266 * U10^2 * (oct$Sc[i]/600)^-0.5
+    # Ho et al. 2006
+    #oct$k2[i] = 0.266 * U10^2 * (oct$Sc[i]/600)^-0.5
   }
 }
 
@@ -592,35 +595,30 @@ for(i in 1:nrow(oct)) {
   # P: total pressure
   # pH2O: seawater vapor pressure
 
-P <- mean(octBuoy$PRES)   # hPa
+P <- mean(octBuoy$PRES) / 1013.25   # hPa to atm
+oct$xCO2 <- NA
 oct$K0 <- NA
-oct$X <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
-    oct$X[i] = p2xCO2(oct$Salinity[i], oct$Temp[i], Patm = P/1013.25, oct$pCO2[i])   # ppm
-    oct$K0[i] = oct$K.prime[i] * oct$X[i] * (P - oct$pH2O[i]) / oct$fCO2[i]
+    oct$xCO2[i] = p2xCO2(oct$Salinity[i], oct$Temp[i], Patm = P, oct$pCO2[i])   # ppm
+    oct$K0[i] = oct$K.prime[i] * oct$xCO2[i] * (P - oct$pH2O[i]) / oct$fCO2[i]
   }
 }
 
 # F = k*K0(pCO2w – pCO2a)
-# pCO2 in uatm
 
 oct$flux <- NA
 pCO2a <- 420 # update w/ data from CCGG database
-##### ***add MLDs
-octResTime <- 60   # going with 60 across the board for now
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
     k = oct$k[i] / 100 * 24         # cm/hr --> m/d
-    K0 = oct$K0[i] / 10^6 * 10^3    # mol/(L*atm) --> mol/(m^3*uatm)
+    K0 = oct$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
     d.pCO2 = oct$pCO2[i] - pCO2a    # uatm
     oct$flux[i] = k * K0 * d.pCO2   # umol/(m^2*d)
   }
 }
-
-# m/d * mol/(m^3*uatm) * uatm = m*mol*uatm / d*m^3*uatm  = mol/(m^2*d)
 ```
 
 ## Flux & concentration prop-prop plots
@@ -637,7 +635,10 @@ oct %>%
 
 ## Calculate deltaConcentration
 ```{r}
-# mol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = mol/kg
+# umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
+
+##### ***add MLDs
+octResTime <- 60   # going with 60 across the board for now
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
