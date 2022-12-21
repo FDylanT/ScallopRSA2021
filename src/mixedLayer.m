@@ -29,6 +29,8 @@ oct2down = RSKderivedepth(oct2down);
 oct2up = RSKderivedepth(oct2up);
 oct3down = RSKderivedepth(oct3down);
 
+RSKprintchannels(oct1down);
+
 %% Calculate mixed-layer depths
 
 % Levitus 1982:
@@ -36,7 +38,11 @@ oct3down = RSKderivedepth(oct3down);
 % depth at which sigmaT change from surface sigma-t is 0.125
     % sigmaT = rho(S,T) - 1000 kg/m^3
         % density 1.027 g/cm3 = sigmaT 27 kg/m3
+        % sigmaT = (rho - 1) * 1000;
+
+% Hofmann 2008:
+% depth at which temp change from surface is 0.5°C
 
 oct1down.data.values[?].sigmaT = NaN;
-oct1down.data.values[?].sigmaT = (density - 1) * 1000;
+oct1down.data.values[?].
 
