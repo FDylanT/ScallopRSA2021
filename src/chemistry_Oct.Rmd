@@ -504,22 +504,33 @@ E = 0.000755566
 
 oct$Sc <- NA
 
+# library(marelac)
+
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
     t = oct$Temp[i]
     oct$Sc[i] = A + B*t + C*t^2 + D*t^3 + E*t^4
+    # Schmidt number check
+    # oct$Sc2[i] <- gas_schmidt(t, species = "CO2") # calculated @ sal = 35
   }
 }
 
-# k (cm/hr) = 0.251 * U^2 * (Sc/660)^-0.5
-  # U (m/s) = average of neutral stability winds at 10-m height
-      # ****need NDBC data corr. to 10m****
+# which(abs(oct$Sc - oct$Sc2) > 7) # all w/in 7 of each other
+
+####################
+
+# k (cm/hr) = 0.251 * U10^2 * (Sc/660)^-0.5   (Wanninkhof 2014)
+  # U10 (m/s) = average of neutral stability winds at 10-m height
+      # ****need data corr. to 10m****
       # average 30 days around cruise
+# k (cm/hr) = 0.266 * U10^2 * (Sc/600)^-0.5   (Ho et al. 2006)
+
+##### consider whether a nonlinearity correction is necessary (Jiang et al. 2008)
 
 # NDBC buoys:
-  # 44008: May & October 2021
-  # 44011: October 2021
-  # 44024: October 2021
+  # 44008: data for May & October 2021
+  # 44011: data for October 2021
+  # 44024: data for October 2021
 
 # cruise dates = Oct 4-10, 2021; middle is Oct 7
 # Oct 7 minus 15 = Sep 22
@@ -541,8 +552,13 @@ oct$k <- NA   # gas transfer velocity (cm/hr)
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
     oct$k[i] = 0.251 * U10^2 * (oct$Sc[i]/660)^-0.5
+    oct$k2[i] = 0.266 * U10^2 * (oct$Sc[i]/600)^-0.5
   }
 }
+
+# which(abs(oct$k - oct$k2) > 0.11) # all w/in 0.11 of each other
+
+####################
 
 # ln(beta) = Α1 + Α2(100/Τ) + A3ln(T/100) + S[(B1 + B2(T/100) + B3(T/100)^2]
   # beta = K' (mol/L*atm) from Weiss 1974
@@ -597,15 +613,14 @@ octResTime <- 60   # going with 60 across the board for now
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
-    k = oct$k[i] / 100 * 24       # cm/hr --> m/day
-    K0 = oct$K0[i] * 10^6 / 10^6 * 10^3    # mol/(L*atm) --> umol/(m^3*uatm)
-    oct$flux[i] = k * K0 * (oct$pCO2[i] - pCO2a) # umol/(m^2*day)
+    k = oct$k[i] / 100 * 24         # cm/hr --> m/d
+    K0 = oct$K0[i] / 10^6 * 10^3    # mol/(L*atm) --> mol/(m^3*uatm)
+    d.pCO2 = oct$pCO2[i] - pCO2a    # uatm
+    oct$flux[i] = k * K0 * d.pCO2   # umol/(m^2*d)
   }
 }
 
-# final unit situation:
-# m/day * umol/(m^3*uatm) * uatm = m*umol*uatm / day*m^3*uatm  = umol/(day*m^2)
-# umol/(day*m^2) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
+# m/d * mol/(m^3*uatm) * uatm = m*mol*uatm / d*m^3*uatm  = mol/(m^2*d)
 ```
 
 ## Flux & concentration prop-prop plots
@@ -622,11 +637,14 @@ oct %>%
 
 ## Calculate deltaConcentration
 ```{r}
+# mol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = mol/kg
+
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
-    oct$dC[i] = flux / oct$MLD[i] / oct$Density[i] * octResTime
+    oct$dC[i] = oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
   }
 }
+
 ```
 
 
