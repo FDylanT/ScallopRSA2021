@@ -109,10 +109,8 @@ octCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
 
 # calculate density
 oct$Density <- gsw_rho(oct$Salinity, oct$Temp, oct$SeaPressure) # kg/m^3
-```
 
-## Combine oct & carb data
-```{r}
+# combine oct & carb data
 oct <- cbind(oct,
              pH = octCarb$pH,
              fCO2 = octCarb$fCO2,
@@ -223,7 +221,7 @@ oct$TAn <- NA
 oct$dDIC <- NA
 oct$dTA <- NA
 
-### process used to solve the system of eq is at the end of this script
+## process used to solve the system of eq is at the end of this script
 
 # a1*DIC1 + a2*DIC2 + a3*DIC3 = oct$DICn[i]
 # a1*TA1 + a2*TA2 + a3*TA3 = oct$TAn[i]
@@ -484,7 +482,7 @@ oct %>%
   theme_bw()
 ```
 
-## Incorporate air-sea CO2 flux
+## Calculate air-sea CO2 flux
 ```{r}
 # F = k*K0(pCO2w – pCO2a)       # F: mass/area*time
                                 # k: length/time
@@ -531,11 +529,12 @@ octBuoy <- read.table("./data/winds/44008h2021.txt", header = TRUE) %>%
   filter(!row_number() %in% c(1)) %>%   # remove row containing units
   lapply(function(x) as.numeric(x)) %>%
   as.data.frame() %>%
-  filter(MM == 09 & DD >= 22 | MM == 10 & DD <= 22) %>%
-  mutate(WSPD10 = WSPD * (10/4.1)^1/7)   # buoy 44008 anemometer height 4.1m
+  filter(MM == 09 & DD >= 22 | MM == 10 & DD <= 22)
+  #%>%
+  #mutate(WSPD10 = WSPD * (10/4.1)^1/7)   # buoy 44008 anemometer height 4.1m
 
-# correct to 10m
-U10 <- mean(octBuoy$WSPD10)   # m/s
+U10 <- mean(octBuoy$WSPD)       ##### this is not corrected to 10m
+# U10 <- mean(octBuoy$WSPD10)   # m/s
 
 oct$k <- NA   # gas transfer velocity (cm/hr)
 
@@ -566,8 +565,7 @@ for(i in 1:nrow(oct)) {
     S = oct$Salinity[i]
     oct$K.prime[i] = exp(A1 + A2*(100/T) + A3*log(T/100) + S*(B1 + B2*(T/100) + B3*(T/100)^2))
     # partial pressure of H2O right above the sea surface
-    oct$pH2O[i] = exp(24.4543 - 67.4509*(100/T) - 4.8489*log(T/100) - 0.000544*S)   # atm?
-    ###### ^ check this equation; also what are units?
+    oct$pH2O[i] = vapress(oct$Salinity[i], oct$Temp[i], form = "d2007")   # atm
   }
 }
 
@@ -580,12 +578,12 @@ for(i in 1:nrow(oct)) {
 
 P <- mean(octBuoy$PRES)   # hPa
 oct$K0 <- NA
+oct$X <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
     oct$X[i] = p2xCO2(oct$Salinity[i], oct$Temp[i], Patm = P/1013.25, oct$pCO2[i])   # ppm
-    oct$X2[i] = oct$pCO2[i] / (P/1013.25 - oct$pH2O[i])
-    oct$K0[i] = oct$K.prime[i] * X * (P - oct$pH2O[i]) / oct$fCO2[i]
+    oct$K0[i] = oct$K.prime[i] * oct$X[i] * (P - oct$pH2O[i]) / oct$fCO2[i]
   }
 }
 
@@ -594,23 +592,33 @@ for(i in 1:nrow(oct)) {
 
 oct$flux <- NA
 pCO2a <- 420 # update w/ data from CCGG database
-***add MLDs
+##### ***add MLDs
 octResTime <- 60   # going with 60 across the board for now
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
-    k = oct$k[i] / 100 * 24          # cm/hr --> m/day
+    k = oct$k[i] / 100 * 24       # cm/hr --> m/day
     K0 = oct$K0[i] * 10^6 / 10^6 * 10^3    # mol/(L*atm) --> umol/(m^3*uatm)
-    flux = k * K0 * (oct$pCO2[i] - pCO2a)
-    oct$flux[i] = flux / oct$MLD[i] / oct$Density[i] * res.time
+    oct$flux[i] = k * K0 * (oct$pCO2[i] - pCO2a) # umol/(m^2*day)
+    oct$dC[i] = flux / oct$MLD[i] / oct$Density[i] * octResTime
   }
 }
 
 # final unit situation:
 # m/day * umol/(m^3*uatm) * uatm = m*umol*uatm / day*m^3*uatm  = umol/(day*m^2)
 # umol/(day*m^2) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
+```
 
-
+## Flux & concentration prop-prop plots
+```{r}
+oct %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = pCO2, y = flux)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 420, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16)) +
+  theme_bw()
 ```
 
 
