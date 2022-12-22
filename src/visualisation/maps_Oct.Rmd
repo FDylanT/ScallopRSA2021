@@ -31,8 +31,9 @@ station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
                                                         "DO", "DO_sat", "AOU",
                                                         "pH", "fCO2", "pCO2",
                                                         "OmegaAragonite",
-                                                        "OmegaCalcite"
-                                                        #, "dDIC", "dTA"
+                                                        "OmegaCalcite",
+                                                        "dDIC", "dTA", "DIC.other",
+                                                        "flux"
                                                         )],
                                         proj4string = CRS("+init=epsg:4326"))
 
@@ -243,10 +244,20 @@ max(bottom_sf2$AOU) # 42.19573
 max(surface_sf2$AOU) # -8.418143
 
 # dDIC
-min(bottom_sf2$dDIC) # 
-min(surface_sf2$dDIC) #
-max(bottom_sf2$dDIC) # 
-max(surface_sf2$dDIC) # 
+min(bottom_sf2$dDIC) # -19.09361
+min(surface_sf2$dDIC) # -14.23064
+max(bottom_sf2$dDIC) # 85.13874
+max(surface_sf2$dDIC) # 36.93672
+
+# DIC.other
+min(bottom_sf2$DIC.other) # 
+min(surface_sf2$DIC.other) # 
+max(bottom_sf2$DIC.other) # 
+max(surface_sf2$DIC.other) # 
+
+# flux
+min(surface_sf2$flux) # -6638.723
+max(surface_sf2$flux) # 5664.694
 ```
 
 ## Interpolated bottom plots
@@ -258,7 +269,8 @@ ggplot() +
   scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
                        aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom Temperature [Oct]")
+  labs(title = "Bottom Temperature [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
@@ -269,7 +281,8 @@ ggplot() +
                        aesthetics = c("fill", "colour"),
                        guide = guide_colorbar(reverse = TRUE)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom Salinity [Oct]")
+  labs(title = "Bottom Salinity [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
@@ -278,7 +291,8 @@ ggplot() +
   scale_fill_viridis(limits = c(1930, 2155), option = "rocket",
                      aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom DIC [Oct]")
+  labs(title = "Bottom DIC [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
@@ -287,7 +301,8 @@ ggplot() +
   scale_fill_viridis(limits = c(2140, 2355), option = "mako",
                      aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom Alkalinity [Oct]")
+  labs(title = "Bottom Alkalinity [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
@@ -296,7 +311,8 @@ ggplot() +
   scale_fill_viridis(limits = c(7.8, 8.25), option = "mako",
                      aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom pH [Oct]")
+  labs(title = "Bottom pH [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = OmegaCalcite), size = 0.25, colour = NA) +
@@ -307,10 +323,10 @@ ggplot() +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   geom_label(aes(x = 722500, y = 4700000, label = "Bottom"), size = 5, fontface = "bold",
              label.size = 0.75, label.padding = unit(0.5, "lines")) +
+  #labs(title = "Bottom Calcite [Oct]") +
   theme_bw() +
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_blank()) #+
-  #labs(title = "Bottom Calcite [Oct]")
+        axis.title.y = element_blank())
 
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
@@ -319,7 +335,8 @@ ggplot() +
   scale_fill_viridis(limits = c(1.3, 3.15), option = "mako",
                      aesthetics = c("fill", "colour"), name = "Ω Aragonite") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom Aragonite [Oct]")
+  labs(title = "Bottom Aragonite [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
@@ -328,7 +345,8 @@ ggplot() +
   scale_fill_distiller(limits = c(-55, 45), palette = "RdBu",
                        aesthetics = c("fill", "colour"), name = "AOU") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom AOU [Oct]")
+  labs(title = "Bottom AOU [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
@@ -337,7 +355,8 @@ ggplot() +
   scale_fill_distiller(limits = c(-65, 75), palette = "YlGnBu",
                        aesthetics = c("fill", "colour"), name = "dDIC") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Bottom delta DIC [Oct]")
+  labs(title = "Bottom delta DIC [Oct]") +
+  theme_bw()
 ```
 
 ## Interpolated surface plots
@@ -349,7 +368,8 @@ ggplot() +
   scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
                        aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface Temperature [Oct]")
+  labs(title = "Surface Temperature [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
@@ -360,7 +380,8 @@ ggplot() +
                        aesthetics = c("fill", "colour"),
                        guide = guide_colorbar(reverse = TRUE)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface Salinity [Oct]")
+  labs(title = "Surface Salinity [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
@@ -369,7 +390,8 @@ ggplot() +
   scale_fill_viridis(limits = c(1930, 2155), option = "rocket",
                      aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface DIC [Oct]")
+  labs(title = "Surface DIC [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
@@ -378,7 +400,8 @@ ggplot() +
   scale_fill_viridis(limits = c(2140, 2355), option = "mako",
                      aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface Alkalinity [Oct]")
+  labs(title = "Surface Alkalinity [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
@@ -387,7 +410,8 @@ ggplot() +
   scale_fill_viridis(limits = c(7.8, 8.25), option = "mako",
                      aesthetics = c("fill", "colour")) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface pH [Oct]")
+  labs(title = "Surface pH [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
@@ -410,10 +434,10 @@ ggplot() +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   geom_label(aes(x = 721500, y = 4700000, label = "Surface"), size = 5, fontface = "bold",
              label.size = 0.75, label.padding = unit(0.5, "lines")) +
+  #labs(title = "Surface Calcite [Oct]") +
   theme_bw() +
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_blank()) #+
-  labs(title = "Surface Calcite [Oct]")
+        axis.title.y = element_blank())
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
@@ -422,7 +446,8 @@ ggplot() +
   scale_fill_viridis(limits = c(1.3, 3.15), option = "mako",
                      aesthetics = c("fill", "colour"), name = "OmegaA") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface Aragonite [Oct]")
+  labs(title = "Surface Aragonite [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
@@ -431,7 +456,8 @@ ggplot() +
   scale_fill_distiller(limits = c(-55, 45), palette = "RdBu",
                        aesthetics = c("fill", "colour"), name = "AOU") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface AOU [Oct]")
+  labs(title = "Surface AOU [Oct]") +
+  theme_bw()
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
@@ -440,7 +466,22 @@ ggplot() +
   scale_fill_distiller(limits = c(-40, 40), palette = "RdBu",
                        aesthetics = c("fill", "colour"), name = "dDIC") +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Surface delta DIC [Oct]")
+  labs(title = "Surface delta DIC [Oct]") +
+  theme_bw()
+
+ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = flux / 10^3), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-7, 7), palette = "BrBG",
+                       breaks = c(-6, -3, 0, 3, 6),
+                       aesthetics = c("fill", "colour"),
+                       name = "CO2 flux\n(mmol/m^2/d)") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  theme(legend.title = element_text(face = "bold")) +
+  #labs(title = "Surface CO2 flux [Oct]") +
+  theme_bw()
 ```
 
 
