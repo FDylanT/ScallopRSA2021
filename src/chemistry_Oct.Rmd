@@ -640,6 +640,33 @@ oct %>%
   theme_bw()
 ```
 
+## Fun with winds
+```{r}
+library(ncdf4)
+
+satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_12_ASC_V2_1671822354110.nc")
+
+lon <- ncvar_get(satA, "lon")
+lat <- ncvar_get(satA, "lat")
+time <- ncvar_get(satA,"time")
+t.units <- ncatt_get(satA, "time", "units")
+
+# convert time
+library(chron)
+t.units$value   # seconds since 1990-01-01 00:00:00
+# chron() calculates *days* since origin
+chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
+
+wind_array <- ncvar_get(satA, "wind_speed")
+fillvalue <- ncatt_get(satA, "wind_speed", "_FillValue")
+wind_array[wind_array == fillvalue$value] <- NA
+
+wind_slice <- wind_array[ , , 1]
+library(RColorBrewer)
+image(lon, lat, wind_slice, col = mako(31, direction = -1))
+
+```
+
 ## Calculate deltaConcentration
 ```{r}
 # umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
