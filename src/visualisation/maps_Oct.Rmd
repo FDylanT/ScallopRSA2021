@@ -473,15 +473,15 @@ ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = flux / 10^3), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-7, 7), palette = "BrBG",
-                       breaks = c(-6, -3, 0, 3, 6),
+  scale_fill_distiller(limits = c(-7, 6), palette = "BrBG",
+                       breaks = c(-5, 0, 5),
                        aesthetics = c("fill", "colour"),
                        name = "CO2 flux\n(mmol/m^2/d)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  theme(legend.title = element_text(face = "bold")) +
   #labs(title = "Surface CO2 flux [Oct]") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.title = element_text(face = "bold"))
 ```
 
 
