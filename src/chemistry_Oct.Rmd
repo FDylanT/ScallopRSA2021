@@ -644,6 +644,7 @@ oct %>%
 ```{r}
 library(ncdf4)
 
+# first satellite
 satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_12_ASC_V2_1671822354110.nc")
 
 lon <- ncvar_get(satA, "lon")
@@ -662,9 +663,50 @@ fillvalue <- ncatt_get(satA, "wind_speed", "_FillValue")
 wind_array[wind_array == fillvalue$value] <- NA
 
 wind_slice <- wind_array[ , , 1]
-library(RColorBrewer)
-image(lon, lat, wind_slice, col = mako(31, direction = -1))
+image(lon, lat, wind_slice, col = mako(40, direction = -1))
 
+# create dataframe -- reshape data
+lonlat <- as.matrix(expand.grid(lon, lat))   # 34810 x 2
+wind_vec <- as.vector(wind_slice) # L:34810
+
+wind_df_A <- data.frame(cbind(lonlat, wind_vec))
+names(wind_df_A) <- c("lon", "lat", "wind_speed")
+
+# second satellite
+satB <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_12_ASC_V2_1671823208351.nc")
+
+lon <- ncvar_get(satB, "lon")
+lat <- ncvar_get(satB, "lat")
+time <- ncvar_get(satB,"time")
+
+wind_array <- ncvar_get(satB, "wind_speed")
+fillvalue <- ncatt_get(satB, "wind_speed", "_FillValue")
+wind_array[wind_array == fillvalue$value] <- NA
+
+wind_slice <- wind_array[ , , 1]
+image(lon, lat, wind_slice, col = mako(40, direction = -1))
+
+# create dataframe
+lonlat <- as.matrix(expand.grid(lon, lat))   # 34810 x 2
+wind_vec <- as.vector(wind_slice) # L:34810
+
+wind_df_B <- data.frame(cbind(lonlat, wind_vec))
+names(wind_df_B) <- c("lon", "lat", "wind_speed")
+
+# merge dataframes
+wind_df <- bind_rows(wind_df_A, wind_df_B) %>%
+  group_by(lon, lat) %>%
+  summarise(mean_wind = mean(wind_speed, na.rm = TRUE)) %>%
+  mutate(mean_wind = ifelse(is.nan(mean_wind), NA, mean_wind)) %>%
+  mutate(lon = lon - 360) %>%
+  na.omit()
+
+ggplot(wind_df, aes(x = lon, y = lat, col = mean_wind)) +
+  geom_point() +
+  scale_color_viridis() +
+  xlim(-71, -66) +
+  ylim(40, 43) +
+  theme_bw()
 ```
 
 ## Calculate deltaConcentration
