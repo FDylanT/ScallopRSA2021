@@ -365,22 +365,22 @@ stations3 = {'69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '
 oct3down = RSKaddstationdata(oct3down, 'profile', profiles3, 'station', stations3);
 
 %% Extract sal & O2 data
-stations = cell(112, 1);
-CTD_depth = NaN(112, 1);
-bottom_temp = NaN(112, 1);
-bottom_press = NaN(112, 1);
-bottom_seapress = NaN(112, 1);
-bottom_depth = NaN(112, 1);
-bottom_sal = NaN(112, 1);
-bottom_o2 = NaN(112, 1);
-bottom_o2_sat = NaN(112, 1);
-surface_temp = NaN(112, 1);
-surface_press = NaN(112, 1);
-surface_seapress = NaN(112, 1);
-surface_depth = NaN(112, 1);
-surface_sal = NaN(112, 1);
-surface_o2 = NaN(112, 1);
-surface_o2_sat = NaN(112, 1);
+stations = cell(114, 1);
+CTD_depth = NaN(114, 1);
+bottom_temp = NaN(114, 1);
+bottom_press = NaN(114, 1);
+bottom_seapress = NaN(114, 1);
+bottom_depth = NaN(114, 1);
+bottom_sal = NaN(114, 1);
+bottom_o2 = NaN(114, 1);
+bottom_o2_sat = NaN(114, 1);
+surface_temp = NaN(114, 1);
+surface_press = NaN(114, 1);
+surface_seapress = NaN(114, 1);
+surface_depth = NaN(114, 1);
+surface_sal = NaN(114, 1);
+surface_o2 = NaN(114, 1);
+surface_o2_sat = NaN(114, 1);
 
 %RSKprintchannels(oct1down)
 
