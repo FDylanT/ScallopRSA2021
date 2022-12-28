@@ -500,7 +500,7 @@ ggplot() +
 ggplot(bottom_sf, aes(x = Long, y = Lat)) +
   geom_point(aes(colour = Salinity)) +
   geom_text(aes(label = Station), hjust = 0.05, vjust = 0.05, size = 3) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  #geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_colour_viridis() +
   coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
   scale_y_continuous(breaks = c(40, 41, 42))
