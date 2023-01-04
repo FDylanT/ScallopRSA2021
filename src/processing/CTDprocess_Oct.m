@@ -168,7 +168,7 @@ oct3down = RSKderivevelocity(oct3down);
 %oct1loops1 = RSKremoveloops(oct1down, 'threshold', 0.2, 'visualize', [16, 18]);
 %oct1loops2 = RSKremoveloops(oct1down, 'threshold', 0.15, 'visualize', [16, 18]);
 
-oct1down = RSKremoveloops(oct1down, 'threshold', 0.2);
+oct1down = RSKremoveloops(oct1down, 'threshold', 0.2, 'visualize', );
 %RSKplotprofiles(oct1down, 'profile', 1:22, 'channel', {'temperature', 'conductivity'});
 
 oct2down = RSKremoveloops(oct2down, 'threshold', 0.2);
