@@ -1,6 +1,6 @@
 cd Repos/ScallopRSA2021
 
-% run CTDprocess_Oct.m through line 205
+% run CTDprocess_Oct.m through line 205 % line 155 at the moment; remove loops causes issues
 
 RSKprintchannels(oct1down);
 
@@ -31,13 +31,18 @@ oct3down = RSKaddstationdata(oct3down, 'profile', profiles3, 'station', stations
 
 stations = cell(111, 1);
 MLtemp = NaN(111, 1);
+surfaceCond = NaN(111, 1);
 MLD = NaN(111, 1);
+
+RSKplotprofiles(oct1down, 'profile', 1:5, 'channel', {'temperature', 'depth'});
 
 % oct1 file
 for i = 1:21
     p = profiles1(i);
     stations(i) = oct1down.data(p).station;
-    [depth, index] = min(abs(oct1down.data(p).values(:, 7)));
+    index = find(oct1down.data(p).values(:, 1) > 38, 1); % where conductivity is > 40
+    cond = oct1down.data(p).values(index, 1);
+    depth = oct1down.data(p).values(index, 7);
     temp = oct1down.data(p).values(index, 2);
     surfTemp = temp;
     while surfTemp - temp < 0.5
@@ -48,16 +53,19 @@ for i = 1:21
         temp = oct1down.data(p).values(index, 2);
         depth = oct1down.data(p).values(index, 7);
     end
+    surfaceCond(i) = cond;
     MLtemp(i) = temp;
     MLD(i) = depth;
 end
 
-% oct2 file
-for i = 1:45
+% oct2 downcast file
+for i = [1:11, 13:45] % skip 12; no downcast surface data
     p = profiles2(i);
     k = i + 21; % account for profiles in oct1 file
     stations(k) = oct2down.data(p).station;
-    [depth, index] = min(abs(oct2down.data(p).values(:, 7)));
+    index = find(oct2down.data(p).values(:, 1) > 38, 1);
+    cond = oct2down.data(p).values(index, 1);
+    depth = oct2down.data(p).values(index, 7);
     temp = oct2down.data(p).values(index, 2);
     surfTemp = temp;
     while surfTemp - temp < 0.5
@@ -65,24 +73,44 @@ for i = 1:45
         if index > length(oct2down.data(p).values)
             break
         end
-        if p == 12 % use upcast data
-            temp = oct2up.data(p).values(index, 2);
-            depth = oct2up.data(p).values(index, 7);
-        else
-            temp = oct2down.data(p).values(index, 2);
-            depth = oct2down.data(p).values(index, 7);
-        end
+        temp = oct2down.data(p).values(index, 2);
+        depth = oct2down.data(p).values(index, 7);
     end
-    MLtemp(i) = temp;
-    MLD(i) = depth;
+    surfaceCond(k) = cond;
+    MLtemp(k) = temp;
+    MLD(k) = depth;
 end
+
+% oct2 upcast file
+i = 12;
+p = profiles2(i);
+k = i + 21; % account for profiles in oct1 file
+stations(k) = oct2up.data(p).station;
+index = find(oct2up.data(p).values(:, 1) > 38, 1, 'last');
+cond = oct2up.data(p).values(index, 1);
+depth = oct2up.data(p).values(index, 7);
+temp = oct2up.data(p).values(index, 2);
+surfTemp = temp;
+while surfTemp - temp < 0.5
+    index = index - 1;
+    if index < 1
+        break
+    end
+    temp = oct2up.data(p).values(index, 2);
+    depth = oct2up.data(p).values(index, 7);
+end
+surfaceCond(k) = cond;
+MLtemp(k) = temp;
+MLD(k) = depth;
 
 % oct3 file
 for i = 1:45
     p = profiles3(i);
     k = i + 66; % account for profiles in oct1 & oct2 files
     stations(k) = oct3down.data(p).station;
-    [depth, index] = min(abs(oct3down.data(p).values(:, 7)));
+    index = find(oct3down.data(p).values(:, 1) > 38, 1);
+    cond = oct3down.data(p).values(index, 1);
+    depth = oct3down.data(p).values(index, 7);
     temp = oct3down.data(p).values(index, 2);
     surfTemp = temp;
     while surfTemp - temp < 0.5
@@ -93,6 +121,60 @@ for i = 1:45
         temp = oct3down.data(p).values(index, 2);
         depth = oct3down.data(p).values(index, 7);
     end
-    MLtemp(i) = temp;
-    MLD(i) = depth;
+    surfaceCond(k) = cond;
+    MLtemp(k) = temp;
+    MLD(k) = depth;
 end
+
+stations = str2double(stations);
+
+oct_MLD = [stations MLD MLtemp];
+oct_MLD = array2table(oct_MLD);
+oct_MLD.Properties.VariableNames = {'Station', 'MLD', 'MLtemp'};
+
+writetable(oct_MLD, "data/CTD/oct_MLD.csv");
+
+%% Visualize EM profiles
+% EMs: 5, 43, 7
+%      33, 53, 9
+
+% profiles:
+% 5 = profiles1(4) = oct1down(4)
+% 7 = profiles1(7) = oct1down(7)
+% 43 = profiles2(20) = oct2down(20)
+% 9 = profiles1(9) = oct1down(9)
+% 33 = profiles2(12) = oct2down(12) & oct2up(12)
+% 53 = profiles2(33) = oct2down(34)
+
+oct1down = RSKremoveloops(oct1down, 'threshold', 0.2);
+%RSKplotprofiles(oct1down, 'profile', 1:22, 'channel', {'temperature', 'conductivity'});
+
+oct2down = RSKremoveloops(oct2down, 'threshold', 0.2);
+%RSKplotprofiles(oct2down, 'profile', [1:24, 26:47], 'channel', {'temperature', 'conductivity'});
+
+%no loops in profile 12 upcast
+
+oct1down = RSKderivesalinity(oct1down);
+oct2down = RSKderivesalinity(oct2down);
+oct2up = RSKderivesalinity(oct2up);
+
+figure
+channel = {'temperature', 'salinity', 'dissolved O2'};
+profile = [4 7];
+h = RSKplotprofiles(oct1down, 'profile', profile, 'channel', channel);
+profile = [20];
+j = RSKplotprofiles(oct2down, 'profile', profile, 'channel', channel);
+set(h, 'linewidth', 3)
+set(j, 'linewidth', 3)
+
+figure
+channel = {'temperature', 'salinity', 'dissolved O2'};
+profile = 9;
+h = RSKplotprofiles(oct1down, 'profile', profile, 'channel', channel);
+profile = [12 34];
+j = RSKplotprofiles(oct2down, 'profile', profile, 'channel', channel);
+profile = 12;
+k = RSKplotprofiles(oct2up, 'profile', profile, 'channel', channel);
+set(h, 'linewidth', 3, 'color', 'k')
+set(j, 'linewidth', 3)
+set(k, 'linewidth', 3)
