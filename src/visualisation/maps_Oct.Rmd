@@ -18,6 +18,8 @@ library(tidyverse)
 library(sp)
 library(sf)
 library(viridis)
+library(RColorBrewer)
+library(shades)
 ```
 
 ## Add chem to shapefile
@@ -33,12 +35,12 @@ station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
                                                         "OmegaAragonite",
                                                         "OmegaCalcite",
                                                         "dDIC", "dTA", "DIC.other",
-                                                        "flux"
+                                                        "flux", "MLD", "MLD_frac"
                                                         )],
                                         proj4string = CRS("+init=epsg:4326"))
 
-station_sf <- st_as_sf(station_SPDF) %>%
-  st_transform(crs = 4326)
+station_sf <- st_as_sf(station_SPDF) #%>%
+  #st_transform(crs = 4326)
 
 bottom_sf <- station_sf %>%
   filter(Cast == "Bottom")
@@ -482,6 +484,159 @@ ggplot() +
   #labs(title = "Surface CO2 flux [Oct]") +
   theme_bw() +
   theme(legend.title = element_text(face = "bold"))
+
+ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = MLD_frac), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = MLD_frac), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  lightness(scale_fill_distiller(palette = "BuGn", direction = "horizontal",
+                       aesthetics = c("fill", "colour")),
+            scalefac(0.90)) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "MLD as % Depth [Oct]") +
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"))
+```
+
+## Add bathymetry
+```{r}
+library(marmap)
+
+bathy <- getNOAA.bathy(lon1 = -71, lon2 = -65, lat1 = 39, lat2 = 43, resolution = 1)
+  
+  
+
+ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = MLD_frac), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = MLD_frac), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  #geom_contour(data = bathy, aes(x = x, y = y, z = z), col = "grey40", size = 0.2) +
+  lightness(scale_fill_distiller(palette = "BuGn", direction = "horizontal",
+                       aesthetics = c("fill", "colour")),
+            scalefac(0.90)) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "MLD as % Depth [Oct]") +
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"))
+
+
+
+# flat map
+library(oce)
+library(ocedata)
+data("coastlineWorldFine")
+
+# convert bathymetry
+bathyLon = as.numeric(rownames(bathy))
+bathyLat = as.numeric(colnames(bathy))
+bathyZ = as.numeric(bathy)
+dim(bathyZ) = dim(bathy)
+
+# plot coastline (no projection)
+plot(coastlineWorldFine, clon = mean(c(-66, -70.5)), clat = mean(c(40, 42.5)), span = 400)
+
+# plot bathymetry
+contour(bathyLon, bathyLat, bathyZ,
+        levels = c(-25, -50, -75, -100, -200),
+        lty = c(3, 1, 2, 1, 1),
+        lwd = c(1, 1, 1, 1.5, 0.5),
+        drawlabels = FALSE, add = TRUE, col = 'darkgray')
+
+# add depth legend
+legend("bottomright", seg.len = 3, cex = 0.8,
+       legend = c("25", "50", "75", "100", "200"),
+       lty = c(3, 1, 2, 1, 1),
+       lwd = c(1, 1, 1, 1.5, 0.5),
+       col = "darkgray", title = "Depth (m)", bg = "white")
+
+# add map data (MLD %)
+pal <- viridis(n = 112, option = "viridis", direction = -1)
+MLD_col <- pal[as.numeric(cut(oct$MLD_frac[which(oct$Cast == "Surface")], breaks = 111))]
+
+points(x = oct$Long[which(oct$Cast == "Surface")],
+       y = oct$Lat[which(oct$Cast == "Surface")],
+       pch = 16,
+       cex = 1.5,
+       col = MLD_col)
+
+# add color legend (MLD %)
+legend("right", seg.len = 3, cex = 0.8,
+       legend = c("1", "0.8", "0.6", "0.4", "0.2", "0"),
+       pch = 16, pt.cex = 1.5,
+       col = viridis(n = 6, option = "viridis", direction = 1),
+       title = "MLD %", bg = "white")
+
+# add map data (MLD)
+pal <- viridis(n = 112, option = "viridis", direction = -1)
+MLD_col <- pal[as.numeric(cut(oct$MLD[which(oct$Cast == "Surface")], breaks = 111))]
+
+points(x = oct$Long[which(oct$Cast == "Surface")],
+       y = oct$Lat[which(oct$Cast == "Surface")],
+       pch = 16,
+       cex = 1.5,
+       col = MLD_col)
+
+# add color legend (MLD)
+legend("right", seg.len = 3, cex = 0.8,
+       legend = c("20", "40", "60", "80", "100", "120"),
+       pch = 16, pt.cex = 1.5,
+       col = viridis(n = 6, option = "viridis", direction = 1),
+       title = "MLD (m)", bg = "white")
+```
+
+## Prior attempts
+```{r}
+bathy_full <- getNOAA.bathy(lon1 = -71, lon2 = -65, lat1 = 39, lat2 = 43, resolution = 1)
+
+bathy <- bathy_full %>%
+  fortify() %>%
+  filter(z < 1) %>%   # remove positive topology
+  group_by(z) %>%
+  filter(n() >= 4) %>%   # remove depths without min 4 points for a polygon
+  ungroup()
+
+poly_list <- split(bathy, bathy$z)
+poly_list <- lapply(poly_list, function(x) {x["z"] <- NULL; x})
+ps <- sapply(poly_list, Polygon)
+p1 <- lapply(seq_along(ps), function(i) Polygons(list(ps[[i]]),
+                                                 ID = names(poly_list)[i]))
+sps <- SpatialPolygons(p1, proj4string = CRS("+init=epsg:4326"))
+spdf <- SpatialPolygonsDataFrame(sps, data.frame(id = unique(bathy$z),
+                                                 row.names = unique(bathy$z)))
+
+#poly_list <- list()
+#poly_data <- data.frame(matrix(ncol = 1, nrow = 0))
+#colnames(poly_data) <- "z"
+
+#for(i in 1:nrow(bathy)) {
+#  z = bathy$z[i]
+#  if(any(poly_data$z==z)) {
+#   next
+#  }
+#  p = Polygon(bathy[bathy$z==z, 1:2])
+#  poly_list[[length(poly_list) + 1]] <- p
+#  poly_data[nrow(poly_data) + 1, ] <- z
+#}
+
+# n_distinct(bathy$z) # 3795 # woohoo! it matches my poly list!
+
+#ps <- lapply(poly_list, Polygon)
+#sps = SpatialPolygons(list(ps))
+
+
+bathy_sf <- st_as_sf(spdf) %>%
+  st_transform(crs = 26919) %>%
+  filter(id == -40)
+
+ggplot() +
+  geom_sf(data = bathy_sf) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = b40, size = 0.2) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16))
 ```
 
 
