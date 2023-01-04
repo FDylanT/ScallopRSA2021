@@ -10,7 +10,6 @@ editor_options:
 This script manipulates the chemistry data from the October RSA cruise.
 
 ## Load packages
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
 
@@ -22,7 +21,6 @@ library(viridis)
 ```
 
 ## Load data
-
 ```{r}
 setwd("~/Desktop/Repos/ScallopRSA2021")
 
@@ -40,7 +38,6 @@ oct <- read.csv("./data/OctCruiseData.csv") %>%
 ```
 
 ## Convert coordinates from DM to DD
-
 ```{r}
 chd <- substr(oct$Lat, 3, 3)[1]
 
@@ -69,7 +66,6 @@ rm(chd)
 ```
 
 ## Fill in missing temp & DO values
-
 ```{r}
 # temp
 oct <- oct %>%
@@ -93,7 +89,6 @@ oct <- oct %>%
 ```
 
 ## Calculate carbon system parameters & density
-
 ```{r}
 for(i in which(is.na(oct$SeaPressure))) {
     oct$SeaPressure[i] <- oct$Depth[i] # substitute depth for sites without sea pressure
@@ -125,7 +120,6 @@ oct <- cbind(oct,
 ```
 
 ## Calculate AOU
-
 ```{r}
 # calc absolute sal
 oct$AbsSal <- gsw_SA_from_SP(SP = oct$Salinity,
@@ -152,7 +146,6 @@ oct$AOU <- oct$O2sol - oct$DO
 # MIXING ANALYSIS
 
 ## Identify end-members
-
 ```{r}
 # surface
 oct %>%
@@ -176,7 +169,6 @@ oct %>%
 ```
 
 ## Find endmember property values
-
 ```{r}
 # surface EMs
 EM1 <- which(oct$Station == "005" & oct$Cast == "Surface")
@@ -223,7 +215,6 @@ TA6 <- oct$TA[EM6]
 ```
 
 ## Calculate mixing-normalized DIC & TA values
-
 ```{r}
 oct$DICn <- NA
 oct$TAn <- NA
@@ -267,7 +258,6 @@ for(i in 1:nrow(oct)) {
 ```
 
 ## Plot delta values
-
 ```{r}
 oct %>%
   ggplot(aes(x = dDIC, y = dTA)) +
@@ -303,7 +293,6 @@ oct %>%
 ```
 
 ## Plot AOU data
-
 ```{r}
 oct %>%
   filter(Cast == "Bottom") %>%
@@ -372,7 +361,6 @@ ggplot(oct, aes(x = Salinity, y = AOU, shape = Cast, col = Cast)) +
 ```
 
 ## O2 mixing analysis
-
 ```{r}
 DO1 <- oct$DO[EM1]
 DO2 <- oct$DO[EM2]
@@ -397,7 +385,6 @@ for(i in 1:nrow(oct)) {
 ```
 
 ## Visualize DO prop-prop
-
 ```{r}
 oct %>%
   filter(Cast == "Bottom") %>%
@@ -442,7 +429,6 @@ oct %>%
 ```
 
 ## Convert dDO to DIC & TA signals
-
 ```{r}
 # calling the "other" component of DO negligible; therefore dDO is all aerobic
 
@@ -454,7 +440,6 @@ oct$prTA <- oct$dDO * 17 / 138
 ```
 
 ## Calculate "other" components of DIC & TA
-
 ```{r}
 oct$DIC.other <- NA
 oct$TA.other <- NA
@@ -464,7 +449,6 @@ oct$TA.other = oct$TA - oct$TAn - oct$prTA
 ```
 
 ## Plot "other" components
-
 ```{r}
 oct %>%
   filter(Cast == "Bottom") %>%
@@ -499,7 +483,6 @@ oct %>%
 ```
 
 ## Calculate air-sea CO2 flux
-
 ```{r}
 # F = k*K0(pCO2w – pCO2a)       # F: mass/area*time
                                 # k: length/time
@@ -541,8 +524,6 @@ for(i in 1:nrow(oct)) {
       # ****need data corr. to 10m****
       # average 30 days around cruise
 # k (cm/hr) = 0.266 * U10^2 * (Sc/600)^-0.5   (Ho et al. 2006)
-
-##### consider whether a nonlinearity correction is necessary (Jiang et al. 2008)
 
 # NDBC buoys:
   # 44008: data for May & October 2021
@@ -639,7 +620,6 @@ for(i in 1:nrow(oct)) {
 ```
 
 ## pCO2 & flux prop-prop plots
-
 ```{r}
 oct %>%
   filter(Cast == "Surface") %>%
@@ -659,7 +639,6 @@ oct %>%
 ```
 
 ## Fun with winds
-
 ```{r}
 library(ncdf4)
 
@@ -760,7 +739,6 @@ ggplot() +
 ```
 
 ## Calculate deltaConcentration
-
 ```{r}
 # umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
 
@@ -793,7 +771,6 @@ for(i in 1:nrow(oct)) {
 ```
 
 ## Convert AOU to DIC & TA signals --- NOT USING; FOUND BETTER METHOD
-
 ```{r}
 # AOU umol/kg * 106 (DIC) / 138 (O2) = prod/resp DIC signal
 oct$prDIC <- oct$AOU * 106 / 138
@@ -803,7 +780,6 @@ oct$prTA <- oct$AOU * 17 / 138
 ```
 
 ## Calculate "other" components of DIC & TA
-
 ```{r}
 # DIC = DICn + prDIC + fDIC + other
 # other = DIC - DICn - prDIC - fDIC
@@ -829,7 +805,6 @@ oct %>%
 ```
 
 ## Solve system to find mixing-normalized coefficients
-
 ```{r}
 i = 1
 
