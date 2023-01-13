@@ -18,12 +18,14 @@ library(numform) # for f_pad_zero()
 library(seacarb)
 library(gsw) # for AOU
 library(viridis)
+library(ncdf4)
+library(chron)
+
+setwd("~/Desktop/Repos/ScallopRSA2021")
 ```
 
 ## Load data
 ```{r}
-setwd("~/Desktop/Repos/ScallopRSA2021")
-
 oct <- read.csv("./data/OctCruiseData.csv") %>%
   rename(Lat = Latitude_degrees_start,
          Long = Longitude_degrees_start,
@@ -31,7 +33,7 @@ oct <- read.csv("./data/OctCruiseData.csv") %>%
          Temp = Temperature,
          DO = Dissolved_oxygen) %>%
   filter(Filtered == "") %>%
-  select(Station, Cast, BottleID, Lat, Long,
+  select(Date, Station, Cast, BottleID, Lat, Long,
          Depth, Temp, Pressure, SeaPressure, Salinity,
          DIC, TA, DO, DO_sat) %>%
   mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to stations
@@ -439,50 +441,8 @@ oct$prDIC <- oct$dDO * 106 / 138
 oct$prTA <- oct$dDO * 17 / 138
 ```
 
-## Calculate "other" components of DIC & TA
-```{r}
-oct$DIC.other <- NA
-oct$TA.other <- NA
-
-oct$DIC.other <- oct$DIC - oct$DICn - oct$prDIC
-oct$TA.other = oct$TA - oct$TAn - oct$prTA
-```
-
-## Plot "other" components
-```{r}
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = DIC.other, y = TA.other)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = DIC.other, y = TA.other)) +
-  geom_point(aes(shape = Cast, col = AOU)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_color_viridis(option = "magma") +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = DIC.other, y = dDO)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
-```
-
 ## Calculate air-sea CO2 flux
+### Schmidt number
 ```{r}
 # F = k*K0(pCO2w – pCO2a)       # F: mass/area*time
                                 # k: length/time
@@ -516,51 +476,163 @@ for(i in 1:nrow(oct)) {
 }
 
 # which(abs(oct$Sc - oct$Sc2) > 7) # all w/in 7 of each other
+```
 
-####################
+### Gas transfer velocity pt. 1: wind speeds
+```{r}
+# first satellite
+satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_25_ASC_V2.nc")
 
+lon <- ncvar_get(satA, "lon")
+lat <- ncvar_get(satA, "lat")
+time <- ncvar_get(satA, "time")
+t.units <- ncatt_get(satA, "time", "units")
+
+# convert time
+t.units$value   # seconds since 1990-01-01 00:00:00
+# chron() calculates *days* since origin
+# chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
+
+wind_array <- ncvar_get(satA, "wind_speed")[ , , 6:11]
+fillvalue <- ncatt_get(satA, "wind_speed", "_FillValue")
+wind_array[wind_array == fillvalue$value] <- NA
+
+#wind_slice <- wind_array[ , , 1]
+#image(lon, lat, wind_slice, col = mako(40, direction = -1))
+
+wind_df_A <- data.frame(matrix(ncol = 4, nrow = 0))
+
+# fill dataframe
+for(i in 1:6) {
+  lonlat <- as.matrix(expand.grid(lon, lat))
+  wind_slice <- wind_array[ , , i]
+  wind_vec <- as.vector(wind_slice)
+  day_vec <- rep(i, length(wind_vec))
+  wind_df_A <- rbind(wind_df_A, data.frame(cbind(day_vec, lonlat, wind_vec)))
+}
+names(wind_df_A) <- c("day", "lon", "lat", "wind_speed")
+
+# second satellite
+satB <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-B_ASCAT_25_ASC_V2.nc")
+
+lon <- ncvar_get(satB, "lon")
+lat <- ncvar_get(satB, "lat")
+time <- ncvar_get(satB, "time")
+
+#chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
+
+wind_array <- ncvar_get(satB, "wind_speed")[ , , 6:11]
+fillvalue <- ncatt_get(satB, "wind_speed", "_FillValue")
+wind_array[wind_array == fillvalue$value] <- NA
+
+#wind_slice <- wind_array[ , , 1]
+#image(lon, lat, wind_slice, col = mako(40, direction = -1))
+
+wind_df_B <- data.frame(matrix(ncol = 4, nrow = 0))
+
+# fill dataframe
+for(i in 1:6) {
+  lonlat <- as.matrix(expand.grid(lon, lat))
+  wind_slice <- wind_array[ , , i]
+  wind_vec <- as.vector(wind_slice)
+  day_vec <- rep(i, length(wind_vec))
+  wind_df_B <- rbind(wind_df_B, data.frame(cbind(day_vec, lonlat, wind_vec)))
+}
+names(wind_df_B) <- c("day", "lon", "lat", "wind_speed")
+
+# third satellite
+satC <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_25_ASC_V2.nc")
+
+lon <- ncvar_get(satC, "lon")
+lat <- ncvar_get(satC, "lat")
+time <- ncvar_get(satC, "time")
+
+#chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
+
+wind_array <- ncvar_get(satC, "wind_speed")[ , , 6:11]
+fillvalue <- ncatt_get(satC, "wind_speed", "_FillValue")
+wind_array[wind_array == fillvalue$value] <- NA
+
+#wind_slice <- wind_array[ , , 1]
+#image(lon, lat, wind_slice, col = mako(40, direction = -1))
+
+wind_df_C <- data.frame(matrix(ncol = 4, nrow = 0))
+
+# fill dataframe
+for(i in 1:6) {
+  lonlat <- as.matrix(expand.grid(lon, lat))
+  wind_slice <- wind_array[ , , i]
+  wind_vec <- as.vector(wind_slice)
+  day_vec <- rep(i, length(wind_vec))
+  wind_df_C <- rbind(wind_df_C, data.frame(cbind(day_vec, lonlat, wind_vec)))
+}
+names(wind_df_C) <- c("day", "lon", "lat", "wind_speed")
+
+# merge dataframes
+wind_df <- bind_rows(wind_df_A, wind_df_B, wind_df_C) %>%
+  mutate(lon = lon - 360) %>%
+  filter(lon >= -70.5 & lon <= -66) %>%
+  filter(lat >= 40 & lat <= 42.5) %>%
+  group_by(day, lon, lat) %>%
+  summarise(mean_wind = mean(wind_speed, na.rm = TRUE)) %>%
+  mutate(mean_wind = ifelse(is.nan(mean_wind), NA, mean_wind)) %>%
+  na.omit()
+
+wind_df %>%
+  filter(day == 1) %>%
+ggplot() +
+  geom_point(aes(x = lon, y = lat, col = mean_wind), size = 12, shape = 15) +
+  scale_color_viridis(limits = c(3.95, 11.05)) +
+  geom_point(data = oct, aes(x = Long, y = Lat), shape = 18, size = 4) +
+  xlim(-70.5, -66) +
+  ylim(40, 42.5) +
+  theme_bw() +
+  theme(axis.title = element_blank())
+
+oct$wspd <- NA
+
+# assign wind speed to each station
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface") {
+    date = as.numeric(str_extract(oct$Date[i], "..$"))
+    n = date - 4
+    if(n != 2) {
+      winds = wind_df %>% filter(day == n)
+    } else {
+      winds = wind_df %>% filter(day == 1 | day == 3)
+    }
+    oct$wspd[i] = mean(winds$mean_wind[which(abs(oct$Lat[i] - winds$lat) +
+                                             abs(oct$Long[i] - winds$lon) ==
+                                         min(abs(oct$Lat[i] - winds$lat) +
+                                             abs(oct$Long[i]-winds$lon)))])
+  }
+}
+```
+
+### Gas transfer velocity pt. 2
+```{r}
 # k (cm/hr) = 0.251 * U10^2 * (Sc/660)^-0.5   (Wanninkhof 2014)
   # U10 (m/s) = average of neutral stability winds at 10-m height
       # ****need data corr. to 10m****
       # average 30 days around cruise
 # k (cm/hr) = 0.266 * U10^2 * (Sc/600)^-0.5   (Ho et al. 2006)
 
-# NDBC buoys:
-  # 44008: data for May & October 2021
-  # 44011: data for October 2021
-  # 44024: data for October 2021
-
-# cruise dates = Oct 4-10, 2021; middle is Oct 7
-# Oct 7 minus 15 = Sep 22
-# Oct 7 plus 15 = Oct 22
-
-octBuoy <- read.table("./data/winds/44008h2021.txt", header = TRUE) %>%
-  filter(!row_number() %in% c(1)) %>%   # remove row containing units
-  lapply(function(x) as.numeric(x)) %>%
-  as.data.frame() %>%
-  filter(MM == 09 & DD >= 22 | MM == 10 & DD <= 22)
-  #%>%
-  #mutate(WSPD10 = WSPD * (10/4.1)^1/7)   # buoy 44008 anemometer height 4.1m
-
-U <- mean(octBuoy$WSPD)   # m/s
-U10 <- U * log(10/0.0002) / log(4.1/0.0002)   # m/s
-# 0.0002 is "roughness length" (z0) for water surface
-
 oct$k <- NA   # gas transfer velocity (cm/hr)
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
     # Wanninkhof 2014
-    oct$k[i] = 0.251 * U10^2 * (oct$Sc[i]/660)^-0.5
+    oct$k[i] = 0.251 * oct$wspd[i]^2 * (oct$Sc[i]/660)^-0.5
     # Ho et al. 2006
-    #oct$k2[i] = 0.266 * U10^2 * (oct$Sc[i]/600)^-0.5
+    #oct$k2[i] = 0.266 * oct$wspd[i]^2 * (oct$Sc[i]/600)^-0.5
   }
 }
 
 # which(abs(oct$k - oct$k2) > 0.11) # all w/in 0.11 of each other
+```
 
-####################
-
+### Solubility constant & flux calc
+```{r}
 # ln(beta) = Α1 + Α2(100/Τ) + A3ln(T/100) + S[(B1 + B2(T/100) + B3(T/100)^2]
   # beta = K' (mol/L*atm) from Weiss 1974
   # T in K
@@ -593,7 +665,7 @@ for(i in 1:nrow(oct)) {
   # P: total pressure
   # pH2O: seawater vapor pressure
 
-P <- mean(octBuoy$PRES) / 1013.25   # hPa to atm
+P <- mean(pCO2_data$gas_stream_pressure) / 1013.25   # hPa to atm
 oct$xCO2 <- NA
 oct$K0 <- NA
 
@@ -606,11 +678,80 @@ for(i in 1:nrow(oct)) {
 
 # F = k*K0(pCO2w – pCO2a)
 
+## OOI data
+pCO2_data <- read.csv("./data/pCO2/OctCruiseCNSM.csv") %>%
+  filter(DateTime >= "04-Oct-2021")
+pCO2a <- mean(pCO2_data$partial_pressure_co2_atm)
+
 oct$flux <- NA
-pCO2a <- 420 # update w/ data from CCGG database
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
+    k = oct$k[i] / 100 * 24         # cm/hr --> m/d
+    K0 = oct$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
+    d.pCO2 = oct$pCO2[i] - pCO2a    # uatm
+    oct$flux[i] = k * K0 * d.pCO2   # umol/(m^2*d)
+  }
+}
+```
+
+## Add air-sea flux for fully mixed sites
+```{r}
+# Schmidt number
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9) {
+    t = oct$Temp[i]
+    oct$Sc[i] = A + B*t + C*t^2 + D*t^3 + E*t^4
+  }
+}
+
+# gas transfer velocity
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9) {
+    oct$k[i] = 0.251 * oct$wspd[i]^2 * (oct$Sc[i]/660)^-0.5
+  }
+}
+
+# solubility constant
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9) {
+    T = oct$Temp[i] + 273.15
+    S = oct$Salinity[i]
+    oct$K.prime[i] = exp(A1 + A2*(100/T) + A3*log(T/100) + S*(B1 + B2*(T/100) + B3*(T/100)^2))
+    oct$pH2O[i] = vapress(oct$Salinity[i], oct$Temp[i], form = "d2007")   # atm
+  }
+}
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9) {
+    oct$xCO2[i] = p2xCO2(oct$Salinity[i], oct$Temp[i], Patm = P, oct$pCO2[i])   # ppm
+    oct$K0[i] = oct$K.prime[i] * oct$xCO2[i] * (P - oct$pH2O[i]) / oct$fCO2[i]
+  }
+}
+
+# flux
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9) {
     k = oct$k[i] / 100 * 24         # cm/hr --> m/d
     K0 = oct$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
     d.pCO2 = oct$pCO2[i] - pCO2a    # uatm
@@ -638,111 +779,11 @@ oct %>%
   theme_bw()
 ```
 
-## Fun with winds
-```{r}
-library(ncdf4)
-
-# first satellite
-satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_12_ASC_V2_1671822354110.nc")
-
-lon <- ncvar_get(satA, "lon")
-lat <- ncvar_get(satA, "lat")
-time <- ncvar_get(satA,"time")
-t.units <- ncatt_get(satA, "time", "units")
-
-# convert time
-library(chron)
-t.units$value   # seconds since 1990-01-01 00:00:00
-# chron() calculates *days* since origin
-chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
-
-wind_array <- ncvar_get(satA, "wind_speed")
-fillvalue <- ncatt_get(satA, "wind_speed", "_FillValue")
-wind_array[wind_array == fillvalue$value] <- NA
-
-wind_slice <- wind_array[ , , 1]
-image(lon, lat, wind_slice, col = mako(40, direction = -1))
-
-# create dataframe -- reshape data
-lonlat <- as.matrix(expand.grid(lon, lat))   # 34810 x 2
-wind_vec <- as.vector(wind_slice) # L:34810
-
-wind_df_A <- data.frame(cbind(lonlat, wind_vec))
-names(wind_df_A) <- c("lon", "lat", "wind_speed")
-
-# second satellite
-satB <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-B_ASCAT_12_ASC_V2_1672170409134.nc")
-
-lon <- ncvar_get(satB, "lon")
-lat <- ncvar_get(satB, "lat")
-time <- ncvar_get(satB,"time")
-
-wind_array <- ncvar_get(satB, "wind_speed")
-fillvalue <- ncatt_get(satB, "wind_speed", "_FillValue")
-wind_array[wind_array == fillvalue$value] <- NA
-
-wind_slice <- wind_array[ , , 1]
-image(lon, lat, wind_slice, col = mako(40, direction = -1))
-
-# create dataframe
-lonlat <- as.matrix(expand.grid(lon, lat))   # 34810 x 2
-wind_vec <- as.vector(wind_slice) # L:34810
-
-wind_df_B <- data.frame(cbind(lonlat, wind_vec))
-names(wind_df_B) <- c("lon", "lat", "wind_speed")
-
-# third satellite
-satC <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_12_ASC_V2_1671823208351.nc")
-
-lon <- ncvar_get(satC, "lon")
-lat <- ncvar_get(satC, "lat")
-time <- ncvar_get(satC,"time")
-
-wind_array <- ncvar_get(satC, "wind_speed")
-fillvalue <- ncatt_get(satC, "wind_speed", "_FillValue")
-wind_array[wind_array == fillvalue$value] <- NA
-
-wind_slice <- wind_array[ , , 1]
-image(lon, lat, wind_slice, col = mako(40, direction = -1))
-
-# create dataframe
-lonlat <- as.matrix(expand.grid(lon, lat))   # 34810 x 2
-wind_vec <- as.vector(wind_slice) # L:34810
-
-wind_df_C <- data.frame(cbind(lonlat, wind_vec))
-names(wind_df_C) <- c("lon", "lat", "wind_speed")
-
-# merge dataframes
-wind_df <- bind_rows(wind_df_A, wind_df_B, wind_df_B) %>%
-  group_by(lon, lat) %>%
-  summarise(mean_wind = mean(wind_speed, na.rm = TRUE)) %>%
-  mutate(mean_wind = ifelse(is.nan(mean_wind), NA, mean_wind)) %>%
-  mutate(lon = lon - 360) %>%
-  na.omit()
-
-ggplot() +
-  geom_point(data = wind_df, aes(x = lon, y = lat, col = mean_wind), size = 7, shape = 15) +
-  scale_color_viridis() +
-  #xlim(-70.5, -66) +
-  #ylim(40, 42.5) +
-  theme_bw()
-
-ggplot() +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", size = 0.5) +
-  geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = OmegaAragonite)) +
-  geom_text(data = bottom_sf, aes(x = Long, y = Lat, label = Station),
-            hjust = -0.05, vjust = 0.05, size = 3) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_colour_viridis() +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  scale_y_continuous(breaks = c(40, 41, 42))
-```
-
-## Calculate deltaConcentration
+## Calculate DICair-sea
 ```{r}
 # umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
 
-MLD <- read.csv("./data/oct_MLD.csv")
+MLD <- read.csv("./data/CTD/oct_MLD.csv")
 
 oct$MLD <- NA
 oct$MLD_frac <- NA
@@ -761,13 +802,70 @@ for(i in 1:nrow(oct)) {
 }
 
 octResTime <- 60   # going with 60 across the board for now
+oct$DICas <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
-    oct$dC[i] = oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
+    oct$DICas[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
+  }  
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9) {
+    oct$DICas[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
+  }
+}
+
+for(i in 1:nrow(oct)) {
+  if(is.na(oct$DICas[i])) {
+    oct$DICas[i] = 0
   }
 }
 ```
+
+## Calculate "other" components of DIC & TA
+```{r}
+oct$DIC.other <- NA
+oct$TA.other <- NA
+
+oct$DIC.other <- oct$DIC - oct$DICn - oct$prDIC - oct$DICas
+oct$TA.other = oct$TA - oct$TAn - oct$prTA
+```
+
+## Plot "other" components
+```{r}
+oct %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+oct %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast, col = AOU)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_color_viridis(option = "viridis") +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = DIC.other, y = dDO)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
+
 
 
 
