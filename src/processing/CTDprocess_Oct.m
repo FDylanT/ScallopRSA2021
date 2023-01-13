@@ -168,7 +168,7 @@ oct3down = RSKderivevelocity(oct3down);
 %oct1loops1 = RSKremoveloops(oct1down, 'threshold', 0.2, 'visualize', [16, 18]);
 %oct1loops2 = RSKremoveloops(oct1down, 'threshold', 0.15, 'visualize', [16, 18]);
 
-oct1down = RSKremoveloops(oct1down, 'threshold', 0.2, 'visualize', );
+oct1down = RSKremoveloops(oct1down, 'threshold', 0.2);
 %RSKplotprofiles(oct1down, 'profile', 1:22, 'channel', {'temperature', 'conductivity'});
 
 oct2down = RSKremoveloops(oct2down, 'threshold', 0.2);
@@ -309,10 +309,34 @@ oct3down = RSKtrim(oct3down, 'reference', 'depth', 'range', [0, 2.5], 'profile',
 
 figure
 channel = {'temperature', 'salinity', 'dissolved O2'};
-profile = 9;
-[h1, ax] = RSKplotprofiles(oct1, 'profile', profile, 'channel', channel, 'direction', 'up'); %#ok<*ASGLU> 
-h2 = RSKplotprofiles(oct1down, 'profile', profile, 'channel', channel);
+profile = 25; % station 91
+%[h1, ax] = RSKplotprofiles(oct1, 'profile', profile, 'channel', channel, 'direction', 'up'); %#ok<*ASGLU> 
+h2 = RSKplotprofiles(oct3down, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
+
+%% Plot end-member profiles
+% EMs: 5, 43, 7
+%      33, 53, 9
+
+figure
+channel = {'temperature', 'salinity', 'dissolved O2'};
+h = RSKplotprofiles(oct1down, 'profile', 4, 'channel', channel);
+j = RSKplotprofiles(oct1down, 'profile', 7, 'channel', channel);
+k = RSKplotprofiles(oct2down, 'profile', 20, 'channel', channel);
+set(h, 'linewidth', 3, 'color', '#A2142F')
+set(j, 'linewidth', 3, 'color', '#D95319')
+set(k, 'linewidth', 3, 'color', '#EDB120')
+
+figure
+channel = {'temperature', 'salinity', 'dissolved O2'};
+h = RSKplotprofiles(oct1down, 'profile', 9, 'channel', channel);
+j = RSKplotprofiles(oct2down, 'profile', 12, 'channel', channel);
+k = RSKplotprofiles(oct2up, 'profile', 12, 'channel', channel);
+l = RSKplotprofiles(oct2down, 'profile', 34, 'channel', channel);
+set(h, 'linewidth', 3, 'color', '#77AC30')
+set(j, 'linewidth', 3, 'color', '#0072BD')
+set(k, 'linewidth', 3, 'color', '#0072BD')
+set(l, 'linewidth', 3, 'color', '#7E2F8E')
 
 %% Assign station numbers to profiles
 
