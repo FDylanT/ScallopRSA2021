@@ -34,13 +34,14 @@ station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
                                                         "pH", "fCO2", "pCO2",
                                                         "OmegaAragonite",
                                                         "OmegaCalcite",
-                                                        "dDIC", "dTA", "DIC.other",
-                                                        "flux", "MLD", "MLD_frac"
+                                                        "dDIC", "dTA",
+                                                        "flux", "MLD", "MLD_frac",
+                                                        "DICas", "DIC.other"
                                                         )],
-                                        proj4string = CRS("+init=epsg:4326"))
+                                        proj4string = CRS("EPSG:4326"))
 
 station_sf <- st_as_sf(station_SPDF) #%>%
-  #st_transform(crs = 4326)
+#  st_transform(crs = 4326)
 
 bottom_sf <- station_sf %>%
   filter(Cast == "Bottom")
@@ -86,20 +87,20 @@ SF_East <- subset(GB, NewSAMS == "SF-East") %>%
   fortify()
 
 # combine polygons and set CRS
-GB_sf <- st_union(NLS_North, CL1_South) %>%
-  st_union(CL1_Sliver) %>%
-  st_union(CL2_AccessSoutheast) %>%
-  st_union(SF) %>%
-  st_union(CL2_North) %>%
-  st_union(CL1_Access) %>%
-  st_union(NF) %>%
-  st_union(CL2_Ext) %>%
-  st_union(GSC) %>%
-  st_union(NLS_SouthDeep) %>%
-  st_union(NLS_West) %>%
-  st_union(NLS_SouthShallow) %>%
-  st_union(CL2_AccessSouthwest) %>%
-  st_union(SF_East) %>%
+GB_sf <- st_union(st_geometry(NLS_North), st_geometry(CL1_South)) %>%
+  st_union(st_geometry(CL1_Sliver)) %>%
+  st_union(st_geometry(CL2_AccessSoutheast)) %>%
+  st_union(st_geometry(SF)) %>%
+  st_union(st_geometry(CL2_North)) %>%
+  st_union(st_geometry(CL1_Access)) %>%
+  st_union(st_geometry(NF)) %>%
+  st_union(st_geometry(CL2_Ext)) %>%
+  st_union(st_geometry(GSC)) %>%
+  st_union(st_geometry(NLS_SouthDeep)) %>%
+  st_union(st_geometry(NLS_West)) %>%
+  st_union(st_geometry(NLS_SouthShallow)) %>%
+  st_union(st_geometry(CL2_AccessSouthwest)) %>%
+  st_union(st_geometry(SF_East)) %>%
   st_transform(crs = 26919)
   
 #summary(GB_sf)
@@ -165,7 +166,7 @@ mass <- map("worldHires", "USA",
             col = "transparent",
             plot = FALSE)
 IDs <- sapply(strsplit(mass$names, ":"), function(x) x[1])
-mass_SP <- map2SpatialPolygons(mass, IDs = IDs, proj4string = CRS("+init=epsg:4326"))
+mass_SP <- map2SpatialPolygons(mass, IDs = IDs, proj4string = CRS("EPSG:4326"))
 #plot(mass_SP)
 #st_crs(mass_SP)
 
@@ -260,6 +261,10 @@ max(surface_sf2$DIC.other) #
 # flux
 min(surface_sf2$flux) # -6638.723
 max(surface_sf2$flux) # 5664.694
+
+# DICas
+min(surface_sf2$DICas) # -68.81886
+max(surface_sf2$DICas) # 40.44953
 ```
 
 ## Interpolated bottom plots
@@ -475,10 +480,24 @@ ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = flux / 10^3), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-7, 6), palette = "BrBG",
-                       breaks = c(-5, 0, 5),
+  scale_fill_distiller(limits = c(-13, 13), palette = "BrBG",
+                       breaks = c(-12, 0, 12),
                        aesthetics = c("fill", "colour"),
                        name = "CO2 flux\n(mmol/m^2/d)") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface CO2 flux [Oct]") +
+  theme_bw() +
+  theme(legend.title = element_text(face = "bold"))
+
+ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = DICas), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = DICas), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-25, 25), palette = "BrBG",
+                       breaks = c(-20, 0, 20),
+                       aesthetics = c("fill", "colour"),
+                       name = "DIC[air-sea]\n(umol/kg)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface CO2 flux [Oct]") +
@@ -505,25 +524,6 @@ ggplot() +
 library(marmap)
 
 bathy <- getNOAA.bathy(lon1 = -71, lon2 = -65, lat1 = 39, lat2 = 43, resolution = 1)
-  
-  
-
-ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = MLD_frac), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = MLD_frac), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  #geom_contour(data = bathy, aes(x = x, y = y, z = z), col = "grey40", size = 0.2) +
-  lightness(scale_fill_distiller(palette = "BuGn", direction = "horizontal",
-                       aesthetics = c("fill", "colour")),
-            scalefac(0.90)) +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "MLD as % Depth [Oct]") +
-  theme_bw() +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"))
-
-
 
 # flat map
 library(oce)
@@ -547,44 +547,62 @@ contour(bathyLon, bathyLat, bathyZ,
         drawlabels = FALSE, add = TRUE, col = 'darkgray')
 
 # add depth legend
-legend("bottomright", seg.len = 3, cex = 0.8,
+legend("bottomright", seg.len = 3, cex = 0.75,
        legend = c("25", "50", "75", "100", "200"),
        lty = c(3, 1, 2, 1, 1),
        lwd = c(1, 1, 1, 1.5, 0.5),
        col = "darkgray", title = "Depth (m)", bg = "white")
 
-# add map data (MLD %)
-pal <- viridis(n = 112, option = "viridis", direction = -1)
-MLD_col <- pal[as.numeric(cut(oct$MLD_frac[which(oct$Cast == "Surface")], breaks = 111))]
-
-points(x = oct$Long[which(oct$Cast == "Surface")],
-       y = oct$Lat[which(oct$Cast == "Surface")],
-       pch = 16,
-       cex = 1.5,
-       col = MLD_col)
-
-# add color legend (MLD %)
-legend("right", seg.len = 3, cex = 0.8,
-       legend = c("1", "0.8", "0.6", "0.4", "0.2", "0"),
-       pch = 16, pt.cex = 1.5,
-       col = viridis(n = 6, option = "viridis", direction = 1),
-       title = "MLD %", bg = "white")
-
 # add map data (MLD)
 pal <- viridis(n = 112, option = "viridis", direction = -1)
 MLD_col <- pal[as.numeric(cut(oct$MLD[which(oct$Cast == "Surface")], breaks = 111))]
-
 points(x = oct$Long[which(oct$Cast == "Surface")],
        y = oct$Lat[which(oct$Cast == "Surface")],
-       pch = 16,
-       cex = 1.5,
+       pch = 18,
+       cex = 2,
        col = MLD_col)
 
 # add color legend (MLD)
-legend("right", seg.len = 3, cex = 0.8,
-       legend = c("20", "40", "60", "80", "100", "120"),
-       pch = 16, pt.cex = 1.5,
+legend("right", seg.len = 3, cex = 0.75,
+       legend = c("10", "20", "30", "40", "50", "60", "70"),
+       pch = 18, pt.cex = 1.5,
+       col = viridis(n = 7, option = "viridis", direction = -1),
+       title = "MLD (m)", bg = "white")
+
+###
+
+# add map data (MLD %)
+pal <- viridis(n = 112, option = "viridis", direction = -1)
+MLD_col <- pal[as.numeric(cut(oct$MLD_frac[which(oct$Cast == "Surface")], breaks = 111))]
+points(x = oct$Long[which(oct$Cast == "Surface")],
+       y = oct$Lat[which(oct$Cast == "Surface")],
+       pch = 18,
+       cex = 2,
+       col = MLD_col)
+
+# add color legend (MLD %)
+legend("right", seg.len = 3, cex = 0.75,
+       legend = c("1", "0.8", "0.6", "0.4", "0.2", "0"),
+       pch = 18, pt.cex = 1.5,
        col = viridis(n = 6, option = "viridis", direction = 1),
+       title = "MLD %", bg = "white")
+
+###
+
+# add map data (depth)
+pal <- viridis(n = 112, option = "viridis", direction = 1)
+depth_col <- pal[as.numeric(cut(oct$Depth[which(oct$Cast == "Surface")], breaks = 111))]
+points(x = oct$Long[which(oct$Cast == "Surface")],
+       y = oct$Lat[which(oct$Cast == "Surface")],
+       pch = 18,
+       cex = 2,
+       col = depth_col)
+
+# add color legend (depth)
+legend("right", seg.len = 3, cex = 0.75,
+       legend = c("20", "40", "60", "80", "100", "120"),
+       pch = 18, pt.cex = 1.5,
+       col = viridis(n = 6, option = "viridis", direction = -1),
        title = "MLD (m)", bg = "white")
 ```
 
@@ -598,6 +616,21 @@ bathy <- bathy_full %>%
   group_by(z) %>%
   filter(n() >= 4) %>%   # remove depths without min 4 points for a polygon
   ungroup()
+
+ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = MLD_frac), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = MLD_frac), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  #geom_contour(data = bathy, aes(x = x, y = y, z = z), col = "grey40", size = 0.2) +
+  lightness(scale_fill_distiller(palette = "BuGn", direction = "horizontal",
+                       aesthetics = c("fill", "colour")),
+            scalefac(0.90)) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "MLD as % Depth [Oct]") +
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"))
 
 poly_list <- split(bathy, bathy$z)
 poly_list <- lapply(poly_list, function(x) {x["z"] <- NULL; x})
