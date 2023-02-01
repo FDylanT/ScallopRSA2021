@@ -22,7 +22,7 @@ library(gsw)
 setwd("~/Desktop/Repos/ScallopRSA2021")
 
 mayCTD <- read.csv("./data/CTD/may_CTD.csv")
-may_bottle <- read.csv("./data/salinity/may_salinity_bottles.csv")
+may_bottle <- read.csv("./data/CTD/may_salinity_bottles.csv")
 mayBottomData <- read.csv("./data/MayCruiseData.csv") %>%
   filter(Cast == "Bottom") %>%
   arrange(Station)
@@ -42,7 +42,7 @@ for (i in 1:33) {
 station <- rep(NA, 31)
 CTD_sal <- rep(NA, 31)
 bottle_sal <- rep(NA, 31)
-offset <- rep(NA, 31)
+sal_offset <- rep(NA, 31)
 
 for (i in c(1:4, 6:7, 9:33)) {
   k <- may_bottle$Station[i]
