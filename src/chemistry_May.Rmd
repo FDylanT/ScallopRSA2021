@@ -17,19 +17,22 @@ library(tidyverse)
 library(numform) # for f_pad_zero()
 library(seacarb)
 library(gsw) # for AOU
+library(viridis)
+library(ncdf4)
+library(chron)
+
+setwd("~/Desktop/Repos/ScallopRSA2021")
 ```
 
 ## Load data
 ```{r}
-setwd("~/Desktop/Repos/ScallopRSA2021")
-
 may <- read.csv("./data/MayCruiseData.csv") %>%
   rename(Lat = Latitude_degrees_start,
          Long = Longitude_degrees_start,
          Depth = Depth_m_CTD,
          Temp = Temperature,
          DO = Dissolved_oxygen) %>%
-  select(Station, Cast, BottleID, Lat, Long,
+    select(Date, Station, Cast, BottleID, Lat, Long,
          Depth, Temp, Pressure, SeaPressure, Salinity,
          DIC, TA, DO) %>%
   mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to stations
@@ -141,10 +144,8 @@ mayCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
 
 # calculate density
 may$Density <- gsw_rho(may$Salinity, may$Temp, may$SeaPressure)
-```
 
-## Combine may & carb data
-```{r}
+# combine may & carb data
 may <- cbind(may,
              pH = mayCarb$pH,
              fCO2 = mayCarb$fCO2,
@@ -177,10 +178,649 @@ may$O2sol <- gsw_O2sol(SA = may$AbsSal,
 may$AOU <- may$O2sol - may$DO
 ```
 
+# MIXING ANALYSIS
+
+## Find endmember property values
+```{r}
+# surface: 4, 72, 113 EMs
+# bottom: 1, 4, 113, + 59 EMs
+
+# surface EMs
+EM1 <- which(may$Station == "004" & may$Cast == "Surface")
+EM2 <- which(may$Station == "072" & may$Cast == "Surface")
+EM3 <- which(may$Station == "113" & may$Cast == "Surface")
+# these give WOW ***pCO2*** correlation
+
+# bottom EMs
+EM4 <- which(may$Station == "001" & may$Cast == "Bottom")
+EM5 <- which(may$Station == "004" & may$Cast == "Bottom")
+EM6 <- which(may$Station == "113" & may$Cast == "Bottom")
+EM7 <- which(may$Station == "059" & may$Cast == "Bottom")
+
+# pull values for EMs
+S1 <- may$Salinity[EM1]
+S2 <- may$Salinity[EM2]
+S3 <- may$Salinity[EM3]
+
+S4 <- may$Salinity[EM4]
+S5 <- may$Salinity[EM5]
+S6 <- may$Salinity[EM6]
+S7 <- may$Salinity[EM7]
+
+T1 <- may$Temp[EM1]
+T2 <- may$Temp[EM2]
+T3 <- may$Temp[EM3]
+
+T4 <- may$Temp[EM4]
+T5 <- may$Temp[EM5]
+T6 <- may$Temp[EM6]
+T7 <- may$Temp[EM7]
+
+DIC1 <- may$DIC[EM1]
+DIC2 <- may$DIC[EM2]
+DIC3 <- may$DIC[EM3]
+
+DIC4 <- may$DIC[EM4]
+DIC5 <- may$DIC[EM5]
+DIC6 <- may$DIC[EM6]
+DIC7 <- may$DIC[EM7]
+
+TA1 <- may$TA[EM1]
+TA2 <- may$TA[EM2]
+TA3 <- may$TA[EM3]
+
+TA4 <- may$TA[EM4]
+TA5 <- may$TA[EM5]
+TA6 <- may$TA[EM6]
+TA7 <- may$TA[EM7]
+```
+
+## Calculate mixing-normalized DIC & TA values
+```{r}
+may$a1 <- NA
+may$a2 <- NA
+may$a3 <- NA
+may$a4 <- NA
+may$a5 <- NA
+may$a6 <- NA
+may$a7 <- NA
+
+may$DICn <- NA
+may$TAn <- NA
+may$dDIC <- NA
+may$dTA <- NA
+
+## processes used to solve the system of eq is at the end of this script &/or chemistry_Oct script
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+       a3 = (may$Salinity[i] - S1 - may$Temp[i]*(S2-S1)/(T2-T1) +
+             T1*(S2-S1)/(T2-T1)) /
+            ((S3-S1) - (T3-T1)*(S2-S1)/(T2-T1))
+       a2 = (may$Temp[i] - T1 - a3*(T3-T1)) / (T2-T1)
+       a1 = 1 - (a2 + a3)
+       may$a1[i] = a1
+       may$a2[i] = a2
+       may$a3[i] = a3
+       may$DICn[i] = a1*DIC1 + a2*DIC2 + a3*DIC3
+       may$dDIC[i] = may$DIC[i] - may$DICn[i]   # observed - expected
+       may$TAn[i] = a1*TA1 + a2*TA2 + a3*TA3
+       may$dTA[i] = may$TA[i] - may$TAn[i]   # observed - expected
+     } else if(may$Cast[i] == "Bottom" &
+               may$Station[i] != "059" &
+               may$Station[i] != "064" &
+               may$Station[i] != "087" &
+               may$Station[i] != "053" &
+               may$Station[i] != "086" &
+               may$Station[i] != "063" &
+               may$Station[i] != "047" &
+               may$Station[i] != "043" &
+               may$Station[i] != "077" &
+               may$Station[i] != "076" &
+               may$Station[i] != "081" &
+               may$Station[i] != "060" &
+               may$Station[i] != "078" &
+               may$Station[i] != "072" &
+               may$Station[i] != "058" &
+               may$Station[i] != "049" &
+               may$Station[i] != "069" &
+               may$Station[i] != "093" &
+               may$Station[i] != "104") {
+       a6 = (may$Salinity[i] - S4 - may$Temp[i]*(S5-S4)/(T5-T4) +
+             T4*(S5-S4)/(T5-T4)) /
+            ((S6-S4) - (T6-T4)*(S5-S4)/(T5-T4))
+       a5 = (may$Temp[i] - T4 - a6*(T6-T4)) / (T5-T4)
+       a4 = 1 - (a5 + a6)
+       may$a4[i] = a4
+       may$a5[i] = a5
+       may$a6[i] = a6
+       may$DICn[i] = a4*DIC4 + a5*DIC5 + a6*DIC6
+       may$dDIC[i] = may$DIC[i] - may$DICn[i]   # observed - expected
+       may$TAn[i] = a4*TA4 + a5*TA5 + a6*TA6
+       may$dTA[i] = may$TA[i] - may$TAn[i]   # observed - expected
+     } else {
+       a7 = (may$Salinity[i] - S5) / (S7 - S5)
+       a5 = 1 - a7
+       may$a5[i] = a5
+       may$a7[i] = a7
+       may$DICn[i] = a5*DIC5 + a7*DIC7
+       may$dDIC[i] = may$DIC[i] - may$DICn[i]   # observed - expected
+       may$TAn[i] = a5*TA5 + a7*TA7
+       may$dTA[i] = may$TA[i] - may$TAn[i]   # observed - expected
+     }
+}
+```
+
+## Calculate air-sea CO2 flux
+### Schmidt number
+```{r}
+# F = k*K0(pCO2w – pCO2a)       # F: mass/area*time
+                                # k: length/time
+                                # K0: mass/volume*pressure (solubility)
+
+# Schmidt number: kinematic viscosity of the water divided by diffusion coefficient of the gas
+  # gas- & temp-specific; also somewhat dependent on salinity
+
+  # Sc = A + Bt + Ct^2 + Dt^3 + Et^4
+    # t in °C
+    # kinematic viscosity from Sharqawy et al. 2010
+    # diffusion coefficient from Jähne et al. 1987
+
+A = 2116.8
+B = -136.25
+C = 4.7353
+D = -0.092307
+E = 0.000755566
+
+may$Sc <- NA
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+    t = may$Temp[i]
+    may$Sc[i] = A + B*t + C*t^2 + D*t^3 + E*t^4
+  }
+}
+```
+
+### Gas transfer velocity pt. 1: wind speeds
+```{r}
+# first satellite
+satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_25_ASC_V2_may.nc")
+
+lon <- ncvar_get(satA, "lon")
+lat <- ncvar_get(satA, "lat")
+time <- ncvar_get(satA, "time")
+t.units <- ncatt_get(satA, "time", "units")
+
+# convert time
+t.units$value   # seconds since 1990-01-01 00:00:00
+# chron() calculates *days* since origin
+# chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
+
+wind_array <- ncvar_get(satA, "wind_speed")
+fillvalue <- ncatt_get(satA, "wind_speed", "_FillValue")
+wind_array[wind_array == fillvalue$value] <- NA
+
+#wind_slice <- wind_array[ , , 1]
+#image(lon, lat, wind_slice, col = mako(40, direction = -1))
+
+wind_df_A <- data.frame(matrix(ncol = 4, nrow = 0))
+
+# fill dataframe
+for(i in 1:6) {
+  lonlat <- as.matrix(expand.grid(lon, lat))
+  wind_slice <- wind_array[ , , i]
+  wind_vec <- as.vector(wind_slice)
+  day_vec <- rep(i, length(wind_vec))
+  wind_df_A <- rbind(wind_df_A, data.frame(cbind(day_vec, lonlat, wind_vec)))
+}
+names(wind_df_A) <- c("day", "lon", "lat", "wind_speed")
+
+# second satellite
+satB <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-B_ASCAT_25_ASC_V2_may.nc")
+
+lon <- ncvar_get(satB, "lon")
+lat <- ncvar_get(satB, "lat")
+time <- ncvar_get(satB, "time")
+
+#chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
+
+wind_array <- ncvar_get(satB, "wind_speed")
+fillvalue <- ncatt_get(satB, "wind_speed", "_FillValue")
+wind_array[wind_array == fillvalue$value] <- NA
+
+#wind_slice <- wind_array[ , , 1]
+#image(lon, lat, wind_slice, col = mako(40, direction = -1))
+
+wind_df_B <- data.frame(matrix(ncol = 4, nrow = 0))
+
+# fill dataframe
+for(i in 1:6) {
+  lonlat <- as.matrix(expand.grid(lon, lat))
+  wind_slice <- wind_array[ , , i]
+  wind_vec <- as.vector(wind_slice)
+  day_vec <- rep(i, length(wind_vec))
+  wind_df_B <- rbind(wind_df_B, data.frame(cbind(day_vec, lonlat, wind_vec)))
+}
+names(wind_df_B) <- c("day", "lon", "lat", "wind_speed")
+
+# third satellite
+satC <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_25_ASC_V2_may.nc")
+
+lon <- ncvar_get(satC, "lon")
+lat <- ncvar_get(satC, "lat")
+time <- ncvar_get(satC, "time")
+
+#chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
+
+wind_array <- ncvar_get(satC, "wind_speed")
+fillvalue <- ncatt_get(satC, "wind_speed", "_FillValue")
+wind_array[wind_array == fillvalue$value] <- NA
+
+#wind_slice <- wind_array[ , , 1]
+#image(lon, lat, wind_slice, col = mako(40, direction = -1))
+
+wind_df_C <- data.frame(matrix(ncol = 4, nrow = 0))
+
+# fill dataframe
+for(i in 1:6) {
+  lonlat <- as.matrix(expand.grid(lon, lat))
+  wind_slice <- wind_array[ , , i]
+  wind_vec <- as.vector(wind_slice)
+  day_vec <- rep(i, length(wind_vec))
+  wind_df_C <- rbind(wind_df_C, data.frame(cbind(day_vec, lonlat, wind_vec)))
+}
+names(wind_df_C) <- c("day", "lon", "lat", "wind_speed")
+
+# merge dataframes
+wind_df <- bind_rows(wind_df_A, wind_df_B, wind_df_C) %>%
+  mutate(lon = lon - 360) %>%
+  filter(lon >= -70.5 & lon <= -66) %>%
+  filter(lat >= 40 & lat <= 42.5) %>%
+  group_by(lon, lat) %>%
+  summarise(mean_wind = mean(wind_speed, na.rm = TRUE)) %>%
+  mutate(mean_wind = ifelse(is.nan(mean_wind), NA, mean_wind)) %>%
+  na.omit()
+
+#ggplot(wind_df) +
+#  geom_point(aes(x = lon, y = lat, col = mean_wind), size = 15, shape = 15) +
+#  scale_color_viridis(limits = c(0.6, 12.4), breaks = c(3, 6, 9, 12),
+#                      name = "wspd") +
+#  geom_point(data = may, aes(x = Long, y = Lat), shape = 18, size = 4) +
+#  xlim(-70.5, -66) +
+#  ylim(40, 42.5) +
+#  theme_bw() +
+#  theme(axis.title = element_blank())
+
+may$wspd <- NA
+
+# assign wind speed to each station
+for(i in 1:nrow(may)) {
+  may$wspd[i] = mean(wind_df$mean_wind[which(abs(may$Lat[i] - wind_df$lat) +
+                                           abs(may$Long[i] - wind_df$lon) ==
+                                       min(abs(may$Lat[i] - wind_df$lat) +
+                                           abs(may$Long[i] - wind_df$lon)))])
+}
+```
+
+### Gas transfer velocity pt. 2
+```{r}
+# k (cm/hr) = 0.251 * U10^2 * (Sc/660)^-0.5   (Wanninkhof 2014)
+  # U10 (m/s) = average of neutral stability winds at 10-m height
+      # ****need data corr. to 10m****
+      # average 30 days around cruise
+# k (cm/hr) = 0.266 * U10^2 * (Sc/600)^-0.5   (Ho et al. 2006)
+
+may$k <- NA   # gas transfer velocity (cm/hr)
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+    # Wanninkhof 2014
+    may$k[i] = 0.251 * may$wspd[i]^2 * (may$Sc[i]/660)^-0.5
+    # Ho et al. 2006
+    #may$k2[i] = 0.266 * may$wspd[i]^2 * (may$Sc[i]/600)^-0.5
+  }
+}
+
+# which(abs(may$k - may$k2) > 0.11) # all w/in 0.11 of each other
+```
+
+### Solubility constant & flux calc
+```{r}
+# ln(beta) = Α1 + Α2(100/Τ) + A3ln(T/100) + S[(B1 + B2(T/100) + B3(T/100)^2]
+  # beta = K' (mol/L*atm) from Weiss 1974
+  # T in K
+  # S in ppt (PSU)
+
+A1 = -58.0931
+A2 = 90.5069
+A3 = 22.2940
+B1 = 0.027766
+B2 = -0.025888
+B3 = 0.0050578
+
+may$K.prime <- NA
+may$pH2O <- NA   # seawater vapor pressure
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+    T = may$Temp[i] + 273.15
+    S = may$Salinity[i]
+    may$K.prime[i] = exp(A1 + A2*(100/T) + A3*log(T/100) + S*(B1 + B2*(T/100) + B3*(T/100)^2))
+    # partial pressure of H2O right above the sea surface
+    may$pH2O[i] = vapress(may$Salinity[i], may$Temp[i], form = "d2007")   # atm
+  }
+}
+
+# K' ≈ K0 * f/(X(P – PH2O))
+  # K' in mol/L*atm
+  # f: fugacity
+  # X: mole fraction (dry)
+  # P: total pressure
+  # pH2O: seawater vapor pressure
+
+## OOI data
+pCO2_data <- read.csv("./data/pCO2/MayCruiseCNSM.csv") %>%
+  filter(DateTime >= "01-May-2021")
+
+P <- mean(pCO2_data$gas_stream_pressure) / 1013.25   # hPa to atm
+may$K0 <- NA
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+    xCO2 = p2xCO2(may$Salinity[i], may$Temp[i], Patm = P, may$pCO2[i])   # ppm
+    may$K0[i] = may$K.prime[i] * xCO2 * (P - may$pH2O[i]) / may$fCO2[i]
+  }
+}
+
+# F = k*K0(pCO2w – pCO2a)
+
+pCO2a <- mean(pCO2_data$partial_pressure_co2_atm)
+
+may$flux <- NA
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+    k = may$k[i] / 100 * 24         # cm/hr --> m/d
+    K0 = may$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
+    d.pCO2 = may$pCO2[i] - pCO2a    # uatm
+    may$flux[i] = k * K0 * d.pCO2   # umol/(m^2*d)
+  }
+}
+```
+
+## Add mixed-layer depths
+```{r}
+MLD <- read.csv("./data/CTD/may_MLD.csv") ***SITUATION***
+
+may$MLD <- NA
+may$MLD_frac <- NA
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface" &
+     may$Station[i] != "006" &
+     may$Station[i] != "012" &
+     may$Station[i] != "016" &
+     may$Station[i] != "022" &
+     may$Station[i] != "030" &
+     may$Station[i] != "081" &
+     may$Station[i] != "111" &
+     may$Station[i] != "114") {
+    may$MLD[i] = MLD$MLD[MLD$Station == as.integer(may$Station[i])]
+    depth = may$Depth[may$Station == may$Station[i] &
+                      may$Cast == "Bottom"]
+    may$MLD_frac[i] <- may$MLD[i] / depth
+    }
+  }
+}
+```
+
+## Add air-sea flux for fully mixed sites
+```{r}
+# Schmidt number
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Bottom" &
+     !is.na(may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"]) &
+     may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"] > 0.9) {
+    t = may$Temp[i]
+    may$Sc[i] = A + B*t + C*t^2 + D*t^3 + E*t^4
+  }
+}
+
+# gas transfer velocity
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Bottom" &
+     !is.na(may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"]) &
+     may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"] > 0.9) {
+    may$k[i] = 0.251 * may$wspd[i]^2 * (may$Sc[i]/660)^-0.5
+  }
+}
+
+# solubility constant
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Bottom" &
+     !is.na(may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"]) &
+     may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"] > 0.9) {
+    T = may$Temp[i] + 273.15
+    S = may$Salinity[i]
+    may$K.prime[i] = exp(A1 + A2*(100/T) + A3*log(T/100) + S*(B1 + B2*(T/100) + B3*(T/100)^2))
+    may$pH2O[i] = vapress(may$Salinity[i], may$Temp[i], form = "d2007")   # atm
+  }
+}
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Bottom" &
+     !is.na(may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"]) &
+     may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"] > 0.9) {
+    xCO2 = p2xCO2(may$Salinity[i], may$Temp[i], Patm = P, may$pCO2[i])   # ppm
+    may$K0[i] = may$K.prime[i] * xCO2 * (P - may$pH2O[i]) / may$fCO2[i]
+  }
+}
+
+# flux
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Bottom" &
+     !is.na(may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"]) &
+     may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"] > 0.9) {
+    k = may$k[i] / 100 * 24         # cm/hr --> m/d
+    K0 = may$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
+    d.pCO2 = may$pCO2[i] - pCO2a    # uatm
+    may$flux[i] = k * K0 * d.pCO2   # umol/(m^2*d)
+  }
+}
+```
+
+## Calculate DICair-sea
+```{r}
+# umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
+
+mayResTime <- 60   # going with 60 across the board for now
+may$DICf <- NA
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+    may$DICf[i] = -1 * may$flux[i] / may$MLD[i] / may$Density[i] * mayResTime
+  }  
+  if(may$Cast[i] == "Bottom" &
+     !is.na(may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"]) &
+     may$MLD_frac[may$Station == may$Station[i] &
+                  may$Cast == "Surface"] > 0.9) {
+    may$DICf[i] = -1 * may$flux[i] / may$MLD[i] / may$Density[i] * mayResTime
+  }
+}
+```
+
+## O2 mixing analysis
+```{r}
+DO1 <- may$DO[EM1]
+DO2 <- may$DO[EM2]
+DO3 <- may$DO[EM3]
+
+DO4 <- may$DO[EM4]
+DO5 <- may$DO[EM5]
+DO6 <- may$DO[EM6]
+DO7 <- may$DO[EM7]
+
+may$DOn <- NA
+may$dDO <- NA
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+       may$DOn[i] = a1*DO1 + a2*DO2 + a3*DO3
+       may$dDO[i] = may$DO[i] - may$DOn[i]   # observed - expected
+    } else if(may$Cast[i] == "Bottom" &
+            may$Station[i] != "059" &
+            may$Station[i] != "064" &
+            may$Station[i] != "087" &
+            may$Station[i] != "053" &
+            may$Station[i] != "086" &
+            may$Station[i] != "063" &
+            may$Station[i] != "047" &
+            may$Station[i] != "043" &
+            may$Station[i] != "077" &
+            may$Station[i] != "076" &
+            may$Station[i] != "081" &
+            may$Station[i] != "060" &
+            may$Station[i] != "078" &
+            may$Station[i] != "072" &
+            may$Station[i] != "058" &
+            may$Station[i] != "049" &
+            may$Station[i] != "069" &
+            may$Station[i] != "093" &
+            may$Station[i] != "104") {
+       may$DOn[i] = a4*DO4 + a5*DO5 + a6*DO6
+       may$dDO[i] = may$DO[i] - may$DOn[i]   # observed - expected
+    } else {
+      may$DOn[i] = a5*DO5 + a7*DO7
+      may$dDO[i] = may$DO[i] - may$DOn[i]
+    }
+}
+```
+
+## Convert dDO to DIC & TA signals
+```{r}
+# calling the "other" component of DO negligible; therefore dDO is all aerobic
+
+# dDO umol/kg * 106 (DIC) / 138 (O2) = prod/resp DIC signal
+may$prDIC <- may$dDO * -106 / 138
+
+# dDO umol/kg * 17 (TA) / 138 (O2) = prod/resp TA signal
+may$prTA <- may$dDO * 17 / 138
+```
+
+## Calculate "other" components of DIC & TA
+```{r}
+may$DIC.other <- NA
+may$TA.other <- NA
+
+may$DIC.other <- may$DIC - may$DICn - may$prDIC - may$DICf
+may$TA.other = may$TA - may$TAn - may$prTA
+```
+
+## Plot "other" components
+```{r}
+may %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+may %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast, col = AOU)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_color_viridis(option = "viridis") +
+  theme_bw()
+
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = DIC.other, y = dDO)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
 
 
 
 
+
+
+
+
+
+
+## Start by using Oct end-members
+```{r}
+# surface: 5, 7, 43 EMs
+
+may %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = Salinity, y = Temp, col = Cast)) +
+    geom_text(aes(label = as.integer(Station)), size = 3) +
+    geom_point(data = may[((may$Station == "005" |
+                            may$Station == "007" |
+                            may$Station == "043") &
+                            may$Cast == "Surface"), ],
+               aes(x = Salinity, y = Temp),
+               shape = 1, col = "black", size = 6, inherit.aes = FALSE) +
+    scale_colour_manual(values = "coral2") +
+    theme_bw()
+
+library(grid)
+grid.force()  # make grobs visible to grid editing tools
+grid.edit("geom_point.points", grep = TRUE, gp = gpar(lwd = 2))
+
+# bottom: 9, 33, 53 EMs
+
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = Salinity, y = Temp, col = Cast)) +
+    geom_text(aes(label = as.integer(Station)), size = 3) +
+    geom_point(data = may[((may$Station == "009" |
+                            may$Station == "033" |
+                            may$Station == "053") &
+                            may$Cast == "Bottom"), ],
+               aes(x = Salinity, y = Temp),
+               shape = 1, col = "red", size = 6, inherit.aes = FALSE) +
+    scale_colour_manual(values = "darkblue") +
+    theme_bw()
+
+grid.force()  # make grobs visible to grid editing tools
+grid.edit("geom_point.points", grep = TRUE, gp = gpar(lwd = 2))
+```
+
+## Solve two-variable system
+```{r}
+#a5 + a7 = 1
+#a5 = 1 - a7
+
+#a5*S5 + a7*S7 = may$Salinity[i]
+#(1 - a7)*S5 + a7*S7 = may$Salinity[i]
+#S5 - a7*S5 + a7*S7 = may$Salinity[i]
+# -a7*S5 + a7*S7 = may$Salinity[i] - S5
+#a7 * (S7 - S5) = may$Salinity[i] - S5
+#a7 = (may$Salinity[i] - S5) / (S7 - S5)
+```
 
 ## Compare May vs Oct coordinates
 Run chunks 1-7 of `Chemistry_Oct.Rmd` to load October data.
