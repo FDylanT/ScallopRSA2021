@@ -76,7 +76,7 @@ ggplot(data = comparison, aes(x = station, y = CTD_sal)) +
 
 plot(comparison$bottle_sal ~ comparison$CTD_sal)
 abline(0, 1)
-plot(comparison$offset ~ comparison$bottle_sal)
+plot(comparison$sal_offset ~ comparison$bottle_sal)
 abline(h = 0, lty = 2)
 
 # uncertainty in CTD = 0.001 mS/cm = ~0.0011 PSU
@@ -87,12 +87,12 @@ abline(h = 0, lty = 2)
 ## Correct CTD data given bottle data
 ```{r}
 # filter outliers in offset
-off_u <- mean(comparison$offset) # 0.05998327
-off_sd <- sd(comparison$offset) # 0.06564262
+off_u <- mean(comparison$sal_offset) # 0.05998327
+off_sd <- sd(comparison$sal_offset) # 0.06564262
 
 comparison_filt <- comparison %>%
-  filter(offset < off_u + 2 * off_sd, # remove stations with offsets +/- 2 sd from mean
-         offset > off_u - 2 * off_sd) 
+  filter(sal_offset < off_u + 2 * off_sd, # remove stations with offsets +/- 2 sd from mean
+         sal_offset > off_u - 2 * off_sd) 
 lm1 <- lm(bottle_sal ~ CTD_sal, comparison_filt)
 summary(lm1) # bottle = 0.987626(CTD) + 0.365933
 
@@ -160,7 +160,7 @@ oct_bottle$offset <- rep(NA, 59)
 
 for (i in 1:nrow(oct_bottle)) {
   k <- oct_bottle$Station[i]
-  if(is.number(octCTD$BottomSal_Corr[octCTD$Station == k])) {
+  if(!identical(octCTD$BottomSal_Corr[octCTD$Station == k], numeric(0))) {
     if(oct_bottle$Cast[i] == "Bottom") {
       oct_bottle$CTDsal[i] <- octCTD$BottomSal_Corr[octCTD$Station == k]
     } else if(oct_bottle$Cast[i] == "Surface") {
