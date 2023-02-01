@@ -174,14 +174,16 @@ stations2 = {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '
 may1down = RSKaddstationdata(may1down, 'profile', profiles1, 'station', stations1);
 may2down = RSKaddstationdata(may2down, 'profile', profiles2, 'station', stations2);
 
-may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [0, 2], 'action', 'remove');
-% remove an extra meter from this one; 2m conductivity spike
-may1down = RSKtrim(may1down, 'reference', 'depth', 'profile', profiles1(35), 'range', [2, 3], 'action', 'remove');
+may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [-1 2], 'action', 'remove');
+% remove an extra meter from this one; ~2.5m conductivity spike
+may1down = RSKtrim(may1down, 'reference', 'depth', 'profile', profiles1(35), 'range', [2 3], 'action', 'remove');
 
-RSKplotprofiles(may1down, 'profile', profiles1(35), 'channel', {'temperature', 'conductivity'});
-RSKplotprofiles(may1down, 'profile', profiles1([52, 56:58]), 'channel', {'temperature', 'conductivity'});
+%RSKplotprofiles(may1down, 'profile', profiles1(35), 'channel', {'temperature', 'conductivity'});
+%RSKplotprofiles(may1down, 'profile', profiles1([52, 56:58]), 'channel', {'temperature', 'conductivity'});
 
-may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [0, 2], 'action', 'remove');
+may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [-1 2], 'action', 'remove');
+
+%RSKplotprofiles(may1down, 'profile', profiles1, 'channel', {'temperature', 'conductivity'});
 
 stations = cell(106, 1);
 MLtemp = NaN(106, 1);
