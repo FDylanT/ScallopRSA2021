@@ -35,7 +35,7 @@ oct <- read.csv("./data/OctCruiseData.csv") %>%
   filter(Filtered == "") %>%
   select(Date, Station, Cast, BottleID, Lat, Long,
          Depth, Temp, Pressure, SeaPressure, Salinity,
-         DIC, TA, DO, DO_sat) %>%
+         DIC, TA, DO) %>%
   mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to stations
 ```
 
@@ -147,40 +147,17 @@ oct$AOU <- oct$O2sol - oct$DO
 
 # MIXING ANALYSIS
 
-## Identify end-members
-```{r}
-# surface
-oct %>%
-  filter(Cast == "Surface") %>%
-  ggplot(aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
-    geom_text(aes(label = as.integer(Station)), size = 3) +
-    scale_colour_manual(values = "coral2") +
-    theme_bw()
-
-# calling 5, 43, 7 EMs
-
-# bottom
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
-    geom_text(aes(label = as.integer(Station)), size = 3) +
-    scale_colour_manual(values = "darkblue") +
-    theme_bw()
-
-# calling 33, 53, 9 EMs
-```
-
 ## Find endmember property values
 ```{r}
 # surface EMs
 EM1 <- which(oct$Station == "005" & oct$Cast == "Surface")
-EM2 <- which(oct$Station == "043" & oct$Cast == "Surface")
-EM3 <- which(oct$Station == "007" & oct$Cast == "Surface")
+EM2 <- which(oct$Station == "007" & oct$Cast == "Surface")
+EM3 <- which(oct$Station == "043" & oct$Cast == "Surface")
 
 # bottom EMs
+EM6 <- which(oct$Station == "009" & oct$Cast == "Bottom") # this gives WOW dDIC-AOU correlation, compared to 021 or 023
 EM4 <- which(oct$Station == "033" & oct$Cast == "Bottom")
 EM5 <- which(oct$Station == "053" & oct$Cast == "Bottom")
-EM6 <- which(oct$Station == "009" & oct$Cast == "Bottom") # this gives WOW dDIC-AOU correlation
 
 # pull values for EMs
 S1 <- oct$Salinity[EM1]
@@ -218,6 +195,13 @@ TA6 <- oct$TA[EM6]
 
 ## Calculate mixing-normalized DIC & TA values
 ```{r}
+oct$a1 <- NA
+oct$a2 <- NA
+oct$a3 <- NA
+oct$a4 <- NA
+oct$a5 <- NA
+oct$a6 <- NA
+
 oct$DICn <- NA
 oct$TAn <- NA
 oct$dDIC <- NA
@@ -232,8 +216,9 @@ oct$dTA <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
-       a3 = (oct$Salinity[i] - S1 - oct$Temp[i]*(S2-S1)/(T2-T1) + T1*(S2-S1)/(T2-T1)) /
-         ((S3-S1) - (T3-T1)*(S2-S1)/(T2-T1))
+       a3 = (oct$Salinity[i] - S1 - oct$Temp[i]*(S2-S1)/(T2-T1) +
+             T1*(S2-S1)/(T2-T1)) /
+            ((S3-S1) - (T3-T1)*(S2-S1)/(T2-T1))
        a2 = (oct$Temp[i] - T1 - a3*(T3-T1)) / (T2-T1)
        a1 = 1 - (a2 + a3)
        oct$a1[i] = a1
@@ -244,8 +229,9 @@ for(i in 1:nrow(oct)) {
        oct$TAn[i] = a1*TA1 + a2*TA2 + a3*TA3
        oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
      } else if(oct$Cast[i] == "Bottom") {
-       a6 = (oct$Salinity[i] - S4 - oct$Temp[i]*(S5-S4)/(T5-T4) + T4*(S5-S4)/(T5-T4)) /
-         ((S6-S4) - (T6-T4)*(S5-S4)/(T5-T4))
+       a6 = (oct$Salinity[i] - S4 - oct$Temp[i]*(S5-S4)/(T5-T4) +
+             T4*(S5-S4)/(T5-T4)) /
+            ((S6-S4) - (T6-T4)*(S5-S4)/(T5-T4))
        a5 = (oct$Temp[i] - T4 - a6*(T6-T4)) / (T5-T4)
        a4 = 1 - (a5 + a6)
        oct$a4[i] = a4
@@ -257,188 +243,6 @@ for(i in 1:nrow(oct)) {
        oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
      }
 }
-```
-
-## Plot delta values
-```{r}
-oct %>%
-  ggplot(aes(x = dDIC, y = dTA)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
-
-# negative DIC means DIC < expected --> photosynth signal
-  # combination of photosynth & calcification/precipitation
-# positive DIC means DIC > expected --> respiration signal
-  # combination of respiration & dissolution
-
-# positive TA is combination of dissolution & photosynthesis
-# negative TA is combination of calcification/precipitation & respiration
-
-# surface
-oct %>%
-  filter(Cast == "Surface") %>%
-  ggplot(aes(x = dDIC, y = dTA)) +
-  geom_point(aes(shape = Cast, col = pCO2)) + # color by pCO2
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
-  scale_shape_manual(values = 1) +
-  scale_colour_viridis(limits = c(330, 510), option = "magma") +
-  theme_bw()
-```
-
-## Plot AOU data
-```{r}
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = dDIC, y = dTA)) +
-  geom_point(aes(shape = Cast, col = AOU)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_color_viridis(option = "magma") +
-  theme_bw()
-
-# dDIC vs AOU
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = dDIC, y = AOU, shape = Cast, col = Cast)) +
-    geom_point() +
-    #geom_text(aes(label = as.integer(Station)), size = 3) +
-    geom_point(data = oct[((oct$Station == "009" |
-                            oct$Station == "033" |
-                            oct$Station == "053") &
-                            oct$Cast == "Bottom"), ],
-               col = "red", size = 3) +
-    scale_colour_manual(values = "darkblue") +
-    theme_bw() +
-    theme(legend.position = "none") + 
-    geom_vline(xintercept = 0, linetype = 2) +
-    geom_hline(yintercept = 0, linetype = 2)
-
-oct.bottom <- oct %>%
-  filter(Cast == "Bottom")
-
-lm(oct.bottom$AOU ~ oct.bottom$dDIC) # slope = 0.4223
-
-ggplot(oct, aes(x = AOU, y = dDIC, shape = Cast)) +
-  geom_point() +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(slope = 0.768) +   # 106/138
-  scale_shape_manual(values = c(16, 1)) +
-  theme_bw()
-
-lm(oct.bottom$dDIC ~ oct.bottom$AOU) # 0.505
-
-# dTA vs AOU
-ggplot(oct, aes(x = AOU, y = dTA, shape = Cast)) +
-  geom_point() +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(slope = -0.123) +   # -17/138   # negative for AOU
-  scale_shape_manual(values = c(16, 1)) +
-  theme_bw()
-
-lm(oct.bottom$dTA ~ oct.bottom$AOU) # -0.1142
-
-# AOU vs Sal
-ggplot(oct, aes(x = Salinity, y = AOU, shape = Cast, col = Cast)) +
-  geom_point() +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = c("darkblue", "coral2"),
-                      guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
-```
-
-## O2 mixing analysis
-```{r}
-DO1 <- oct$DO[EM1]
-DO2 <- oct$DO[EM2]
-DO3 <- oct$DO[EM3]
-
-DO4 <- oct$DO[EM4]
-DO5 <- oct$DO[EM5]
-DO6 <- oct$DO[EM6]
-
-oct$DOn <- NA
-oct$dDO <- NA
-
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface") {
-       oct$DOn[i] = a1*DO1 + a2*DO2 + a3*DO3
-       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
-     } else if(oct$Cast[i] == "Bottom") {
-       oct$DOn[i] = a4*DO4 + a5*DO5 + a6*DO6
-       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
-     }
-}
-```
-
-## Visualize DO prop-prop
-```{r}
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = dDIC, y = dTA)) +
-  geom_point(aes(shape = Cast, col = dDO)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_color_viridis(option = "magma") +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = dDIC, y = dDO)) +
-  geom_point(aes(shape = Cast)) +
-  #geom_text(aes(label = as.integer(Station)), size = 3) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16)) +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = dTA, y = dDO)) +
-  geom_point(aes(shape = Cast)) +
-  #geom_text(aes(label = as.integer(Station)), size = 3) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16)) +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = dDO, y = AOU)) +
-  geom_point(aes(shape = Cast)) +
-  #geom_text(aes(label = as.integer(Station)), size = 3) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16)) +
-  theme_bw()
-```
-
-## Convert dDO to DIC & TA signals
-```{r}
-# calling the "other" component of DO negligible; therefore dDO is all aerobic
-
-# dDO umol/kg * 106 (DIC) / 138 (O2) = prod/resp DIC signal
-oct$prDIC <- oct$dDO * 106 / 138
-
-# dDO umol/kg * 17 (TA) / 138 (O2) = prod/resp TA signal
-oct$prTA <- oct$dDO * 17 / 138
 ```
 
 ## Calculate air-sea CO2 flux
@@ -573,39 +377,29 @@ wind_df <- bind_rows(wind_df_A, wind_df_B, wind_df_C) %>%
   mutate(lon = lon - 360) %>%
   filter(lon >= -70.5 & lon <= -66) %>%
   filter(lat >= 40 & lat <= 42.5) %>%
-  group_by(day, lon, lat) %>%
+  group_by(lon, lat) %>%
   summarise(mean_wind = mean(wind_speed, na.rm = TRUE)) %>%
   mutate(mean_wind = ifelse(is.nan(mean_wind), NA, mean_wind)) %>%
   na.omit()
 
-wind_df %>%
-  filter(day == 1) %>%
-ggplot() +
-  geom_point(aes(x = lon, y = lat, col = mean_wind), size = 12, shape = 15) +
-  scale_color_viridis(limits = c(3.95, 11.05)) +
-  geom_point(data = oct, aes(x = Long, y = Lat), shape = 18, size = 4) +
-  xlim(-70.5, -66) +
-  ylim(40, 42.5) +
-  theme_bw() +
-  theme(axis.title = element_blank())
+#ggplot(wind_df) +
+#  geom_point(aes(x = lon, y = lat, col = mean_wind), size = 15, shape = 15) +
+#  scale_color_viridis(limits = c(0.6, 12.4), breaks = c(2, 4, 6, 8, 10),
+#                      name = "wspd") +
+#  geom_point(data = oct, aes(x = Long, y = Lat), shape = 18, size = 4) +
+#  xlim(-70.5, -66) +
+#  ylim(40, 42.5) +
+#  theme_bw() +
+#  theme(axis.title = element_blank())
 
 oct$wspd <- NA
 
 # assign wind speed to each station
 for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface") {
-    date = as.numeric(str_extract(oct$Date[i], "..$"))
-    n = date - 4
-    if(n != 2) {
-      winds = wind_df %>% filter(day == n)
-    } else {
-      winds = wind_df %>% filter(day == 1 | day == 3)
-    }
-    oct$wspd[i] = mean(winds$mean_wind[which(abs(oct$Lat[i] - winds$lat) +
-                                             abs(oct$Long[i] - winds$lon) ==
-                                         min(abs(oct$Lat[i] - winds$lat) +
-                                             abs(oct$Long[i]-winds$lon)))])
-  }
+  oct$wspd[i] = mean(wind_df$mean_wind[which(abs(oct$Lat[i] - wind_df$lat) +
+                                           abs(oct$Long[i] - wind_df$lon) ==
+                                       min(abs(oct$Lat[i] - wind_df$lat) +
+                                           abs(oct$Long[i] - wind_df$lon)))])
 }
 ```
 
@@ -665,22 +459,22 @@ for(i in 1:nrow(oct)) {
   # P: total pressure
   # pH2O: seawater vapor pressure
 
+## OOI data
+pCO2_data <- read.csv("./data/pCO2/OctCruiseCNSM.csv") %>%
+  filter(DateTime >= "05-Oct-2021")
+
 P <- mean(pCO2_data$gas_stream_pressure) / 1013.25   # hPa to atm
-oct$xCO2 <- NA
 oct$K0 <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
-    oct$xCO2[i] = p2xCO2(oct$Salinity[i], oct$Temp[i], Patm = P, oct$pCO2[i])   # ppm
-    oct$K0[i] = oct$K.prime[i] * oct$xCO2[i] * (P - oct$pH2O[i]) / oct$fCO2[i]
+    xCO2 = p2xCO2(oct$Salinity[i], oct$Temp[i], Patm = P, oct$pCO2[i])   # ppm
+    oct$K0[i] = oct$K.prime[i] * xCO2 * (P - oct$pH2O[i]) / oct$fCO2[i]
   }
 }
 
 # F = k*K0(pCO2w – pCO2a)
 
-## OOI data
-pCO2_data <- read.csv("./data/pCO2/OctCruiseCNSM.csv") %>%
-  filter(DateTime >= "04-Oct-2021")
 pCO2a <- mean(pCO2_data$partial_pressure_co2_atm)
 
 oct$flux <- NA
@@ -691,6 +485,26 @@ for(i in 1:nrow(oct)) {
     K0 = oct$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
     d.pCO2 = oct$pCO2[i] - pCO2a    # uatm
     oct$flux[i] = k * K0 * d.pCO2   # umol/(m^2*d)
+  }
+}
+```
+
+## Add mixed-layer depths
+```{r}
+MLD <- read.csv("./data/CTD/oct_MLD.csv")
+
+oct$MLD <- NA
+oct$MLD_frac <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface" &
+     oct$Station[i] != "022" &
+     oct$Station[i] != "023" &
+     oct$Station[i] != "104") {
+    oct$MLD[i] = MLD$MLD[MLD$Station == as.integer(oct$Station[i])]
+    depth = oct$Depth[oct$Station == oct$Station[i] &
+                      oct$Cast == "Bottom"]
+    oct$MLD_frac[i] <- oct$MLD[i] / depth
   }
 }
 ```
@@ -740,10 +554,11 @@ for(i in 1:nrow(oct)) {
                   oct$Cast == "Surface"]) &
      oct$MLD_frac[oct$Station == oct$Station[i] &
                   oct$Cast == "Surface"] > 0.9) {
-    oct$xCO2[i] = p2xCO2(oct$Salinity[i], oct$Temp[i], Patm = P, oct$pCO2[i])   # ppm
-    oct$K0[i] = oct$K.prime[i] * oct$xCO2[i] * (P - oct$pH2O[i]) / oct$fCO2[i]
+    xCO2 = p2xCO2(oct$Salinity[i], oct$Temp[i], Patm = P, oct$pCO2[i])   # ppm
+    oct$K0[i] = oct$K.prime[i] * xCO2 * (P - oct$pH2O[i]) / oct$fCO2[i]
   }
 }
+oct <- select(oct, -K.prime, -pH2O)
 
 # flux
 for(i in 1:nrow(oct)) {
@@ -760,68 +575,163 @@ for(i in 1:nrow(oct)) {
 }
 ```
 
-## pCO2 & flux prop-prop plots
-```{r}
-oct %>%
-  filter(Cast == "Surface") %>%
-  ggplot(aes(x = pCO2, y = flux)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 420, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(1)) +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Surface") %>%
-  ggplot(aes(x = Temp, y = pCO2)) +
-  geom_point(aes(shape = Cast)) +
-  scale_shape_manual(values = c(1)) +
-  theme_bw()
-```
-
 ## Calculate DICair-sea
 ```{r}
 # umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
 
-MLD <- read.csv("./data/CTD/oct_MLD.csv")
-
-oct$MLD <- NA
-oct$MLD_frac <- NA
+octResTime <- 63   # Brink et al. 2003
+oct$DICf <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface") {
-    if(oct$Station[i] != "022" &
-       oct$Station[i] != "023" &
-       oct$Station[i] != "104") {
-      oct$MLD[i] = MLD$MLD[MLD$Station == as.integer(oct$Station[i])]
-      depth = oct$Depth[oct$Station == oct$Station[i] &
-                        oct$Cast == "Bottom"]
-      oct$MLD_frac[i] <- oct$MLD[i] / depth
-    }
-  }
-}
-
-octResTime <- 60   # going with 60 across the board for now
-oct$DICas <- NA
-
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface") {
-    oct$DICas[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
+    oct$DICf[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
   }  
   if(oct$Cast[i] == "Bottom" &
      !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
                   oct$Cast == "Surface"]) &
      oct$MLD_frac[oct$Station == oct$Station[i] &
                   oct$Cast == "Surface"] > 0.9) {
-    oct$DICas[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
+    oct$DICf[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
+  }
+}
+```
+
+## O2 mixing analysis
+```{r}
+DO1 <- oct$DO[EM1]
+DO2 <- oct$DO[EM2]
+DO3 <- oct$DO[EM3]
+
+DO4 <- oct$DO[EM4]
+DO5 <- oct$DO[EM5]
+DO6 <- oct$DO[EM6]
+
+oct$DOn <- NA
+oct$dDO <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface") {
+       oct$DOn[i] = oct$a1[i]*DO1 + oct$a2[i]*DO2 + oct$a3[i]*DO3
+       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
+     } else if(oct$Cast[i] == "Bottom") {
+       oct$DOn[i] = oct$a4[i]*DO4 + oct$a5[i]*DO5 + oct$a6[i]*DO6
+       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
+     }
+}
+```
+
+## Calculate air-sea O2 flux
+```{r}
+### try using gsw ###
+
+# Schmidt number (Wilke & Chang 1955, as adapted by Hayduk & Laudie 1974)
+A = 1920.4
+B = -135.6
+C = 5.2122
+D = -0.10939
+E = 0.00093777
+
+oct$Sc.O2 <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface" |
+    (oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9)) {
+    t = oct$Temp[i]
+    oct$Sc.O2[i] = A + B*t + C*t^2 + D*t^3 + E*t^4
+  }
+}
+
+# gas transfer velocity
+oct$k.O2 <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface" |
+    (oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9)) {
+    oct$k.O2[i] = 0.251 * oct$wspd[i]^2 * (oct$Sc.O2[i]/660)^-0.5
+  }
+}
+
+# solubility constant (Weiss 1970(b))
+A1 = -58.3877
+A2 = 85.8079
+A3 = 23.8439
+B1 = -0.034892
+B2 = 0.015568
+B3 = 0.0019387
+
+oct$beta <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface" |
+    (oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9)) {
+    T = oct$Temp[i] + 273.15
+    S = oct$Salinity[i]
+    oct$beta[i] = exp(A1 + A2*(100/T) + A3*log(T/100) + S*(B1 + B2*(T/100) + B3*(T/100)^2))
   }
 }
 
 for(i in 1:nrow(oct)) {
-  if(is.na(oct$DICas[i])) {
-    oct$DICas[i] = 0
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9) {
+    ***
   }
 }
+oct <- select(oct, -beta)
+
+oct$pO2?
+pO2a <- ***
+oct$flux.O2 <- NA
+
+# flux
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"]) &
+     oct$MLD_frac[oct$Station == oct$Station[i] &
+                  oct$Cast == "Surface"] > 0.9) {
+    k = oct$k[i] / 100 * 24         # cm/hr --> m/d
+    K0 = oct$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
+    d.pO2 = oct$pO2[i] - pO2a    # uatm
+    oct$flux.O2[i] = k * K0 * d.pO2   # umol/(m^2*d)
+  }
+}
+
+# add zeros to flux-absent sites for use in calcs
+for(i in 1:nrow(oct)) {
+  if(is.na(oct$flux.O2[i])) {
+    oct$flux.O2[i] = 0
+  }
+}
+```
+
+## Convert dDO to DIC & TA signals
+```{r}
+# subtracting O2 flux at surface & fully mixed sites
+
+***
+
+# calling the "other" component of DO negligible; therefore dDO is all aerobic
+
+# dDO umol/kg * 106 (DIC) / 138 (O2) = prod/resp DIC signal
+oct$prDIC <- oct$dDO * -106 / 138
+
+# dDO umol/kg * 17 (TA) / 138 (O2) = prod/resp TA signal
+oct$prTA <- oct$dDO * 17 / 138
 ```
 
 ## Calculate "other" components of DIC & TA
@@ -829,52 +739,79 @@ for(i in 1:nrow(oct)) {
 oct$DIC.other <- NA
 oct$TA.other <- NA
 
-oct$DIC.other <- oct$DIC - oct$DICn - oct$prDIC - oct$DICas
+oct$DIC.other <- oct$DIC - oct$DICn - oct$DICf - oct$prDIC
 oct$TA.other = oct$TA - oct$TAn - oct$prTA
 ```
 
-## Plot "other" components
+
+
+
+
+
+
+
+
+
+
+
+
+
+## ResTime sensitivity analysis
 ```{r}
-oct %>%
-  ggplot(aes(x = DIC.other, y = TA.other)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
+octResTime <- 63   # Brink et al. 2003
+DICf63 <- as.vector(rep(NA, 228))
 
-oct %>%
-  ggplot(aes(x = DIC.other, y = TA.other)) +
-  geom_point(aes(shape = Cast, col = AOU)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_color_viridis(option = "viridis") +
-  theme_bw()
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface") {
+    DICf63[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
+  }
+}
 
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = DIC.other, y = dDO)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
+octResTime <- 20
+DICf20 <- as.vector(rep(NA, 228))
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface") {
+    DICf20[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
+  }
+}
+
+fluxResTime <- as.data.frame(cbind(DICf20, DICf63))
+
+octResTime <- 60
+DICf60 <- as.vector(rep(NA, 228))
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface") {
+    DICf60[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
+  }
+}
+
+fluxResTime <- cbind(fluxResTime, DICf60)
 ```
 
+## Identify end-members
+```{r}
+# surface
+oct %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
+    geom_text(aes(label = as.integer(Station)), size = 3) +
+    scale_colour_manual(values = "coral2") +
+    theme_bw()
 
+# calling 5, 7, 43 EMs
 
+# bottom
+oct %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
+    geom_text(aes(label = as.integer(Station)), size = 3) +
+    scale_colour_manual(values = "darkblue") +
+    theme_bw()
 
-
-
-
-
-
-
-
+# calling 9, 33, 53 EMs
+```
 
 ## Convert AOU to DIC & TA signals --- NOT USING; FOUND BETTER METHOD
 ```{r}
