@@ -17,22 +17,43 @@ knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
 library(tidyverse)
 ```
 
-# Prop-prop plots
-
 ## Temp vs Sal, coloured cast
 ```{r}
-#plot <-
 ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
   geom_point() +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("darkblue", "coral2"),
                       guide = guide_legend(reverse = TRUE)) +
-  xlab("Salinity (PSU)") +
-  ylab("Temperature (°C)") +
-  theme_bw() +
-  geom_label(aes(x = 35.255, y = 20.1, label = "October"), size = 5, color = "black",
-             fontface = "bold", label.size = 0.75, label.padding = unit(0.5, "lines"))
+  #xlab("Salinity (PSU)") +
+  #ylab("Temperature (°C)") +
+  #geom_label(aes(x = 35.255, y = 20.1, label = "October"), size = 5, color = "black",
+  #           fontface = "bold", label.size = 0.75, label.padding = unit(0.5, "lines")) +
+  theme_bw()
+```
+
+## Temp vs Sal, EMs highlighted
+```{r}
+ggplot(oct, aes(x = Salinity, y = Temp, col = Cast)) +
+  geom_text(aes(label = as.integer(Station)), size = 3) +
+  geom_point(data = oct[((oct$Station == "005" |
+                          oct$Station == "007" |
+                          oct$Station == "043") &
+                          oct$Cast == "Surface") |
+                        ((oct$Station == "009" |
+                          oct$Station == "033" |
+                          oct$Station == "053") &
+                          oct$Cast == "Bottom"), ],
+             aes(x = Salinity, y = Temp, shape = Cast),
+             col = "darkorchid", size = 6, inherit.aes = FALSE) +
+  scale_colour_manual(values = c("darkblue", "coral2"),
+                      guide = guide_legend(reverse = TRUE)) +
+  scale_shape_manual(values = c(0, 1), guide = "none") +
+  theme_bw()
+
+library(grid)
+grid.force()  # make grobs visible to grid editing tools
+grid.edit("geom_point.points", grep = TRUE, gp = gpar(lwd = 2))
 ```
 
 ## DIC vs Sal, coloured cast
@@ -141,11 +162,6 @@ ggplot(oct, aes(x = Salinity, y = TA, shape = Cast, col = Cast, group = Station)
   theme_bw()
 ```
 
-
-
-
-
-
 ## Oct + May together
 Run chunks 2-7 of `Chemistry_May.Rmd` to load May data.
 ```{r}
@@ -221,6 +237,311 @@ ggplot() +
   ylab("Total Alkalinity (umol/kg)") +
   theme_bw()
 ```
+
+## Plot delta values
+```{r}
+oct %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+# negative DIC means DIC < expected --> photosynth signal
+  # combination of photosynth & calcification/precipitation
+# positive DIC means DIC > expected --> respiration signal
+  # combination of respiration & dissolution
+
+# positive TA is combination of dissolution & photosynthesis
+# negative TA is combination of calcification/precipitation & respiration
+
+# surface
+oct %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast, col = pCO2)) + # color by pCO2
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = 1) +
+  scale_colour_viridis(limits = c(330, 510), option = "magma") +
+  theme_bw()
+```
+
+## pCO2 & flux prop-prop plots
+```{r}
+oct %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = pCO2, y = flux)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 420, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(1)) +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = Temp, y = pCO2)) +
+  geom_point(aes(shape = Cast)) +
+  scale_shape_manual(values = c(1)) +
+  theme_bw()
+```
+
+## Plot AOU data
+```{r}
+oct %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast, col = AOU)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_color_viridis(option = "magma") +
+  theme_bw()
+
+# dDIC vs AOU
+oct %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDIC, y = AOU, shape = Cast, col = Cast)) +
+    geom_point() +
+    #geom_text(aes(label = as.integer(Station)), size = 3) +
+    geom_point(data = oct[((oct$Station == "009" |
+                            oct$Station == "033" |
+                            oct$Station == "053") &
+                            oct$Cast == "Bottom"), ],
+               col = "red", size = 3) +
+    scale_colour_manual(values = "darkblue") +
+    theme_bw() +
+    theme(legend.position = "none") + 
+    geom_vline(xintercept = 0, linetype = 2) +
+    geom_hline(yintercept = 0, linetype = 2)
+
+oct.bottom <- oct %>%
+  filter(Cast == "Bottom")
+
+lm(oct.bottom$AOU ~ oct.bottom$dDIC) # slope = 0.4223
+
+ggplot(oct, aes(x = AOU, y = dDIC, shape = Cast)) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(slope = 0.768) +   # 106/138
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+lm(oct.bottom$dDIC ~ oct.bottom$AOU) # 0.505
+
+# dTA vs AOU
+ggplot(oct, aes(x = AOU, y = dTA, shape = Cast)) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(slope = -0.123) +   # -17/138   # negative for AOU
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+lm(oct.bottom$dTA ~ oct.bottom$AOU) # -0.1142
+
+# AOU vs Sal
+ggplot(oct, aes(x = Salinity, y = AOU, shape = Cast, col = Cast)) +
+  geom_point() +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("darkblue", "coral2"),
+                      guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
+## Visualize DO prop-prop
+```{r}
+oct %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast, col = dDO)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_color_viridis(option = "magma") +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDIC, y = dDO)) +
+  geom_point(aes(shape = Cast)) +
+  #geom_text(aes(label = as.integer(Station)), size = 3) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16)) +
+  theme_bw()
+
+oct %>%
+  #filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dTA, y = dDO)) +
+  geom_point(aes(shape = Cast)) +
+  #geom_text(aes(label = as.integer(Station)), size = 3) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDO, y = AOU)) +
+  geom_point(aes(shape = Cast)) +
+  #geom_text(aes(label = as.integer(Station)), size = 3) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16)) +
+  theme_bw()
+```
+
+## Plot "other" components
+```{r}
+oct %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+oct %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast, col = AOU)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_color_viridis(option = "viridis") +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = DIC.other, y = dDO)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
+## May & Oct combined delta plots
+```{r}
+ggplot() +
+  geom_point(data = may, aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("chartreuse3", "royalblue"),
+                      name = "Month") +
+  theme_bw()
+
+# negative DIC means DIC < expected --> photosynth signal
+  # combination of photosynth & calcification/precipitation
+# positive DIC means DIC > expected --> respiration signal
+  # combination of respiration & dissolution
+
+# positive TA is combination of dissolution & photosynthesis
+# negative TA is combination of calcification/precipitation & respiration
+
+# surface
+ggplot() +
+  #geom_point(data = may[which(may$Cast == "Surface"), ],
+  #           aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
+  #geom_point(data = oct[which(oct$Cast == "Surface"), ],
+  #           aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
+  geom_text(data = may[which(may$Cast == "Surface"), ],
+             aes(x = dDIC, y = dTA, label = Station, col = "May")) +
+  geom_text(data = oct[which(oct$Cast == "Surface"), ],
+             aes(x = dDIC, y = dTA, label = Station, col = "Oct")) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = c(1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("chartreuse3", "royalblue"),
+                      name = "Month") +
+  theme_bw()
+
+# bottom
+ggplot() +
+  geom_point(data = may[which(may$Cast == "Bottom"), ],
+             aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
+  geom_point(data = oct[which(oct$Cast == "Bottom"), ],
+             aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = c(16),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("chartreuse3", "royalblue"),
+                      name = "Month") +
+  xlim(-20, 86) +
+  guides(shape = guide_legend(order = 1),
+         col = guide_legend(order = 2)) +
+  theme_bw()
+
+# dDO plots
+ggplot() +
+  geom_point(data = may, aes(x = dDIC, y = dDO, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = dDIC, y = dDO, shape = Cast, col = "Oct")) +
+  #geom_text(data = may, aes(x = dDIC, y = dDO, label = Station , col = "May")) +
+  #geom_text(data = oct, aes(x = dDIC, y = dDO, label = Station, col = "Oct")) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = -106/138) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("chartreuse3", "royalblue"),
+                      name = "Month") +
+  ylim(-54, 36) +
+  xlim(-41, 86) +
+  theme_bw()
+
+ggplot() +
+  geom_point(data = may, aes(x = dTA, y = dDO, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = dTA, y = dDO, shape = Cast, col = "Oct")) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 17/138) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("chartreuse3", "royalblue"),
+                      name = "Month") +
+  #ylim(-54, 36) +
+  theme_bw()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
