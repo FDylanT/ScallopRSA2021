@@ -17,68 +17,252 @@ knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
 library(tidyverse)
 ```
 
-## Prop-prop plots
+## Temp vs Sal, coloured cast
 ```{r}
-# Temp vs. Sal, coloured cast
-#plot <-
 ggplot(may, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
   geom_point() +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("darkslateblue", "brown2"),
+                      guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
+## Temp vs Sal, EMs highlighted
+```{r}
+ggplot(may, aes(x = Salinity, y = Temp, col = Cast)) +
+  geom_text(aes(label = as.integer(Station)), size = 3) +
+  geom_point(data = may[((may$Station == "004" |
+                          may$Station == "072" |
+                          may$Station == "113") &
+                          may$Cast == "Surface") |
+                        ((may$Station == "001" |
+                          may$Station == "004" |
+                          may$Station == "113" |
+                          may$Station == "059") &
+                          may$Cast == "Bottom"), ],
+             aes(x = Salinity, y = Temp, shape = Cast),
+             col = "darkorchid", size = 6, inherit.aes = FALSE) +
+  scale_colour_manual(values = c("darkslateblue", "brown2"),
+                      guide = guide_legend(reverse = TRUE)) +
+  scale_shape_manual(values = c(0, 1), guide = "none") +
   theme_bw()
 
-#ggplot_build(plot)$layout$panel_scales_x[[1]]$range$range # [32.29491 34.39670]
-#ggplot_build(plot)$layout$panel_scales_y[[1]]$range$range # [6.717487 10.080005]
+library(grid)
+grid.force()  # make grobs visible to grid editing tools
+grid.edit("geom_point.points", grep = TRUE, gp = gpar(lwd = 2))
+```
 
-# Temp vs. Sal, bottom, coloured depth
-may %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = Salinity, y = Temp, col = Depth)) +
-  geom_point() +
-  scale_colour_viridis(option = "mako", direction = -1) +
-  scale_x_continuous(limits = c(32.29, 34.40)) +
-  scale_y_continuous(limits = c(6.71, 10.09)) +
-  guides(colour = guide_colourbar(reverse = TRUE)) +
-  theme_bw()
-
-# Temp vs. Sal, coloured DIC
-ggplot(may, aes(x = Salinity, y = Temp, col = DIC, shape = Cast)) +
-  geom_point() +
-  scale_colour_viridis(option = "rocket") +
-  theme_bw()
-
-# Temp vs. Sal, coloured TA
-ggplot(may, aes(x = Salinity, y = Temp, col = TA, shape = Cast)) +
-  geom_point() +
-  scale_colour_viridis() +
-  theme_bw()
-
-# DIC vs. Sal, coloured cast
+## DIC vs Sal, coloured cast
+```{r}
 ggplot(may, aes(x = Salinity, y = DIC, shape = Cast, col = Cast)) +
   geom_point() +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("darkslateblue", "brown2"),
+                      guide = guide_legend(reverse = TRUE)) +
   theme_bw()
+```
 
-#plot(DIC ~ Salinity, data = may)
-#identify(may$DIC ~ may$Salinity)
-
-### check 112A DIC
-
-# TA vs. Sal, coloured cast
+## TA vs Sal, coloured cast
+```{r}
 ggplot(may, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
   geom_point() +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("darkslateblue", "brown2"),
+                      guide = guide_legend(reverse = TRUE)) +
   theme_bw()
+```
 
-#plot(may$TA ~ may$Salinity)
-#abline(lm(may$TA ~ may$Salinity))
-#identify(may$TA ~ may$Salinity)
-
-### check 053B TA; maybe check 052B TA
-
-# DIC vs. TA, coloured cast
+## TA vs DIC, coloured cast
+```{r}
 ggplot(may, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
   geom_point() +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("darkslateblue", "brown2"),
+                      guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
+## DIC vs density, coloured cast
+```{r}
+ggplot(may, aes(x = Density, y = DIC, shape = Cast, col = Cast)) +
+  geom_point() +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("darkslateblue", "brown2"),
+                      guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
+## TA vs density, coloured cast
+```{r}
+ggplot(may, aes(x = Density, y = TA, shape = Cast, col = Cast)) +
+  geom_point() +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("darkslateblue", "brown2"),
+                      guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
+## Plot delta values
+```{r}
+may %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  xlim(-41, 33) +
   theme_bw()
 
-#plot(may$TA ~ may$DIC)
-#identify(may$TA ~ may$DIC)
+# negative DIC means DIC < expected --> photosynth signal
+  # combination of photosynth & calcification/precipitation
+# positive DIC means DIC > expected --> respiration signal
+  # combination of respiration & dissolution
 
-### definitely check 112 DIC
+# positive TA is combination of dissolution & photosynthesis
+# negative TA is combination of calcification/precipitation & respiration
+
+# surface
+may %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast, col = pCO2)) + # color by pCO2
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = 1) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
 ```
+
+## pCO2 & flux prop-prop plots
+```{r}
+may %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = pCO2, y = flux)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 420, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(1)) +
+  theme_bw()
+
+may %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = Temp, y = pCO2)) +
+  geom_point(aes(shape = Cast)) +
+  scale_shape_manual(values = c(1)) +
+  theme_bw()
+```
+
+## Plot AOU data
+```{r}
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast, col = AOU)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(intercept = 0, slope = 2) +
+  geom_abline(intercept = 0, slope = -17/106) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_color_viridis(option = "magma") +
+  theme_bw()
+
+# dDIC vs AOU
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDIC, y = AOU, shape = Cast, col = Cast)) +
+    geom_point() +
+    #geom_text(aes(label = as.integer(Station)), size = 3) +
+    geom_point(data = may[((may$Station == "009" |
+                            may$Station == "033" |
+                            may$Station == "053") &
+                            may$Cast == "Bottom"), ],
+               col = "red", size = 3) +
+    scale_colour_manual(values = "darkblue") +
+    theme_bw() +
+    theme(legend.position = "none") + 
+    geom_vline(xintercept = 0, linetype = 2) +
+    geom_hline(yintercept = 0, linetype = 2)
+
+may.bottom <- may %>%
+  filter(Cast == "Bottom")
+
+lm(may.bottom$AOU ~ may.bottom$dDIC) # slope = 0.5526
+
+ggplot(may, aes(x = AOU, y = dDIC, shape = Cast)) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(slope = 0.768) +   # 106/138
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+lm(may.bottom$dDIC ~ may.bottom$AOU) # 0.6113
+
+# dTA vs AOU
+ggplot(may, aes(x = AOU, y = dTA, shape = Cast)) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(slope = -0.123) +   # -17/138   # negative for AOU
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+lm(may.bottom$dTA ~ may.bottom$AOU) # -0.07876
+```
+
+## Visualize DO prop-prop ******
+```{r}
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDIC, y = dTA)) +
+  geom_point(aes(shape = Cast, col = dDO)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_color_viridis(option = "magma") +
+  theme_bw()
+
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDIC, y = dDO)) +
+  geom_point(aes(shape = Cast)) +
+  #geom_text(aes(label = as.integer(Station)), size = 3) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16)) +
+  theme_bw()
+
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dTA, y = dDO)) +
+  geom_point(aes(shape = Cast)) +
+  #geom_text(aes(label = as.integer(Station)), size = 3) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16)) +
+  theme_bw()
+
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = dDO, y = AOU)) +
+  geom_point(aes(shape = Cast)) +
+  #geom_text(aes(label = as.integer(Station)), size = 3) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16)) +
+  theme_bw()
+```
+
