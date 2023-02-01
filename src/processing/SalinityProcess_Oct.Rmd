@@ -22,7 +22,7 @@ library(tidyverse)
 setwd("~/Desktop/Repos/ScallopRSA2021")
 
 octCTD <- read.csv("./data/CTD/oct_CTD.csv")
-oct_bottle <- read.csv("./data/salinity/oct_salinity_bottles.csv")
+oct_bottle <- read.csv("./data/CTD/oct_salinity_bottles.csv")
 octBottomData <- read.csv("./data/OctCruiseData.csv") %>%
   filter(Cast == "Bottom") %>%
   filter(Filtered == "") %>%
