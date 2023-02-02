@@ -51,8 +51,7 @@ station_SPDF_m <- SpatialPointsDataFrame(coords = may[ , c("Long", "Lat")],
                                                         )],
                                         proj4string = CRS("EPSG:4326"))
 
-station_sf_m <- st_as_sf(station_SPDF_m) #%>%
-#  st_transform(crs = 4326)
+station_sf_m <- st_as_sf(station_SPDF_m)
 
 bottom_sf_m <- station_sf_m %>%
   filter(Cast == "Bottom")
