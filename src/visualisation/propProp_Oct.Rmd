@@ -483,8 +483,8 @@ ggplot() +
 ggplot() +
   geom_point(data = may[which(may$Cast == "Bottom"), ],
              aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
-  geom_point(data = oct[which(oct$Cast == "Bottom"), ],
-             aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
+  #geom_point(data = oct[which(oct$Cast == "Bottom"), ],
+  #           aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(intercept = 0, slope = 2) +
@@ -511,8 +511,6 @@ ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("chartreuse3", "royalblue"),
                       name = "Month") +
-  ylim(-54, 36) +
-  xlim(-41, 86) +
   theme_bw()
 
 ggplot() +
@@ -525,7 +523,6 @@ ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("chartreuse3", "royalblue"),
                       name = "Month") +
-  #ylim(-54, 36) +
   theme_bw()
 
 ```
