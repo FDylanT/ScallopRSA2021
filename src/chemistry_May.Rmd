@@ -551,7 +551,7 @@ for(i in 1:nrow(may)) {
 
 ## Add mixed-layer depths
 ```{r}
-MLD <- read.csv("./data/CTD/may_MLD.csv") ***SITUATION***
+MLD <- read.csv("./data/CTD/may_MLD.csv")
 
 may$MLD <- NA
 may$MLD_frac <- NA
@@ -570,7 +570,6 @@ for(i in 1:nrow(may)) {
     depth = may$Depth[may$Station == may$Station[i] &
                       may$Cast == "Bottom"]
     may$MLD_frac[i] <- may$MLD[i] / depth
-    }
   }
 }
 ```
@@ -583,7 +582,7 @@ for(i in 1:nrow(may)) {
      !is.na(may$MLD_frac[may$Station == may$Station[i] &
                   may$Cast == "Surface"]) &
      may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.9) {
+                  may$Cast == "Surface"] > 0.75) {
     t = may$Temp[i]
     may$Sc[i] = A + B*t + C*t^2 + D*t^3 + E*t^4
   }
@@ -595,7 +594,7 @@ for(i in 1:nrow(may)) {
      !is.na(may$MLD_frac[may$Station == may$Station[i] &
                   may$Cast == "Surface"]) &
      may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.9) {
+                  may$Cast == "Surface"] > 0.75) {
     may$k[i] = 0.251 * may$wspd[i]^2 * (may$Sc[i]/660)^-0.5
   }
 }
@@ -606,7 +605,7 @@ for(i in 1:nrow(may)) {
      !is.na(may$MLD_frac[may$Station == may$Station[i] &
                   may$Cast == "Surface"]) &
      may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.9) {
+                  may$Cast == "Surface"] > 0.75) {
     T = may$Temp[i] + 273.15
     S = may$Salinity[i]
     may$K.prime[i] = exp(A1 + A2*(100/T) + A3*log(T/100) + S*(B1 + B2*(T/100) + B3*(T/100)^2))
@@ -619,7 +618,7 @@ for(i in 1:nrow(may)) {
      !is.na(may$MLD_frac[may$Station == may$Station[i] &
                   may$Cast == "Surface"]) &
      may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.9) {
+                  may$Cast == "Surface"] > 0.75) {
     xCO2 = p2xCO2(may$Salinity[i], may$Temp[i], Patm = P, may$pCO2[i])   # ppm
     may$K0[i] = may$K.prime[i] * xCO2 * (P - may$pH2O[i]) / may$fCO2[i]
   }
@@ -631,7 +630,7 @@ for(i in 1:nrow(may)) {
      !is.na(may$MLD_frac[may$Station == may$Station[i] &
                   may$Cast == "Surface"]) &
      may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.9) {
+                  may$Cast == "Surface"] > 0.75) {
     k = may$k[i] / 100 * 24         # cm/hr --> m/d
     K0 = may$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
     d.pCO2 = may$pCO2[i] - pCO2a    # uatm
@@ -644,7 +643,7 @@ for(i in 1:nrow(may)) {
 ```{r}
 # umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
 
-mayResTime <- 60   # going with 60 across the board for now
+mayResTime <- 63   # going with 63 across the board for now
 may$DICf <- NA
 
 for(i in 1:nrow(may)) {
@@ -655,7 +654,7 @@ for(i in 1:nrow(may)) {
      !is.na(may$MLD_frac[may$Station == may$Station[i] &
                   may$Cast == "Surface"]) &
      may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.9) {
+                  may$Cast == "Surface"] > 0.75) {
     may$DICf[i] = -1 * may$flux[i] / may$MLD[i] / may$Density[i] * mayResTime
   }
 }
@@ -677,9 +676,9 @@ may$dDO <- NA
 
 for(i in 1:nrow(may)) {
   if(may$Cast[i] == "Surface") {
-       may$DOn[i] = a1*DO1 + a2*DO2 + a3*DO3
-       may$dDO[i] = may$DO[i] - may$DOn[i]   # observed - expected
-    } else if(may$Cast[i] == "Bottom" &
+    may$DOn[i] = may$a1[i]*DO1 + may$a2[i]*DO2 + may$a3[i]*DO3
+    may$dDO[i] = may$DO[i] - may$DOn[i]   # observed - expected
+  } else if(may$Cast[i] == "Bottom" &
             may$Station[i] != "059" &
             may$Station[i] != "064" &
             may$Station[i] != "087" &
@@ -699,10 +698,10 @@ for(i in 1:nrow(may)) {
             may$Station[i] != "069" &
             may$Station[i] != "093" &
             may$Station[i] != "104") {
-       may$DOn[i] = a4*DO4 + a5*DO5 + a6*DO6
+       may$DOn[i] = may$a4[i]*DO4 + may$a5[i]*DO5 + may$a6[i]*DO6
        may$dDO[i] = may$DO[i] - may$DOn[i]   # observed - expected
     } else {
-      may$DOn[i] = a5*DO5 + a7*DO7
+      may$DOn[i] = may$a5[i]*DO5 + may$a7[i]*DO7
       may$dDO[i] = may$DO[i] - may$DOn[i]
     }
 }
@@ -713,10 +712,10 @@ for(i in 1:nrow(may)) {
 # calling the "other" component of DO negligible; therefore dDO is all aerobic
 
 # dDO umol/kg * 106 (DIC) / 138 (O2) = prod/resp DIC signal
-may$prDIC <- may$dDO * -106 / 138
+may$DICpr <- may$dDO * -106 / 138
 
 # dDO umol/kg * 17 (TA) / 138 (O2) = prod/resp TA signal
-may$prTA <- may$dDO * 17 / 138
+may$TApr <- may$dDO * 17 / 138
 ```
 
 ## Calculate "other" components of DIC & TA
@@ -724,41 +723,11 @@ may$prTA <- may$dDO * 17 / 138
 may$DIC.other <- NA
 may$TA.other <- NA
 
-may$DIC.other <- may$DIC - may$DICn - may$prDIC - may$DICf
-may$TA.other = may$TA - may$TAn - may$prTA
+may$DIC.other <- may$DIC - may$DICn - may$DICpr - may$DICf
+may$TA.other = may$TA - may$TAn - may$TApr
 ```
 
-## Plot "other" components
-```{r}
-may %>%
-  ggplot(aes(x = DIC.other, y = TA.other)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
 
-may %>%
-  ggplot(aes(x = DIC.other, y = TA.other)) +
-  geom_point(aes(shape = Cast, col = AOU)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_color_viridis(option = "viridis") +
-  theme_bw()
-
-may %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = DIC.other, y = dDO)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
-```
 
 
 
