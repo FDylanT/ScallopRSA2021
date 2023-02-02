@@ -728,10 +728,10 @@ for(i in 1:nrow(oct)) {
 # calling the "other" component of DO negligible; therefore dDO is all aerobic
 
 # dDO umol/kg * 106 (DIC) / 138 (O2) = prod/resp DIC signal
-oct$prDIC <- oct$dDO * -106 / 138
+oct$DICpr <- oct$dDO * -106 / 138
 
 # dDO umol/kg * 17 (TA) / 138 (O2) = prod/resp TA signal
-oct$prTA <- oct$dDO * 17 / 138
+oct$TApr <- oct$dDO * 17 / 138
 ```
 
 ## Calculate "other" components of DIC & TA
@@ -739,8 +739,8 @@ oct$prTA <- oct$dDO * 17 / 138
 oct$DIC.other <- NA
 oct$TA.other <- NA
 
-oct$DIC.other <- oct$DIC - oct$DICn - oct$DICf - oct$prDIC
-oct$TA.other = oct$TA - oct$TAn - oct$prTA
+oct$DIC.other <- oct$DIC - oct$DICn - oct$DICf - oct$DICpr
+oct$TA.other = oct$TA - oct$TAn - oct$TApr
 ```
 
 
@@ -816,24 +816,24 @@ oct %>%
 ## Convert AOU to DIC & TA signals --- NOT USING; FOUND BETTER METHOD
 ```{r}
 # AOU umol/kg * 106 (DIC) / 138 (O2) = prod/resp DIC signal
-oct$prDIC <- oct$AOU * 106 / 138
+oct$DICpr <- oct$AOU * 106 / 138
 
 # AOU umol/kg * 17 (TA) / 138 (O2) = prod/resp TA signal
-oct$prTA <- oct$AOU * 17 / 138
+oct$TApr <- oct$AOU * 17 / 138
 ```
 
 ## Calculate "other" components of DIC & TA
 ```{r}
-# DIC = DICn + prDIC + fDIC + other
-# other = DIC - DICn - prDIC - fDIC
-# other = DIC - DICn - prDIC (leaving out flux for bottom for now)
+# DIC = DICn + DICpr + fDIC + other
+# other = DIC - DICn - DICpr - fDIC
+# other = DIC - DICn - DICpr (leaving out flux for bottom for now)
 
-oct$DIC.other <- oct$DIC - oct$DICn - oct$prDIC
+oct$DIC.other <- oct$DIC - oct$DICn - oct$DICpr
 
-# TA = TAn + prTA + other
-# other = TA - TAn - prTA
+# TA = TAn + TApr + other
+# other = TA - TAn - TApr
 
-oct$TA.other = oct$TA - oct$TAn - oct$prTA
+oct$TA.other = oct$TA - oct$TAn - oct$TApr
 
 oct %>%
   filter(Cast == "Bottom") %>%
