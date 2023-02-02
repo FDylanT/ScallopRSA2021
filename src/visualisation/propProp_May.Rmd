@@ -222,7 +222,7 @@ ggplot(may, aes(x = AOU, y = dTA, shape = Cast)) +
 lm(may.bottom$dTA ~ may.bottom$AOU) # -0.07876
 ```
 
-## Visualize DO prop-prop ******
+## Visualize DO prop-prop
 ```{r}
 may %>%
   filter(Cast == "Bottom") %>%
@@ -266,3 +266,34 @@ may %>%
   theme_bw()
 ```
 
+## Plot "other" components
+```{r}
+may %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+may %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast, col = AOU)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_color_viridis(option = "viridis") +
+  theme_bw()
+
+may %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = DIC.other, y = dDO)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
