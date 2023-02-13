@@ -231,6 +231,79 @@ stations2 = {'65', '63', '58', '59', '64', '69', '70', '71', '72', '76', '77', '
 
 may2down = RSKaddstationdata(may2down, 'profile', [1:2, 4, 6:7, 9, 11:12, 14:27, 29, 31:32, 34:37, 40, 43:44, 46, 48, 51, 53:56, 58, 60:62, 64:70], 'station', stations2);
 
+%% Plot end-member profiles
+% surface: 4, 72, 113
+% bottom: 1, 4, 113, + 59
+
+may2down = RSKtrim(may2down, 'reference', 'depth', 'profile', 70, 'range', [2 4], 'action', 'remove');
+
+% surface
+figure
+channel = {'temperature', 'salinity', 'dissolved O21'};
+h = RSKplotprofiles(may1down, 'profile', 6, 'channel', channel); % 004
+j = RSKplotprofiles(may2down, 'profile', 14, 'channel', channel); % 072
+k = RSKplotprofiles(may2down, 'profile', 70, 'channel', channel); % 113
+set(h, 'linewidth', 3, 'linestyle', ':', 'color', '#66CD00')
+set(j, 'linewidth', 3, 'linestyle', ':', 'color', '#66CD00')
+set(k, 'linewidth', 3, 'linestyle', ':', 'color', '#66CD00')
+
+% bottom
+figure
+channel = {'temperature', 'salinity', 'dissolved O21'};
+h = RSKplotprofiles(may1down, 'profile', 1, 'channel', channel); % 001
+j = RSKplotprofiles(may1down, 'profile', 6, 'channel', channel); % 004
+k = RSKplotprofiles(may2down, 'profile', 70, 'channel', channel); % 113
+l = RSKplotprofiles(may2down, 'profile', 6, 'channel', channel); % 059
+set(h, 'linewidth', 3, 'color', '#66CD00') % 001
+set(j, 'linewidth', 3, 'color', '#66CD00') % 004
+set(k, 'linewidth', 3, 'color', '#66CD00') % 113
+set(l, 'linewidth', 3, 'color', '#66CD00') % 059
+
+% surface
+
+%(7.16204, 2.40449)
+%(8.19380, 2.47345)
+%(8.76867, 4.55216)
+
+%(32.3202, 2.47345)
+%(32.9051, 4.55216)
+%(33.0994, 2.40449)
+
+%(303.293, 2.40449)
+%(304.967, 2.47345)
+%(302.707, 4.55216)
+
+% bottom
+
+%(6.71749, 107.196)
+%(6.98635, 45.7703)
+%(8.28354, 60.0458)
+%(10.0800, 96.3773)
+
+%(32.4688, 45.7703)
+%(32.8358, 60.0458)
+%(33.0493, 107.196)
+%(34.4211, 96.3773)
+
+%(238.780, 96.3773)
+%(298.935, 107.196)
+%(302.269, 45.7703)
+%(304.226, 60.0458)
+
+% all
+figure
+channel = {'temperature', 'salinity', 'dissolved O21'};
+h = RSKplotprofiles(may1down, 'profile', 1, 'channel', channel); % 001
+j = RSKplotprofiles(may1down, 'profile', 6, 'channel', channel); % 004, both
+k = RSKplotprofiles(may2down, 'profile', 70, 'channel', channel); % 113, both
+l = RSKplotprofiles(may2down, 'profile', 6, 'channel', channel); % 059
+m = RSKplotprofiles(may2down, 'profile', 14, 'channel', channel); % 072, surface
+set(h, 'linewidth', 3, 'color', '#66CD00') % 001
+set(j, 'linewidth', 3, 'linestyle', '-.', 'color', '#66CD00') % 004, both
+set(k, 'linewidth', 3, 'linestyle', '-.', 'color', '#66CD00') % 113, both
+set(l, 'linewidth', 3, 'color', '#66CD00') % 059
+set(m, 'linewidth', 3, 'linestyle', ':', 'color', '#66CD00') % 072, surface
+
 %% Extract salinity data
 stations = cell(112, 1);
 CTD_depth = NaN(112, 1);
