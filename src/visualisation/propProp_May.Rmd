@@ -269,6 +269,7 @@ may %>%
 ## Plot "other" components
 ```{r}
 may %>%
+  filter(Cast != "Surface") %>%
   ggplot(aes(x = DIC.other, y = TA.other)) +
   geom_point(aes(shape = Cast)) +
   geom_vline(xintercept = 0, linetype = 2) +
