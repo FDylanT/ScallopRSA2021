@@ -151,11 +151,11 @@ oct$AOU <- oct$O2sol - oct$DO
 ```{r}
 # surface EMs
 EM1 <- which(oct$Station == "005" & oct$Cast == "Surface")
-EM2 <- which(oct$Station == "007" & oct$Cast == "Surface")
-EM3 <- which(oct$Station == "043" & oct$Cast == "Surface")
+EM2 <- which(oct$Station == "043" & oct$Cast == "Surface")
+EM3 <- which(oct$Station == "091" & oct$Cast == "Surface")
 
 # bottom EMs
-EM6 <- which(oct$Station == "009" & oct$Cast == "Bottom") # this gives WOW dDIC-AOU correlation, compared to 021 or 023
+EM6 <- which(oct$Station == "021" & oct$Cast == "Bottom")
 EM4 <- which(oct$Station == "033" & oct$Cast == "Bottom")
 EM5 <- which(oct$Station == "053" & oct$Cast == "Bottom")
 
@@ -284,8 +284,12 @@ for(i in 1:nrow(oct)) {
 
 ### Gas transfer velocity pt. 1: wind speeds
 ```{r}
+# sample collection: Oct 5-10, 2021
+# 63-day period centered on Oct 7, 2021
+# Sep 6 - Nov 7
+
 # first satellite
-satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_25_ASC_V2.nc")
+satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_25_ASC_V2_oct.nc")
 
 lon <- ncvar_get(satA, "lon")
 lat <- ncvar_get(satA, "lat")
@@ -295,9 +299,9 @@ t.units <- ncatt_get(satA, "time", "units")
 # convert time
 t.units$value   # seconds since 1990-01-01 00:00:00
 # chron() calculates *days* since origin
-# chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
+#chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
 
-wind_array <- ncvar_get(satA, "wind_speed")[ , , 6:11]
+wind_array <- ncvar_get(satA, "wind_speed")
 fillvalue <- ncatt_get(satA, "wind_speed", "_FillValue")
 wind_array[wind_array == fillvalue$value] <- NA
 
@@ -307,7 +311,7 @@ wind_array[wind_array == fillvalue$value] <- NA
 wind_df_A <- data.frame(matrix(ncol = 4, nrow = 0))
 
 # fill dataframe
-for(i in 1:6) {
+for(i in 1:63) {
   lonlat <- as.matrix(expand.grid(lon, lat))
   wind_slice <- wind_array[ , , i]
   wind_vec <- as.vector(wind_slice)
@@ -317,7 +321,7 @@ for(i in 1:6) {
 names(wind_df_A) <- c("day", "lon", "lat", "wind_speed")
 
 # second satellite
-satB <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-B_ASCAT_25_ASC_V2.nc")
+satB <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-B_ASCAT_25_ASC_V2_oct.nc")
 
 lon <- ncvar_get(satB, "lon")
 lat <- ncvar_get(satB, "lat")
@@ -325,7 +329,7 @@ time <- ncvar_get(satB, "time")
 
 #chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
 
-wind_array <- ncvar_get(satB, "wind_speed")[ , , 6:11]
+wind_array <- ncvar_get(satB, "wind_speed")
 fillvalue <- ncatt_get(satB, "wind_speed", "_FillValue")
 wind_array[wind_array == fillvalue$value] <- NA
 
@@ -335,7 +339,7 @@ wind_array[wind_array == fillvalue$value] <- NA
 wind_df_B <- data.frame(matrix(ncol = 4, nrow = 0))
 
 # fill dataframe
-for(i in 1:6) {
+for(i in 1:63) {
   lonlat <- as.matrix(expand.grid(lon, lat))
   wind_slice <- wind_array[ , , i]
   wind_vec <- as.vector(wind_slice)
@@ -345,7 +349,7 @@ for(i in 1:6) {
 names(wind_df_B) <- c("day", "lon", "lat", "wind_speed")
 
 # third satellite
-satC <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_25_ASC_V2.nc")
+satC <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_25_ASC_V2_oct.nc")
 
 lon <- ncvar_get(satC, "lon")
 lat <- ncvar_get(satC, "lat")
@@ -353,7 +357,7 @@ time <- ncvar_get(satC, "time")
 
 #chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
 
-wind_array <- ncvar_get(satC, "wind_speed")[ , , 6:11]
+wind_array <- ncvar_get(satC, "wind_speed")
 fillvalue <- ncatt_get(satC, "wind_speed", "_FillValue")
 wind_array[wind_array == fillvalue$value] <- NA
 
@@ -363,7 +367,7 @@ wind_array[wind_array == fillvalue$value] <- NA
 wind_df_C <- data.frame(matrix(ncol = 4, nrow = 0))
 
 # fill dataframe
-for(i in 1:6) {
+for(i in 1:63) {
   lonlat <- as.matrix(expand.grid(lon, lat))
   wind_slice <- wind_array[ , , i]
   wind_vec <- as.vector(wind_slice)
@@ -497,8 +501,7 @@ oct$MLD <- NA
 oct$MLD_frac <- NA
 
 for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface" &
-     oct$Station[i] != "022" &
+  if(oct$Station[i] != "022" &
      oct$Station[i] != "023" &
      oct$Station[i] != "104") {
     oct$MLD[i] = MLD$MLD[MLD$Station == as.integer(oct$Station[i])]
@@ -511,66 +514,12 @@ for(i in 1:nrow(oct)) {
 
 ## Add air-sea flux for fully mixed sites
 ```{r}
-# Schmidt number
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Bottom" &
-     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"]) &
-     oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"] > 0.9) {
-    t = oct$Temp[i]
-    oct$Sc[i] = A + B*t + C*t^2 + D*t^3 + E*t^4
-  }
-}
-
-# gas transfer velocity
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Bottom" &
-     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"]) &
-     oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"] > 0.9) {
-    oct$k[i] = 0.251 * oct$wspd[i]^2 * (oct$Sc[i]/660)^-0.5
-  }
-}
-
-# solubility constant
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Bottom" &
-     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"]) &
-     oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"] > 0.9) {
-    T = oct$Temp[i] + 273.15
-    S = oct$Salinity[i]
-    oct$K.prime[i] = exp(A1 + A2*(100/T) + A3*log(T/100) + S*(B1 + B2*(T/100) + B3*(T/100)^2))
-    oct$pH2O[i] = vapress(oct$Salinity[i], oct$Temp[i], form = "d2007")   # atm
-  }
-}
-
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Bottom" &
-     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"]) &
-     oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"] > 0.9) {
-    xCO2 = p2xCO2(oct$Salinity[i], oct$Temp[i], Patm = P, oct$pCO2[i])   # ppm
-    oct$K0[i] = oct$K.prime[i] * xCO2 * (P - oct$pH2O[i]) / oct$fCO2[i]
-  }
-}
-oct <- select(oct, -K.prime, -pH2O)
-
-# flux
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Bottom" &
-     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"]) &
-     oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"] > 0.9) {
-    k = oct$k[i] / 100 * 24         # cm/hr --> m/d
-    K0 = oct$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
-    d.pCO2 = oct$pCO2[i] - pCO2a    # uatm
-    oct$flux[i] = k * K0 * d.pCO2   # umol/(m^2*d)
+     !is.na(oct$MLD_frac[i]) &
+     oct$MLD_frac[i] > 0.9) {
+    oct$flux[i] = oct$flux[which(oct$Cast == "Surface" &
+                                 oct$Station == oct$Station[i])]
   }
 }
 ```
@@ -634,12 +583,7 @@ E = 0.00093777
 oct$Sc.O2 <- NA
 
 for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface" |
-    (oct$Cast[i] == "Bottom" &
-     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"]) &
-     oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"] > 0.9)) {
+  if(oct$Cast[i] == "Surface") {
     t = oct$Temp[i]
     oct$Sc.O2[i] = A + B*t + C*t^2 + D*t^3 + E*t^4
   }
@@ -649,12 +593,7 @@ for(i in 1:nrow(oct)) {
 oct$k.O2 <- NA
 
 for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface" |
-    (oct$Cast[i] == "Bottom" &
-     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"]) &
-     oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"] > 0.9)) {
+  if(oct$Cast[i] == "Surface") {
     oct$k.O2[i] = 0.251 * oct$wspd[i]^2 * (oct$Sc.O2[i]/660)^-0.5
   }
 }
@@ -670,28 +609,12 @@ B3 = 0.0019387
 oct$beta <- NA
 
 for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface" |
-    (oct$Cast[i] == "Bottom" &
-     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"]) &
-     oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"] > 0.9)) {
+  if(oct$Cast[i] == "Surface") {
     T = oct$Temp[i] + 273.15
     S = oct$Salinity[i]
     oct$beta[i] = exp(A1 + A2*(100/T) + A3*log(T/100) + S*(B1 + B2*(T/100) + B3*(T/100)^2))
   }
 }
-
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Bottom" &
-     !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"]) &
-     oct$MLD_frac[oct$Station == oct$Station[i] &
-                  oct$Cast == "Surface"] > 0.9) {
-    ***
-  }
-}
-oct <- select(oct, -beta)
 
 oct$pO2?
 pO2a <- ***
@@ -699,15 +622,23 @@ oct$flux.O2 <- NA
 
 # flux
 for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface") {
+    k = oct$k[i] / 100 * 24         # cm/hr --> m/d
+    K0 = oct$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
+    d.pO2 = oct$pO2[i] - pO2a    # uatm
+    oct$flux.O2[i] = k * K0 * d.pO2   # umol/(m^2*d)
+  }
+}
+
+# add to bottom at fully mixed sites
+for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Bottom" &
      !is.na(oct$MLD_frac[oct$Station == oct$Station[i] &
                   oct$Cast == "Surface"]) &
      oct$MLD_frac[oct$Station == oct$Station[i] &
                   oct$Cast == "Surface"] > 0.9) {
-    k = oct$k[i] / 100 * 24         # cm/hr --> m/d
-    K0 = oct$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
-    d.pO2 = oct$pO2[i] - pO2a    # uatm
-    oct$flux.O2[i] = k * K0 * d.pO2   # umol/(m^2*d)
+    oct$flux.O2[i] = oct$flux.O2[which(oct$Cast == "Surface" &
+                                 oct$Station == oct$Station[i])]
   }
 }
 
@@ -723,7 +654,7 @@ for(i in 1:nrow(oct)) {
 ```{r}
 # subtracting O2 flux at surface & fully mixed sites
 
-***
+
 
 # calling the "other" component of DO negligible; therefore dDO is all aerobic
 
@@ -736,6 +667,12 @@ oct$TApr <- oct$dDO * 17 / 138
 
 ## Calculate "other" components of DIC & TA
 ```{r}
+for(i in 1:nrow(oct)) {
+  if(is.na(oct$DICf[i])) {
+    oct$DICf[i] <- 0
+  }
+}
+
 oct$DIC.other <- NA
 oct$TA.other <- NA
 
