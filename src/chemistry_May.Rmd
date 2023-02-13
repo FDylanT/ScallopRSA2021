@@ -344,6 +344,10 @@ for(i in 1:nrow(may)) {
 
 ### Gas transfer velocity pt. 1: wind speeds
 ```{r}
+# sample collection: May 2-6, 2021
+# 63-day period centered on May 4, 2021
+# Apr 3 - Jun 4
+
 # first satellite
 satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_25_ASC_V2_may.nc")
 
@@ -355,7 +359,7 @@ t.units <- ncatt_get(satA, "time", "units")
 # convert time
 t.units$value   # seconds since 1990-01-01 00:00:00
 # chron() calculates *days* since origin
-# chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
+#chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
 
 wind_array <- ncvar_get(satA, "wind_speed")
 fillvalue <- ncatt_get(satA, "wind_speed", "_FillValue")
@@ -367,7 +371,7 @@ wind_array[wind_array == fillvalue$value] <- NA
 wind_df_A <- data.frame(matrix(ncol = 4, nrow = 0))
 
 # fill dataframe
-for(i in 1:6) {
+for(i in 1:63) {
   lonlat <- as.matrix(expand.grid(lon, lat))
   wind_slice <- wind_array[ , , i]
   wind_vec <- as.vector(wind_slice)
@@ -395,7 +399,7 @@ wind_array[wind_array == fillvalue$value] <- NA
 wind_df_B <- data.frame(matrix(ncol = 4, nrow = 0))
 
 # fill dataframe
-for(i in 1:6) {
+for(i in 1:63) {
   lonlat <- as.matrix(expand.grid(lon, lat))
   wind_slice <- wind_array[ , , i]
   wind_vec <- as.vector(wind_slice)
@@ -423,7 +427,7 @@ wind_array[wind_array == fillvalue$value] <- NA
 wind_df_C <- data.frame(matrix(ncol = 4, nrow = 0))
 
 # fill dataframe
-for(i in 1:6) {
+for(i in 1:63) {
   lonlat <- as.matrix(expand.grid(lon, lat))
   wind_slice <- wind_array[ , , i]
   wind_vec <- as.vector(wind_slice)
@@ -432,7 +436,7 @@ for(i in 1:6) {
 }
 names(wind_df_C) <- c("day", "lon", "lat", "wind_speed")
 
-# merge dataframes
+# merge dataframes, averaging across 63 days
 wind_df <- bind_rows(wind_df_A, wind_df_B, wind_df_C) %>%
   mutate(lon = lon - 360) %>%
   filter(lon >= -70.5 & lon <= -66) %>%
@@ -457,9 +461,9 @@ may$wspd <- NA
 # assign wind speed to each station
 for(i in 1:nrow(may)) {
   may$wspd[i] = mean(wind_df$mean_wind[which(abs(may$Lat[i] - wind_df$lat) +
-                                           abs(may$Long[i] - wind_df$lon) ==
-                                       min(abs(may$Lat[i] - wind_df$lat) +
-                                           abs(may$Long[i] - wind_df$lon)))])
+                                             abs(may$Long[i] - wind_df$lon) ==
+                                         min(abs(may$Lat[i] - wind_df$lat) +
+                                             abs(may$Long[i] - wind_df$lon)))])
 }
 ```
 
@@ -557,8 +561,7 @@ may$MLD <- NA
 may$MLD_frac <- NA
 
 for(i in 1:nrow(may)) {
-  if(may$Cast[i] == "Surface" &
-     may$Station[i] != "006" &
+  if(may$Station[i] != "006" &
      may$Station[i] != "012" &
      may$Station[i] != "016" &
      may$Station[i] != "022" &
@@ -576,65 +579,12 @@ for(i in 1:nrow(may)) {
 
 ## Add air-sea flux for fully mixed sites
 ```{r}
-# Schmidt number
 for(i in 1:nrow(may)) {
   if(may$Cast[i] == "Bottom" &
-     !is.na(may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"]) &
-     may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.75) {
-    t = may$Temp[i]
-    may$Sc[i] = A + B*t + C*t^2 + D*t^3 + E*t^4
-  }
-}
-
-# gas transfer velocity
-for(i in 1:nrow(may)) {
-  if(may$Cast[i] == "Bottom" &
-     !is.na(may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"]) &
-     may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.75) {
-    may$k[i] = 0.251 * may$wspd[i]^2 * (may$Sc[i]/660)^-0.5
-  }
-}
-
-# solubility constant
-for(i in 1:nrow(may)) {
-  if(may$Cast[i] == "Bottom" &
-     !is.na(may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"]) &
-     may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.75) {
-    T = may$Temp[i] + 273.15
-    S = may$Salinity[i]
-    may$K.prime[i] = exp(A1 + A2*(100/T) + A3*log(T/100) + S*(B1 + B2*(T/100) + B3*(T/100)^2))
-    may$pH2O[i] = vapress(may$Salinity[i], may$Temp[i], form = "d2007")   # atm
-  }
-}
-
-for(i in 1:nrow(may)) {
-  if(may$Cast[i] == "Bottom" &
-     !is.na(may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"]) &
-     may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.75) {
-    xCO2 = p2xCO2(may$Salinity[i], may$Temp[i], Patm = P, may$pCO2[i])   # ppm
-    may$K0[i] = may$K.prime[i] * xCO2 * (P - may$pH2O[i]) / may$fCO2[i]
-  }
-}
-
-# flux
-for(i in 1:nrow(may)) {
-  if(may$Cast[i] == "Bottom" &
-     !is.na(may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"]) &
-     may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.75) {
-    k = may$k[i] / 100 * 24         # cm/hr --> m/d
-    K0 = may$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
-    d.pCO2 = may$pCO2[i] - pCO2a    # uatm
-    may$flux[i] = k * K0 * d.pCO2   # umol/(m^2*d)
+     !is.na(may$MLD_frac[i]) &
+     may$MLD_frac[i] > 0.75) {
+    may$flux[i] = may$flux[which(may$Cast == "Surface" &
+                                 may$Station == may$Station[i])]
   }
 }
 ```
@@ -643,7 +593,7 @@ for(i in 1:nrow(may)) {
 ```{r}
 # umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
 
-mayResTime <- 63   # going with 63 across the board for now
+mayResTime <- 63   # average time for a particle to transit GB (Brink 2003)
 may$DICf <- NA
 
 for(i in 1:nrow(may)) {
@@ -720,6 +670,12 @@ may$TApr <- may$dDO * 17 / 138
 
 ## Calculate "other" components of DIC & TA
 ```{r}
+for(i in 1:nrow(may)) {
+  if(is.na(may$DICf[i])) {
+    may$DICf[i] <- 0
+  }
+}
+
 may$DIC.other <- NA
 may$TA.other <- NA
 
