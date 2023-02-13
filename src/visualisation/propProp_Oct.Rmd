@@ -19,8 +19,10 @@ library(tidyverse)
 
 ## Temp vs Sal, coloured cast
 ```{r}
+#plot <-
 ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
-  geom_point() +
+  #geom_point() +
+  geom_text(aes(label = Station), size = 2) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("darkblue", "coral2"),
@@ -30,6 +32,23 @@ ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
   #geom_label(aes(x = 35.255, y = 20.1, label = "October"), size = 5, color = "black",
   #           fontface = "bold", label.size = 0.75, label.padding = unit(0.5, "lines")) +
   theme_bw()
+
+#library(plotly)
+#ggplotly(plot)
+
+ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = dDIC)) +
+  geom_point() +
+  #geom_text(aes(label = Station), size = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_fill_distiller(limits = c(-10, 10), palette = "RdBu",
+                       aesthetics = "colour") +
+  #xlab("Salinity (PSU)") +
+  #ylab("Temperature (°C)") +
+  #geom_label(aes(x = 35.255, y = 20.1, label = "October"), size = 5, color = "black",
+  #           fontface = "bold", label.size = 0.75, label.padding = unit(0.5, "lines")) +
+  #theme_bw() +
+  theme(panel.background = element_rect(fill = "black", colour = "black"))
 ```
 
 ## Temp vs Sal, EMs highlighted
@@ -37,8 +56,8 @@ ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
 ggplot(oct, aes(x = Salinity, y = Temp, col = Cast)) +
   geom_text(aes(label = as.integer(Station)), size = 3) +
   geom_point(data = oct[((oct$Station == "005" |
-                          oct$Station == "007" |
-                          oct$Station == "043") &
+                          oct$Station == "043" |
+                          oct$Station == "091") &
                           oct$Cast == "Surface") |
                         ((oct$Station == "009" |
                           oct$Station == "033" |
@@ -89,13 +108,17 @@ ggplot(oct, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
 
 ## TA vs DIC, coloured cast
 ```{r}
+#plot <-
 ggplot(oct, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
-  geom_point() +
+  #geom_point() +
+  geom_text(aes(label = Station), size = 2) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("darkblue", "coral2"),
                       guide = guide_legend(reverse = TRUE)) +
   theme_bw()
+
+#ggplotly(plot)
 
 #plot(oct$TA ~ oct$DIC, col = factor(oct$Cast))
 #identify(oct$TA ~ oct$DIC)
@@ -153,6 +176,15 @@ ggplot(oct, aes(x = Density, y = DIC, shape = Cast, col = Cast, group = Station)
   theme_bw()
 
 ggplot(oct, aes(x = Salinity, y = TA, shape = Cast, col = Cast, group = Station)) +
+  geom_point() +
+  geom_line(col = "grey56", linetype = "dotted") +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = c("darkblue", "coral2"),
+                      guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = Cast, group = Station)) +
   geom_point() +
   geom_line(col = "grey56", linetype = "dotted") +
   scale_shape_manual(values = c(16, 1),
@@ -374,17 +406,25 @@ oct %>%
   theme_bw()
 
 oct %>%
-  filter(Cast == "Bottom") %>%
+  #filter(Cast == "Bottom") %>%
   ggplot(aes(x = dDIC, y = dDO)) +
   geom_point(aes(shape = Cast)) +
   #geom_text(aes(label = as.integer(Station)), size = 3) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16)) +
+  geom_abline(slope = -106/138) +
+  scale_shape_manual(values = c(16, 1)) +
   theme_bw()
 
 oct %>%
-  #filter(Cast == "Bottom") %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = DIC, y = DO)) +
+  #geom_point(aes(shape = Cast)) +
+  geom_text(aes(label = as.integer(Station)), size = 3) +
+  scale_shape_manual(values = c(16, 1)) +
+  theme_bw()
+
+oct %>%
   ggplot(aes(x = dTA, y = dDO)) +
   geom_point(aes(shape = Cast)) +
   #geom_text(aes(label = as.integer(Station)), size = 3) +
@@ -394,13 +434,12 @@ oct %>%
   theme_bw()
 
 oct %>%
-  filter(Cast == "Bottom") %>%
   ggplot(aes(x = dDO, y = AOU)) +
   geom_point(aes(shape = Cast)) +
   #geom_text(aes(label = as.integer(Station)), size = 3) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16)) +
+  scale_shape_manual(values = c(16, 1)) +
   theme_bw()
 ```
 
