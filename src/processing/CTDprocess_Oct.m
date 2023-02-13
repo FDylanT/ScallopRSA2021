@@ -314,30 +314,6 @@ profile = 25; % station 91
 h2 = RSKplotprofiles(oct3down, 'profile', profile, 'channel', channel);
 set(h2, 'linewidth', 3)
 
-%% Plot end-member profiles
-% EMs: 5, 43, 7
-%      33, 53, 9
-
-figure
-channel = {'temperature', 'salinity', 'dissolved O2'};
-h = RSKplotprofiles(oct1down, 'profile', 4, 'channel', channel);
-j = RSKplotprofiles(oct1down, 'profile', 7, 'channel', channel);
-k = RSKplotprofiles(oct2down, 'profile', 20, 'channel', channel);
-set(h, 'linewidth', 3, 'color', '#A2142F')
-set(j, 'linewidth', 3, 'color', '#D95319')
-set(k, 'linewidth', 3, 'color', '#EDB120')
-
-figure
-channel = {'temperature', 'salinity', 'dissolved O2'};
-h = RSKplotprofiles(oct1down, 'profile', 9, 'channel', channel);
-j = RSKplotprofiles(oct2down, 'profile', 12, 'channel', channel);
-k = RSKplotprofiles(oct2up, 'profile', 12, 'channel', channel);
-l = RSKplotprofiles(oct2down, 'profile', 34, 'channel', channel);
-set(h, 'linewidth', 3, 'color', '#77AC30')
-set(j, 'linewidth', 3, 'color', '#0072BD')
-set(k, 'linewidth', 3, 'color', '#0072BD')
-set(l, 'linewidth', 3, 'color', '#7E2F8E')
-
 %% Assign station numbers to profiles
 
 % oct1 file
@@ -387,6 +363,32 @@ compare3 = [list3; profiles3];
 stations3 = {'69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '80', '81', '82', '83', '84', '86', '87', '93', '88', '85', '89', '90', '91', '97', '96', '92', '92', '95', '94', '103', '102', '98', '100', '99', '101', '105', '106', '109', '110', '108', '107', '111', '112', '113', '114'};
 
 oct3down = RSKaddstationdata(oct3down, 'profile', profiles3, 'station', stations3);
+
+%% Plot end-member profiles
+% surface EMs: 5, 43, 7
+% bottom EMs: 33, 53, 9
+
+% surface
+figure
+channel = {'temperature', 'salinity', 'dissolved O2'};
+h = RSKplotprofiles(oct1down, 'profile', 4, 'channel', channel);
+j = RSKplotprofiles(oct1down, 'profile', 7, 'channel', channel);
+k = RSKplotprofiles(oct2down, 'profile', 20, 'channel', channel);
+set(h, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
+set(j, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
+set(k, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
+
+% bottom
+figure
+channel = {'temperature', 'salinity', 'dissolved O2'};
+h = RSKplotprofiles(oct1down, 'profile', 9, 'channel', channel);
+j = RSKplotprofiles(oct2down, 'profile', 12, 'channel', channel);
+k = RSKplotprofiles(oct2up, 'profile', 12, 'channel', channel);
+l = RSKplotprofiles(oct2down, 'profile', 34, 'channel', channel);
+set(h, 'linewidth', 3, 'color', '#4169E1')
+set(j, 'linewidth', 3, 'color', '#4169E1')
+set(k, 'linewidth', 3, 'color', '#4169E1')
+set(l, 'linewidth', 3, 'color', '#4169E1')
 
 %% Extract sal & O2 data
 stations = cell(114, 1);
