@@ -18,9 +18,6 @@ may2 = RSKreaddata(may2, 't1', datenum(2021, 05, 02), 't2', datenum(2021, 05, 06
 may1down = RSKreadprofiles(may1, 'direction', 'down'); % 95 profiles
 may2down = RSKreadprofiles(may2, 'direction', 'down'); % 71 profiles
 
-RSKderiveO2(may1down, 'toDerive', 'concentration');
-may1down = RSKderive
-
 % plot all profiles
 %RSKplotprofiles(may1down, 'profile', [1:95], 'channel', {'temperature', 'conductivity'});
 %RSKplotprofiles(may2down, 'profile', [1:71], 'channel', {'temperature', 'conductivity'});
