@@ -123,8 +123,15 @@ may <- may %>%
                                        0.387 * DO[Station == "113"], DO))
 ```
 
-## Calculate carbon system parameters & density
+## Calculate density & carbon system parameters
 ```{r}
+# calculate density
+may$Density <- gsw_rho(may$Salinity, may$Temp, may$SeaPressure)
+
+# convert DO from umol/L to umol/kg
+may$DO_L <- may$DO
+may$DO <- may$DO / (may$Density / 1000) # convert m^3 to L
+
 for(i in which(is.na(may$SeaPressure))) {
     may$SeaPressure[i] <- may$Depth[i] # substitude depth for sites without sea pressure
     may$Pressure[i] <- may$SeaPressure[i] + 10.1325 # calculate surface pressure
@@ -141,9 +148,6 @@ mayCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
                                                          # kf: unspecified b/c low temps
                 ks = "d",                                # d = Dickson (1990)
                 b = "l10")                               # l10 = Lee et al. (2010)
-
-# calculate density
-may$Density <- gsw_rho(may$Salinity, may$Temp, may$SeaPressure)
 
 # combine may & carb data
 may <- cbind(may,
