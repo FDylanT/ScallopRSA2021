@@ -19,7 +19,7 @@ library(tidyverse)
 
 ## Temp vs Sal, coloured cast
 ```{r}
-#plot <-
+plot <-
 ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
   #geom_point() +
   geom_text(aes(label = Station), size = 2) +
@@ -33,8 +33,8 @@ ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
   #           fontface = "bold", label.size = 0.75, label.padding = unit(0.5, "lines")) +
   theme_bw()
 
-#library(plotly)
-#ggplotly(plot)
+library(plotly)
+ggplotly(plot)
 
 ggplot(oct, aes(x = Salinity, y = Temp, shape = Cast, col = dDIC)) +
   geom_point() +
@@ -91,13 +91,15 @@ ggplot(oct, aes(x = Salinity, y = DIC, shape = Cast, col = Cast)) +
 
 ## TA vs Sal, coloured cast
 ```{r}
-ggplot(oct, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
+plot <- ggplot(oct, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
   geom_point() +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("darkblue", "coral2"),
                       guide = guide_legend(reverse = TRUE)) +
   theme_bw()
+
+ggplotly(plot)
 
 #plot(TA ~ Salinity, data = oct, col = factor(Cast))
 #abline(lm(oct$TA ~ oct$Salinity))
@@ -108,17 +110,23 @@ ggplot(oct, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
 
 ## TA vs DIC, coloured cast
 ```{r}
-#plot <-
-ggplot(oct, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
+plot <-
+oct %>%
+filter(Cast == "Surface") %>%
+ggplot(aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
   #geom_point() +
   geom_text(aes(label = Station), size = 2) +
-  scale_shape_manual(values = c(16, 1),
+  #scale_shape_manual(values = c(16, 1),
+  scale_shape_manual(values = 1,
                      guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = c("darkblue", "coral2"),
+  #scale_colour_manual(values = c("darkblue", "coral2"),
+  scale_colour_manual(values = "coral2",
                       guide = guide_legend(reverse = TRUE)) +
+  xlim(1960, 2030) +
+  ylim(2180, 2285) +
   theme_bw()
 
-#ggplotly(plot)
+ggplotly(plot)
 
 #plot(oct$TA ~ oct$DIC, col = factor(oct$Cast))
 #identify(oct$TA ~ oct$DIC)
@@ -500,14 +508,14 @@ ggplot() +
 
 # surface
 ggplot() +
-  #geom_point(data = may[which(may$Cast == "Surface"), ],
-  #           aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
-  #geom_point(data = oct[which(oct$Cast == "Surface"), ],
-  #           aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
-  geom_text(data = may[which(may$Cast == "Surface"), ],
-             aes(x = dDIC, y = dTA, label = Station, col = "May")) +
-  geom_text(data = oct[which(oct$Cast == "Surface"), ],
-             aes(x = dDIC, y = dTA, label = Station, col = "Oct")) +
+  geom_point(data = may[which(may$Cast == "Surface"), ],
+             aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
+  geom_point(data = oct[which(oct$Cast == "Surface"), ],
+             aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
+  #geom_text(data = may[which(may$Cast == "Surface"), ],
+  #           aes(x = dDIC, y = dTA, label = Station, col = "May")) +
+  #geom_text(data = oct[which(oct$Cast == "Surface"), ],
+  #           aes(x = dDIC, y = dTA, label = Station, col = "Oct")) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(intercept = 0, slope = 2) +
@@ -522,8 +530,8 @@ ggplot() +
 ggplot() +
   geom_point(data = may[which(may$Cast == "Bottom"), ],
              aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
-  #geom_point(data = oct[which(oct$Cast == "Bottom"), ],
-  #           aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
+  geom_point(data = oct[which(oct$Cast == "Bottom"), ],
+             aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(intercept = 0, slope = 2) +
