@@ -22,45 +22,6 @@ library(RColorBrewer)
 library(cowplot)
 ```
 
-## Update coords to fit within polygon
-```{r}
-may <- may %>%
-  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
-         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
-         Long = ifelse(Station == "089", Long - 0.04, Long))
-```
-
-## Add chem to shapefile
-```{r}
-station_SPDF_m <- SpatialPointsDataFrame(coords = may[ , c("Long", "Lat")],
-                                         data = may[ , c("Long", "Lat",
-                                                        "Station", "Cast",
-                                                        "Depth", "Temp",
-                                                        "Salinity", "Density",
-                                                        "DIC", "TA",
-                                                        "DO", "AOU",
-                                                        "pH", "fCO2", "pCO2",
-                                                        "OmegaAragonite",
-                                                        "OmegaCalcite",
-                                                        "DICn", "TAn",
-                                                        "dDIC", "dTA",
-                                                        "MLD", "MLD_frac",
-                                                        "flux", "DICf",
-                                                        "dDO",
-                                                        "DICpr", "TApr"
-                                                        ,"DIC.other", "TA.other"
-                                                        )],
-                                        proj4string = CRS("EPSG:4326"))
-
-station_sf_m <- st_as_sf(station_SPDF_m)
-
-bottom_sf_m <- station_sf_m %>%
-  filter(Cast == "Bottom")
-
-surface_sf_m <- station_sf_m %>%
-  filter(Cast == "Surface")
-```
-
 ## Load GB shapefiles
 ```{r}
 GB <- st_read("./data/2020SAMZones/GB_Estimation_Areas_2019_UTM19_PDT_SFModified.shp")
@@ -117,6 +78,78 @@ GB_sf <- st_union(NLS_North, CL1_South) %>%
 #summary(GB_sf)
 ```
 
+## Create coastline polygon
+```{r}
+# get Massachusetts coastline
+library(maps)
+library(mapdata)
+library(maptools)
+
+mass <- map("worldHires", "USA",
+            xlim = c(-73.5, -69.9),
+            ylim = c(41.2, 42.9),
+            fill = TRUE,
+            col = "transparent",
+            plot = FALSE)
+IDs <- sapply(strsplit(mass$names, ":"), function(x) x[1])
+mass_SP <- map2SpatialPolygons(mass, IDs = IDs, proj4string = CRS("EPSG:4326"))
+#plot(mass_SP)
+#st_crs(mass_SP)
+
+data <- data.frame(f = 99.9)
+row.names(data) <- mass_SP@polygons[[1]]@ID
+mass_SPDF <- SpatialPolygonsDataFrame(mass_SP, data)
+
+mass_sf <- st_as_sf(mass_SPDF) %>%
+  st_transform(crs = 26919)
+#st_crs(mass_sf)
+
+#ggplot() +
+#  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+#  coord_sf(xlim = c(371957.88, 756099.58),
+#           ylim = c(4428833.79, 4709654.16),
+#           crs = st_crs(26919))
+```
+
+## Update coords to fit within polygon
+```{r}
+may <- may %>%
+  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
+         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
+         Long = ifelse(Station == "089", Long - 0.04, Long))
+```
+
+## Add chem to shapefile
+```{r}
+station_SPDF_m <- SpatialPointsDataFrame(coords = may[ , c("Long", "Lat")],
+                                         data = may[ , c("Long", "Lat",
+                                                        "Station", "Cast",
+                                                        "Depth", "Temp",
+                                                        "Salinity", "Density",
+                                                        "DIC", "TA",
+                                                        "DO", "AOU",
+                                                        "pH", "fCO2", "pCO2",
+                                                        "OmegaAragonite",
+                                                        "OmegaCalcite",
+                                                        "DICn", "TAn",
+                                                        "dDIC", "dTA", "dDO"
+                                                        #,"MLD", "MLD_frac",
+                                                        #"flux", "DICf",
+                                                        #"DICpr", "TApr", "DOpr"
+                                                        #,"DIC.other", "TA.other"
+                                                        #,"flux.O2", "DOf"
+                                                        )],
+                                        proj4string = CRS("EPSG:4326"))
+
+station_sf_m <- st_as_sf(station_SPDF_m)
+
+bottom_sf_m <- station_sf_m %>%
+  filter(Cast == "Bottom")
+
+surface_sf_m <- station_sf_m %>%
+  filter(Cast == "Surface")
+```
+
 ## Begin interpolation round 1 (nearest-neighbor)
 ```{r}
 bottom_sf_m_geom <- st_union(bottom_sf_m) %>%
@@ -163,39 +196,6 @@ surface_sf_m3 <- surface_sf_m2 %>%
   filter(Station == "033" | Station == "034" | Station == "035")
 ```
 
-## Create coastline polygon
-```{r}
-# get Massachusetts coastline
-library(maps)
-library(mapdata)
-library(maptools)
-
-mass <- map("worldHires", "USA",
-            xlim = c(-73.5, -69.9),
-            ylim = c(41.2, 42.9),
-            fill = TRUE,
-            col = "transparent",
-            plot = FALSE)
-IDs <- sapply(strsplit(mass$names, ":"), function(x) x[1])
-mass_SP <- map2SpatialPolygons(mass, IDs = IDs, proj4string = CRS("EPSG:4326"))
-#plot(mass_SP)
-#st_crs(mass_SP)
-
-data <- data.frame(f = 99.9)
-row.names(data) <- mass_SP@polygons[[1]]@ID
-mass_SPDF <- SpatialPolygonsDataFrame(mass_SP, data)
-
-mass_sf <- st_as_sf(mass_SPDF) %>%
-  st_transform(crs = 26919)
-#st_crs(mass_sf)
-
-#ggplot() +
-#  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-#  coord_sf(xlim = c(371957.88, 756099.58),
-#           ylim = c(4428833.79, 4709654.16),
-#           crs = st_crs(26919))
-```
-
 ## Find property ranges
 (move this once DIC & TA data finalized)
 ```{r}
@@ -223,14 +223,22 @@ min(surface_sf_m2$TA) # 2181.3
 max(bottom_sf_m2$TA) # 2291.8
 max(surface_sf_m2$TA) # 2234.9
 
+# DO
+min(bottom_sf_m2$DO) # 230.2369
+min(surface_sf_m2$DO) # 290.0381
+max(bottom_sf_m2$DO) # 315.6619
+max(surface_sf_m2$DO) # 327.9873
+
 # pH
 min(bottom_sf_m2$pH) # 7.958693
 min(surface_sf_m2$pH) # 8.004006
-max(bottom_sf_m2$pH) # 8.233965
+  #max(bottom_sf_m2$pH) # 8.233965
+sort(bottom_sf_m2$pH, decreasing = TRUE)[2] # 8.141957
 max(surface_sf_m2$pH) # 8.169728
 
 # pCO2
-min(bottom_sf_m2$pCO2) # 241.0511
+  #min(bottom_sf_m2$pCO2) # 241.0511
+sort(bottom_sf_m2$pCO2)[2] # 310.9799
 min(surface_sf_m2$pCO2) # 280.099
 max(bottom_sf_m2$pCO2) # 508.0477
 max(surface_sf_m2$pCO2) # 431.2981
@@ -242,10 +250,10 @@ max(bottom_sf_m2$OmegaAragonite) # 2.499535
 max(surface_sf_m2$OmegaAragonite) # 2.243901
 
 # AOU
-min(bottom_sf_m2$AOU) # -28.70704
-min(surface_sf_m2$AOU) # -45.25141
-max(bottom_sf_m2$AOU) # 39.44535
-max(surface_sf_m2$AOU) # -0.1149847
+min(bottom_sf_m2$AOU) # -20.55341
+min(surface_sf_m2$AOU) # -36.91533
+max(bottom_sf_m2$AOU) # 45.65093
+max(surface_sf_m2$AOU) # 7.334928
 ```
 
 ## Interpolated bottom plots
@@ -486,7 +494,8 @@ ggplot() +
 # dDIC
   #min(bottom_sf_m2$dDIC) # -74.87484 - outlier
 sort(bottom_sf_m2$dDIC)[2] # -15.78552
-min(surface_sf_m2$dDIC) # -39.65087
+  #min(surface_sf_m2$dDIC) # -39.65087
+sort(surface_sf_m2$dDIC)[2] # -32.92995
 max(bottom_sf_m2$dDIC) # 32.64742
 max(surface_sf_m2$dDIC) # 22.28002
 
@@ -498,18 +507,25 @@ max(surface_sf_m2$flux) # 1269.434
 min(surface_sf_m2$DICf, na.rm = T) # -4.952685
 max(surface_sf_m2$DICf, na.rm = T) # 51.62271
 
+# dDO
+min(bottom_sf_m2$dDO) # -25.05694
+min(surface_sf_m2$dDO) # -9.447088
+max(bottom_sf_m2$dDO) # 22.41824
+  #max(surface_sf_m2$dDO) # 29.02208
+sort(surface_sf_m2$dDO, decreasing = TRUE)[2] # 17.36457
+
 # DICpr
-min(bottom_sf_m2$DICpr) # -17.65365
-min(surface_sf_m2$DICpr) # -22.85987
-max(bottom_sf_m2$DICpr) # 19.772
-max(surface_sf_m2$DICpr) # 8.315552
+min(bottom_sf_m2$DICpr) # -17.2198
+min(surface_sf_m2$DICpr) # -22.29232
+max(bottom_sf_m2$DICpr) # 19.24664
+max(surface_sf_m2$DICpr) # 8.110144
 
 # DIC.other
-  min(bottom_sf_m2$DIC.other) # -76.94278 - outlier
-sort(bottom_sf_m2$DIC.other)[2] # -19.40254
-min(surface_sf_m2$DIC.other) # -53.93007
-max(bottom_sf_m2$DIC.other) # 32.82978
-max(surface_sf_m2$DIC.other) # 22.75403
+  #min(bottom_sf_m2$DIC.other) # -76.94278 - outlier
+sort(bottom_sf_m2$DIC.other)[2] # -17.86817
+min(surface_sf_m2$DIC.other) # -40.99212
+max(bottom_sf_m2$DIC.other) # 32.78591
+max(surface_sf_m2$DIC.other) # 21.49272
 ```
 
 ## Bottom plots
@@ -610,10 +626,23 @@ ggplot() +
   theme_bw()
 
 ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = flux.O2 / 10^3), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = flux.O2 / 10^3), size = 8, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-50, 50), palette = "BrBG",
+                       aesthetics = c("fill", "colour"),
+                       name = "O2 flux\n(mmol/m^2/d)") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface O2 flux [May]") +
+  theme_bw() +
+  theme(legend.title = element_text(face = "bold"))
+
+ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = DICpr), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-23, 23), palette = "RdBu",
+  scale_fill_distiller(limits = c(-100, 100), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
@@ -729,140 +758,152 @@ ggplot() +
 
 ### 10-panel parameter maps
 ```{r}
-## chem maps
 T <- ggplot() +
-  geom_sf(data = bottom_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = Temp), size = 8, shape = 18) +
+  geom_sf(data = surface_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = Temp), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
+  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
                        aesthetics = c("fill", "colour"),
                        name = "Temp (°C)      ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "") +
+  labs(title = "Surface") +
   theme_bw() +
   theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5))
 
 S <- ggplot() +
-  geom_sf(data = bottom_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = Salinity), size = 8, shape = 18) +
+  geom_sf(data = surface_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = Salinity), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31, 36), palette = "OrRd",
-                       breaks = c(32, 35),
+  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
+                       breaks = c(32, 33, 34, 35),
                        direction = "horizontal",
                        aesthetics = c("fill", "colour"),
                        name = "Salinity (PSU)") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "") +
+  #labs(title = "Salinity") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank())
 
 DIC <- ggplot() +
-  geom_sf(data = bottom_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = DIC), size = 8, shape = 18) +
+  geom_sf(data = surface_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = DIC), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1930, 2155), option = "rocket",
-                     direction = -1,
+  scale_fill_viridis(limits = c(1930, 2155), option = "mako", direction = -1,
                      aesthetics = c("fill", "colour"),
                      name = "DIC (umol/kg)") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "") +
+  #labs(title = "DIC") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank())
 
 TA <- ggplot() +
-  geom_sf(data = bottom_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = TA), size = 8, shape = 18) +
+  geom_sf(data = surface_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = TA), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1,
-                     breaks = c(2200, 2250, 2300),
+  scale_fill_viridis(limits = c(2140, 2355), option = "rocket", direction = -1,
                      aesthetics = c("fill", "colour"),
                      name = "TA (umol/kg)   ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "") +
+  #labs(title = "Alkalinity") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank())
 
-AOU <- ggplot() +
-  geom_sf(data = bottom_sf_m_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = AOU), size = 8, shape = 18) +
+DO <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = DO), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = DO), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-45, 45), palette = "BrBG",
-                       breaks = c(-40, -20, 0, 20, 40),
+  scale_fill_distiller(limits = c(200, 330), palette = "PuBuGn",
+                       direction = "trans",
                        aesthetics = c("fill", "colour"),
-                       name = "AOU (umol/kg)") +
+                     name = "DO (umol/kg) ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "") +
+  #labs(title = "Surface DO [May]") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank())
 
 T2 <- ggplot() +
-  geom_sf(data = surface_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = Temp), size = 8, shape = 18) +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = Temp), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
-                       aesthetics = c("fill", "colour")) +
+  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "Temp (°C)      ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Temperature") +
+  labs(title = "Bottom") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
         legend.position = "none")
 
 S2 <- ggplot() +
-  geom_sf(data = surface_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = Salinity), size = 8, shape = 18) +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = Salinity), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31, 36), palette = "OrRd",
+  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
+                       breaks = c(32, 35),
                        direction = "horizontal",
-                       aesthetics = c("fill", "colour"),
-                       guide = guide_colorbar(reverse = TRUE)) +
+                       aesthetics = c("fill", "colour")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Salinity") +
+  #labs(title = "") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.position = "none")
 
 DIC2 <- ggplot() +
-  geom_sf(data = surface_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = DIC), size = 8, shape = 18) +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = DIC), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1930, 2155), option = "rocket", direction = -1,
+  scale_fill_viridis(limits = c(1930, 2155), option = "mako",
+                     direction = -1,
                      aesthetics = c("fill", "colour")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "DIC") +
+  #labs(title = "") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.position = "none")
 
 TA2 <- ggplot() +
-  geom_sf(data = surface_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = TA), size = 8, shape = 18) +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = TA), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1,
+  scale_fill_viridis(limits = c(2140, 2355), option = "rocket", direction = -1,
+                     breaks = c(2200, 2250, 2300),
                      aesthetics = c("fill", "colour")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Alkalinity") +
+  #labs(title = "") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.position = "none")
 
-AOU2 <- ggplot() +
-  geom_sf(data = surface_sf_m_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = AOU), size = 8, shape = 18) +
+DO2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = DO), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = DO), size = 6, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-46, 46), palette = "BrBG",
-                       breaks = c(-40, -20, 0, 20, 40),
+  scale_fill_distiller(limits = c(200, 330), palette = "PuBuGn",
+                       direction = "trans",
                        aesthetics = c("fill", "colour")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "AOU") +
+  #labs(title = "Bottom DO [May]") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
@@ -872,19 +913,26 @@ theme_set(theme_minimal())
 
 plot_grid(
   plot_grid(
-    T2,
-    T + theme(legend.position = "none"),
-    S2,
-    S + theme(legend.position = "none"),
-    DIC2,
-    DIC + theme(legend.position = "none"),
-    TA2,
-    TA + theme(legend.position = "none"),
-    AOU2,
-    AOU + theme(legend.position = "none"),
-    ncol = 2, nrow = 5,
-    align = "hv",
+    get_title(T),
+    get_title(T2),
+    nrow = 1,
     labels = c("A", "B")),
+  plot_grid(
+    ggplot(),
+    scale = 1.5),
+  plot_grid(
+    T + theme(legend.position = "none", plot.title = element_blank()),
+    T2 + theme(plot.title = element_blank()),
+    S + theme(legend.position = "none"),
+    S2,
+    DIC + theme(legend.position = "none"),
+    DIC2,
+    TA + theme(legend.position = "none"),
+    TA2,
+    DO + theme(legend.position = "none"),
+    DO2,
+    ncol = 2, nrow = 5,
+    align = "hv"),
   plot_grid(
     get_legend(T),
     ggplot(),
@@ -894,17 +942,305 @@ plot_grid(
     ggplot(),
     get_legend(TA),
     ggplot(),
-    get_legend(AOU),
+    get_legend(DO),
     ggplot(),
     ncol = 1,
-    scale = 1.5),
-  rel_widths = c(9, 2)
+    scale = 1),
+  ncol = 2, nrow = 2,
+  rel_heights = c(1, 25),
+  rel_widths = c(9, 1.5)
 )
 ```
 
-### 10-panel derived parameter maps
+### 8-panel derived parameter maps
 ```{r}
+pH <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = pH), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(7.85, 8.17), option = "viridis",
+                     aesthetics = c("fill", "colour"),
+                     name = "pH                  ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5))
 
+pCO2 <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = pCO2), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(179, 661),
+                       breaks = c(240, 420, 600),
+                       palette = "PRGn",
+                       aesthetics = c("fill", "colour"),
+                       name = bquote(pCO[2]*" (uatm)   ")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface pCO2 [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+omega <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = OmegaAragonite), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(1.3, 3.11), palette = "YlGn",
+                       aesthetics = c("fill", "colour"),
+                       name = "Omega\nAragonite        ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface Aragonite [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+AOU <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = AOU), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = AOU), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-48, 48), palette = "BrBG",
+                       breaks = c(-40, -20, 0, 20, 40),
+                       aesthetics = c("fill", "colour"),
+                       name = "AOU (umol/kg)") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface AOU [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+pH2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = pH), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(7.85, 8.17), option = "viridis",
+                     aesthetics = c("fill", "colour")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none")
+
+pCO2.2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = pCO2), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(179, 661),
+                       palette = "PRGn",
+                       aesthetics = c("fill", "colour"),
+                       name = bquote(pCO[2]*" (uatm)")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom pCO2 [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+omega2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = OmegaAragonite), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(1.3, 3.11), palette = "YlGn",
+                       aesthetics = c("fill", "colour"),
+                       name = "Omega\nAragonite") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom Aragonite [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+AOU2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = AOU), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = AOU), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-48, 48), palette = "BrBG",
+                       breaks = c(-40, -20, 0, 20, 40),
+                       aesthetics = c("fill", "colour")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+theme_set(theme_minimal())
+
+plot_grid(
+  plot_grid(
+    get_title(pH),
+    get_title(pH2),
+    nrow = 1,
+    labels = c("A", "B")),
+  plot_grid(
+    ggplot(),
+    scale = 1.5),
+  plot_grid(
+    pH + theme(legend.position = "none", plot.title = element_blank()),
+    pH2 + theme(plot.title = element_blank()),
+    pCO2 + theme(legend.position = "none"),
+    pCO2.2,
+    omega + theme(legend.position = "none"),
+    omega2,
+    AOU + theme(legend.position = "none"),
+    AOU2,
+    ncol = 2, nrow = 4,
+    align = "hv"),
+  plot_grid(
+    get_legend(pH),
+    ggplot(),
+    get_legend(pCO2),
+    ggplot(),
+    get_legend(omega),
+    ggplot(),
+    get_legend(AOU),
+    ggplot(),
+    ncol = 1,
+    scale = 1),
+  ncol = 2, nrow = 2,
+  rel_heights = c(1, 20),
+  rel_widths = c(9, 1.5)
+)
+```
+
+## 6-panel relative contribution maps
+```{r}
+dDIC <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = dDIC), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-33, 33), palette = "RdBu",
+                       breaks = c(-30, -15, 0, 15, 30),
+                       aesthetics = c("fill", "colour"),
+                       name = "delta DIC") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5))
+
+dTA <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = dTA), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-34, 34), palette = "RdBu",
+                       breaks = c(-30, -15, 0, 15, 30),
+                       aesthetics = c("fill", "colour"),
+                       name = "delta TA  ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface delta TA [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+dDO <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = dDO), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(col = dDO), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-26, 26), palette = "RdBu",
+                       breaks = c(-25, -12, 0, 12, 25),
+                       aesthetics = c("fill", "colour"),
+                       name = "delta DO ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface delta DO [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+dDIC2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = dDIC), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-33, 33), palette = "RdBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "delta DIC") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none")
+
+dTA2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = dTA), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-34, 34), palette = "RdBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "delta TA") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom delta TA [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+dDO2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = dDO), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(col = dDO), size = 6, shape = 18) +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(-26, 26), palette = "RdBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "delta DO") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom delta DO [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+theme_set(theme_minimal())
+
+plot_grid(
+  plot_grid(
+    get_title(pH),
+    get_title(pH2),
+    nrow = 1,
+    labels = c("A", "B")),
+  plot_grid(
+    ggplot(),
+    scale = 1),
+  plot_grid(
+    dDIC + theme(legend.position = "none", plot.title = element_blank()),
+    dDIC2 + theme(plot.title = element_blank()),
+    dTA + theme(legend.position = "none"),
+    dTA2,
+    dDO + theme(legend.position = "none"),
+    dDO2,
+    ncol = 2, nrow = 3,
+    align = "hv"),
+  plot_grid(
+    get_legend(dDIC),
+    ggplot(),
+    get_legend(dTA),
+    ggplot(),
+    get_legend(dDO),
+    ggplot(),
+    ncol = 1,
+    scale = 1),
+  ncol = 2, nrow = 2,
+  rel_heights = c(1, 15),
+  rel_widths = c(9, 1.5)
+)
 ```
 
 ### 8-panel relative DIC contribution maps
@@ -913,7 +1249,7 @@ dDIC <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = dDIC), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-54, 54), palette = "RdBu",
+  scale_fill_distiller(limits = c(-41, 41), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
@@ -941,7 +1277,7 @@ DICpr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = DICpr), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-54, 54), palette = "RdBu",
+  scale_fill_distiller(limits = c(-41, 41), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
@@ -955,7 +1291,7 @@ DICo <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = DIC.other), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-54, 54), palette = "RdBu",
+  scale_fill_distiller(limits = c(-41, 41), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
@@ -969,7 +1305,7 @@ dDIC2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = dDIC), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-54, 54), palette = "RdBu",
+  scale_fill_distiller(limits = c(-41, 41), palette = "RdBu",
                        aesthetics = c("fill", "colour"),
                        name = "dDIC     ") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -997,7 +1333,7 @@ DICpr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = DICpr), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-54, 54), palette = "RdBu",
+  scale_fill_distiller(limits = c(-41, 41), palette = "RdBu",
                        aesthetics = c("fill", "colour"),
                        name = "DIC.bio   ") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1011,7 +1347,7 @@ DICo2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = DIC.other), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-54, 54), palette = "RdBu",
+  scale_fill_distiller(limits = c(-41, 41), palette = "RdBu",
                        aesthetics = c("fill", "colour"),
                        name = "DIC.resid") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1027,20 +1363,20 @@ plot_grid(
   plot_grid(
     dDIC,
     dDIC2 + theme(legend.position = "none"),
-    DICf,
-    DICf2 + theme(legend.position = "none"),
+    #DICf,
+    #DICf2 + theme(legend.position = "none"),
     DICpr,
     DICpr2 + theme(legend.position = "none"),
     DICo,
     DICo2 + theme(legend.position = "none"),
-    ncol = 2, nrow = 4,
+    ncol = 2, nrow = 3,
     align = "hv",
     labels = c("A", "B")),
   plot_grid(
     get_legend(dDIC2),
     ggplot(),
-    get_legend(DICf2),
-    ggplot(),
+    #get_legend(DICf2),
+    #ggplot(),
     get_legend(DICpr2),
     ggplot(),
     get_legend(DICo2),
@@ -1058,6 +1394,7 @@ dTA <- ggplot() +
   geom_sf(data = surface_sf_m3, aes(col = dTA), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-34, 34), palette = "RdBu",
+                       breaks = c(-30, 0, 30),
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
@@ -1071,7 +1408,8 @@ TApr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = TApr), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-4, 4), palette = "RdBu",
+  scale_fill_distiller(limits = c(-34, 34), palette = "RdBu",
+                       breaks = c(-30, 0, 30),
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
@@ -1086,6 +1424,7 @@ TAo <- ggplot() +
   geom_sf(data = surface_sf_m3, aes(col = TA.other), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-34, 34), palette = "RdBu",
+                       breaks = c(-30, 0, 30),
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
@@ -1100,6 +1439,7 @@ dTA2 <- ggplot() +
   geom_sf(data = bottom_sf_m3, aes(col = dTA), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-34, 34), palette = "RdBu",
+                       breaks = c(-30, 0, 30),
                        aesthetics = c("fill", "colour"),
                        name = "dTA") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1113,7 +1453,8 @@ TApr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = TApr), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-4, 4), palette = "RdBu",
+  scale_fill_distiller(limits = c(-34, 34), palette = "RdBu",
+                       breaks = c(-30, 0, 30),
                        aesthetics = c("fill", "colour"),
                        name = "TA.bio  ") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1128,6 +1469,7 @@ TAo2 <- ggplot() +
   geom_sf(data = bottom_sf_m3, aes(col = TA.other), size = 8, shape = 18) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-34, 34), palette = "RdBu",
+                       breaks = c(-30, 0, 30),
                        aesthetics = c("fill", "colour"),
                        name = "TA.resid") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
