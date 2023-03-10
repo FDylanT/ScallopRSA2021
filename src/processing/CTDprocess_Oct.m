@@ -1,4 +1,4 @@
-cd Repos/ScallopRSA2021
+%cd Repos/ScallopRSA2021
 
 %% Load October rsk files
 
@@ -302,18 +302,6 @@ oct3down = RSKtrim(oct3down, 'reference', 'depth', 'range', [0, 2.5], 'profile',
 
 %%% profile 6 surface DO is a bit wacky
 
-%% Check indiv profile
-
-%oct1 = RSKreadprofiles(oct1);
-%oct1 = RSKderivesalinity(oct1);
-
-figure
-channel = {'temperature', 'salinity', 'dissolved O2'};
-profile = 25; % station 91
-%[h1, ax] = RSKplotprofiles(oct1, 'profile', profile, 'channel', channel, 'direction', 'up'); %#ok<*ASGLU> 
-h2 = RSKplotprofiles(oct3down, 'profile', profile, 'channel', channel);
-set(h2, 'linewidth', 3)
-
 %% Assign station numbers to profiles
 
 % oct1 file
@@ -365,30 +353,47 @@ stations3 = {'69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '
 oct3down = RSKaddstationdata(oct3down, 'profile', profiles3, 'station', stations3);
 
 %% Plot end-member profiles
-% surface EMs: 5, 43, 7
-% bottom EMs: 33, 53, 9
+% surface EMs: 9, 113, 30, + 5
+% bottom EMs: 21, 33, 53
+
+stations1(22)
+profiles1(22)
 
 % surface
 figure
 channel = {'temperature', 'salinity', 'dissolved O2'};
-h = RSKplotprofiles(oct1down, 'profile', 4, 'channel', channel);
-j = RSKplotprofiles(oct1down, 'profile', 7, 'channel', channel);
-k = RSKplotprofiles(oct2down, 'profile', 20, 'channel', channel);
+h = RSKplotprofiles(oct1down, 'profile', 9, 'channel', channel); % 009
+j = RSKplotprofiles(oct2down, 'profile', 7, 'channel', channel); % 030
+k = RSKplotprofiles(oct3down, 'profile', 49, 'channel', channel); % 113
+l = RSKplotprofiles(oct1down, 'profile', 4, 'channel', channel); % 005
 set(h, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
 set(j, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
 set(k, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
+set(l, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
 
 % bottom
 figure
 channel = {'temperature', 'salinity', 'dissolved O2'};
-h = RSKplotprofiles(oct1down, 'profile', 9, 'channel', channel);
-j = RSKplotprofiles(oct2down, 'profile', 12, 'channel', channel);
-k = RSKplotprofiles(oct2up, 'profile', 12, 'channel', channel);
-l = RSKplotprofiles(oct2down, 'profile', 34, 'channel', channel);
+h = RSKplotprofiles(oct1down, 'profile', 22, 'channel', channel); % 021
+j = RSKplotprofiles(oct2down, 'profile', 12, 'channel', channel); % 033
+k = RSKplotprofiles(oct2up, 'profile', 12, 'channel', channel); % 033
+l = RSKplotprofiles(oct2down, 'profile', 34, 'channel', channel); % 053
 set(h, 'linewidth', 3, 'color', '#4169E1')
 set(j, 'linewidth', 3, 'color', '#4169E1')
 set(k, 'linewidth', 3, 'color', '#4169E1')
 set(l, 'linewidth', 3, 'color', '#4169E1')
+
+%% Check indiv profile
+
+%oct1 = RSKreadprofiles(oct1);
+%oct1 = RSKderivesalinity(oct1);
+
+figure
+channel = {'temperature', 'salinity', 'dissolved O2'};
+profile = 25; % station 91
+%[h1, ax] = RSKplotprofiles(oct1, 'profile', profile, 'channel', channel, 'direction', 'up'); %#ok<*ASGLU> 
+h2 = RSKplotprofiles(oct3down, 'profile', profile, 'channel', channel);
+set(h2, 'linewidth', 3)
 
 %% Extract sal & O2 data
 stations = cell(114, 1);
