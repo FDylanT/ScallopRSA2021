@@ -191,7 +191,7 @@ EM1 <- which(oct$Station == "009" & oct$Cast == "Surface")
 EM2 <- which(oct$Station == "091" & oct$Cast == "Surface")
 EM3 <- which(oct$Station == "043" & oct$Cast == "Surface")
 
-EM7 <- which(oct$Station == "005" & oct$Cast == "Surface")
+EM7 <- which(oct$Station == "003" & oct$Cast == "Surface")
 
 # bottom EMs
 EM4 <- which(oct$Station == "033" & oct$Cast == "Bottom")
@@ -774,6 +774,8 @@ oct$TA.other = oct$TA - oct$TAn - oct$TApr
 
 
 
+
+
 # Surface: triangle
 
 ## Identify EM stat parameters
@@ -888,7 +890,7 @@ source <- load_source_data(filename = "./mixing/sources_surface.csv",
                            data_type = "means", 
                            mix)
 
-# create discrimination data: 0 because conservative parameters(?)
+# create discrimination data: 0 because conservative parameters
 MeanTemp <- rep(0, 3)
 SDTemp <- rep(0, 3)
 MeanSalinity <- rep(0, 3)
@@ -1001,13 +1003,11 @@ oct$EM3 <- NA
 oct$EM3sd <- NA
 
 for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface") {
-    if(oct$Station[i] < "009" |
-       oct$Station[i] == "022" |
-       oct$Station[i] == "023" |
-       oct$Station[i] == "104") {
-      next
-    }
+  if(oct$Cast[i] == "Surface" &
+     oct$Station[i] > "008" &
+     oct$Station[i] != "022" &
+     oct$Station[i] != "023" &
+     oct$Station[i] != "104") {
     oct$EM1[i] <- summ1$Mean[summ1$EM == "EM1" &
                            summ1$Station == as.integer(oct$Station[i])]
     oct$EM1sd[i] <- summ1$SD[summ1$EM == "EM1" &
@@ -1056,6 +1056,227 @@ ggplot(oct[oct$Cast == "Surface", ]) +
 ggplot(oct[oct$Cast == "Surface", ]) +
   #geom_point(aes(x = a3, y = EM3)) +
   geom_text(aes(x = a3, y = EM3, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+```
+
+# Surface: linear
+
+## Identify EM stat parameters
+```{r}
+# surface EM1
+EMs1 <- oct$Salinity[oct$Cast == "Surface" &
+                     oct$Station > "008" &
+                     oct$Salinity >= S1 - 0.15 & oct$Salinity <= S1 + 0.15 &
+                     oct$Temp >= T1 - 0.3 & oct$Temp <= T1 + 0.3]
+for(i in 1:length(EMs1)) {
+  EMs1[i] <- which(oct$Salinity == EMs1[i])
+}
+for(i in 1:length(EMs1)) {
+  print(oct$Station[EMs1[i]])
+}
+
+# calc mean & sd for later use
+mean_sal_EMs1 <- mean(oct$Salinity[EMs1])
+sd_sal_EMs1 <- sd(oct$Salinity[EMs1])
+sal_err1 <- sqrt((1/length(EMs1)) * (0.003^2 * length(EMs1)))
+err_sal_EMs1 <- sd_sal_EMs1 + sal_err1
+
+mean_temp_EMs1 <- mean(oct$Temp[EMs1])
+sd_temp_EMs1 <- sd(oct$Temp[EMs1])
+temp_err1 <- sqrt((1/length(EMs1)) * (0.002^2 * length(EMs1)))
+err_temp_EMs1 <- sd_temp_EMs1 + temp_err1
+
+# surface EM7
+EMs7 <- oct$Salinity[oct$Cast == "Surface" &
+                     oct$Station != "022" & oct$Station != "023" &
+                     oct$Station != "104" & 
+                     oct$Salinity >= S7 - 0.15 & oct$Salinity <= S7 + 0.15 &
+                     oct$Temp >= T7 - 0.3 & oct$Temp <= T7 + 0.3]
+for(i in 1:length(EMs7)) {
+  EMs7[i] <- which(oct$Salinity == EMs7[i])
+}
+for(i in 1:length(EMs7)) {
+  print(oct$Station[EMs7[i]])
+}
+
+# calc mean & sd for later use
+mean_sal_EMs7 <- mean(oct$Salinity[EMs7])
+sd_sal_EMs7 <- sd(oct$Salinity[EMs7])
+sal_err2 <- sqrt((1/length(EMs7)) * (0.003^2 * length(EMs7)))
+err_sal_EMs7 <- sd_sal_EMs7 + sal_err2
+
+mean_temp_EMs7 <- mean(oct$Temp[EMs7])
+sd_temp_EMs7 <- sd(oct$Temp[EMs7])
+temp_err2 <- sqrt((1/length(EMs7)) * (0.002^2 * length(EMs7)))
+err_temp_EMs7 <- sd_temp_EMs7 + temp_err2
+```
+
+## Bayesian mixing model
+```{r}
+# create mixture data: nearshore data (001 - 005)
+read.csv("./data/OctCruiseData.csv") %>%
+  rename(Temp = Temperature) %>%
+  filter(Filtered == "",
+         Cast == "Surface",
+         Station < 6) %>%
+  select(-Filtered) %>%
+  write_csv("./mixing/OctCruiseData_linear.csv")
+
+# load mixture data
+mix <- load_mix_data(filename = "./mixing/OctCruiseData_linear.csv", 
+                     iso_names = c("Salinity", "Temp"),
+                     factors = "Station",
+                     fac_random = FALSE, # indiv. station is fixed effect
+                     fac_nested = NULL,
+                     cont_effects = NULL)
+
+# create source data
+EM <- c("EM1", "EM7")
+MeanTemp <- c(mean_temp_EMs1, mean_temp_EMs7)
+SDTemp <- c(err_temp_EMs1, err_temp_EMs7)
+MeanSalinity <- c(mean_sal_EMs1, mean_sal_EMs7)
+SDSalinity <- c(err_sal_EMs1, err_sal_EMs7)
+n <- c(length(EMs1), length(EMs7))
+
+write.csv(cbind(EM, MeanTemp, SDTemp,
+                MeanSalinity, SDSalinity, n), "./mixing/sources_linear.csv",
+          row.names = FALSE)
+
+# load source data
+source <- load_source_data(filename = "./mixing/sources_linear.csv",
+                           source_factors = NULL, 
+                           conc_dep = FALSE, 
+                           data_type = "means", 
+                           mix)
+
+# create discrimination data: 0 because conservative parameters
+MeanTemp <- rep(0, 2)
+SDTemp <- rep(0, 2)
+MeanSalinity <- rep(0, 2)
+SDSalinity <- rep(0, 2)
+
+write.csv(cbind(EM, MeanTemp, SDTemp,
+                MeanSalinity, SDSalinity), "./mixing/discr_linear.csv",
+          row.names = FALSE)
+
+# load discrimination data
+discr <- load_discr_data(filename = "./mixing/discr_linear.csv", mix)
+```
+
+## Make isospace plot & choose prior
+```{r}
+iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
+                 plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
+iso + theme(legend.position = "none")
+
+calc_area(source = source, mix = mix, discr = discr) # 0
+
+# uninformative (technically "generalist") prior (alpha = 1)
+# Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
+plot_prior(alpha.prior = 1, source, plot_save_pdf = FALSE, plot_save_png = TRUE)
+```
+
+## Write model
+```{r}
+model_filename <- "./linear_model.txt"
+resid_err <- FALSE # because n=1 per Station
+process_err <- TRUE
+write_JAGS_model(model_filename, resid_err, process_err, mix, source)
+
+run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
+            calcDIC = TRUE)
+jags.3 <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
+```
+
+## Check for convergence
+```{r}
+output_options3 <- list(summary_save = TRUE,
+                       summary_name = "summary_statistics3",
+                       sup_post = TRUE,
+                       plot_post_save_pdf = FALSE,
+                       plot_post_name = "posterior_density3",
+                       sup_pairs = TRUE,
+                       plot_pairs_save_pdf = FALSE,
+                       plot_pairs_name = "pairs_plot3",
+                       sup_xy = FALSE,
+                       plot_xy_save_pdf = FALSE,
+                       plot_xy_name = "xy_plot3",
+                       gelman = TRUE,
+                       heidel = FALSE,
+                       geweke = TRUE,
+                       diag_save = TRUE,
+                       diag_name = "diagnostics3",
+                       indiv_effect = FALSE,
+                       plot_post_save_png = FALSE,
+                       plot_pairs_save_png = FALSE,
+                       plot_xy_save_png = FALSE,
+                       diag_save_ggmcmc = FALSE,
+                       return_obj = TRUE)
+
+options(max.print = 3000) # change global option
+output_JAGS(jags.3, mix, source, output_options3)
+
+diag <- output_diagnostics(jags.3, mix, source, output_options3)
+df.stats <- output_stats(jags.3, mix, source, output_options3)
+g.post <- output_posteriors(jags.3, mix, source, output_options3)
+
+g.post$fac1[[1]]
+
+# Gelman diagnostic should be < 1.05
+# "extreme" MCMC parameters: 1; 0; 0
+
+# Geweke diagnostic should have ~5% outside +/-1.96 (~31-32/634) in each chain
+# "extreme" parameters: 34/22/24
+
+```
+
+## Look at output
+```{r}
+summ3 <- read.table("summary_statistics3.txt", skip = 8) %>%
+  select(-V1) %>%
+  separate(V2, into = c("Station", "EM")) %>%
+  rename(Mean = V3, SD = V4)
+
+oct$EM1 <- NA
+oct$EM1sd <- NA
+oct$EM7 <- NA
+oct$EM7sd <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface" &
+     oct$Station[i] < "006") {
+    oct$EM1[i] <- summ3$Mean[summ3$EM == "EM1" &
+                           summ3$Station == as.integer(oct$Station[i])]
+    oct$EM1sd[i] <- summ3$SD[summ3$EM == "EM1" &
+                           summ3$Station == as.integer(oct$Station[i])]
+    oct$EM7[i] <- summ3$Mean[summ3$EM == "EM7" &
+                           summ3$Station == as.integer(oct$Station[i])]
+    oct$EM7sd[i] <- summ3$SD[summ3$EM == "EM7" &
+                           summ3$Station == as.integer(oct$Station[i])]
+  }
+}
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM1)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM7)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  #geom_point(aes(x = a1, y = EM1)) +
+  geom_text(aes(x = a1, y = EM1, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  #geom_point(aes(x = a7, y = EM7)) +
+  geom_text(aes(x = a7, y = EM7, label = Station)) +
   geom_abline(slope = 1) +
   theme_bw()
 ```
@@ -1124,10 +1345,6 @@ for(i in 1:length(EMs6)) {
 for(i in 1:length(EMs6)) {
   print(oct$Station[EMs6[i]])
 }
-EMs6 <- sort(oct$Salinity[oct$Cast == "Bottom"], decreasing = TRUE)[1:3]
-EMs6 <- c(which(oct$Salinity == EMs6[1]),
-          which(oct$Salinity == EMs6[2]),
-          which(oct$Salinity == EMs6[3]))
 
 # calc mean & sd for later use
 mean_sal_EMs6 <- mean(oct$Salinity[EMs6])
@@ -1143,7 +1360,7 @@ err_temp_EMs6 <- sd_temp_EMs6 + temp_err3
 
 ## Bayesian mixing model
 ```{r}
-# create mixture data: surface data w/ NAs & non-triangle sites excluded
+# create mixture data: bottom data w/ NAs excluded
 read.csv("./data/OctCruiseData.csv") %>%
   rename(Temp = Temperature) %>%
   filter(Filtered == "",
@@ -1179,7 +1396,7 @@ source <- load_source_data(filename = "./mixing/sources_bottom.csv",
                            data_type = "means", 
                            mix)
 
-# create discrimination data: 0 because conservative parameters(?)
+# create discrimination data: 0 because conservative parameters
 MeanTemp <- rep(0, 3)
 SDTemp <- rep(0, 3)
 MeanSalinity <- rep(0, 3)
@@ -1199,9 +1416,7 @@ iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
                  plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
 iso + theme(legend.position = "none")
 
-#iso$plot_env$source.labels$label
-
-calc_area(source = source, mix = mix, discr = discr) # 479.2782
+calc_area(source = source, mix = mix, discr = discr) # 1411.205
 
 # uninformative (technically "generalist") prior (alpha = 1)
 # Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
@@ -1277,12 +1492,10 @@ oct$EM6 <- NA
 oct$EM6sd <- NA
 
 for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Bottom") {
-    if(oct$Station[i] == "022" |
-       oct$Station[i] == "023" |
-       oct$Station[i] == "104") {
-      next
-    }
+  if(oct$Cast[i] == "Bottom" &
+     oct$Station[i] != "022" &
+     oct$Station[i] != "023" &
+     oct$Station[i] != "104") {
     oct$EM4[i] <- summ2$Mean[summ2$EM == "EM4" &
                            summ2$Station == as.integer(oct$Station[i])]
     oct$EM4sd[i] <- summ2$SD[summ2$EM == "EM4" &
