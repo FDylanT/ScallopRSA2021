@@ -19,13 +19,18 @@ library(tidyverse)
 
 ## Temp vs Sal, coloured cast
 ```{r}
+plot <-
 ggplot(may, aes(x = Salinity, y = Temp, shape = Cast, col = Cast)) +
-  geom_point() +
+  #geom_point() +
+  geom_text(aes(label = Station), size = 2) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("darkslateblue", "brown2"),
                       guide = guide_legend(reverse = TRUE)) +
   theme_bw()
+
+library(plotly)
+ggplotly(plot)
 ```
 
 ## Temp vs Sal, EMs highlighted
@@ -77,13 +82,17 @@ ggplot(may, aes(x = Salinity, y = TA, shape = Cast, col = Cast)) +
 
 ## TA vs DIC, coloured cast
 ```{r}
+plot <-
 ggplot(may, aes(x = DIC, y = TA, shape = Cast, col = Cast)) +
-  geom_point() +
+  #geom_point() +
+  geom_text(aes(label = Station), size = 2) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("darkslateblue", "brown2"),
                       guide = guide_legend(reverse = TRUE)) +
   theme_bw()
+
+ggplotly(plot)
 ```
 
 ## DIC vs density, coloured cast
