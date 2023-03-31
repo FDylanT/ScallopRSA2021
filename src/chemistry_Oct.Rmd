@@ -72,7 +72,7 @@ rm(chd)
 ```
 
 ## Fill in missing temp & DO values
-```{r}
+
 # temp
 for(i in 1:nrow(oct)) {
   if(oct$Station[i] == "022") {
@@ -112,7 +112,6 @@ for(i in 1:nrow(oct)) {
                  0.236 * oct$DO[oct$Station == "106" & oct$Cast == cast]
   }
 }
-```
 
 ## Calculate density & carbon system parameters
 ```{r}
@@ -137,24 +136,28 @@ oct$DO_L <- oct$DO
 oct$DO <- oct$DO / (oct$Density / 1000) # convert m^3 to L
 
 octCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
-                var1 = oct$TA / 10^6,                    # in mol/kg
-                var2 = oct$DIC / 10^6,                   # in mol/kg
-                S = oct$Salinity,
-                T = oct$Temp,                            # in deg C
-                Patm = oct$Pressure * 0.098692326671601, # in atm
-                P = oct$SeaPressure / 10,                # in bar
+                var1 = oct$TA[!is.na(oct$Temp)] / 10^6,  # in mol/kg
+                var2 = oct$DIC[!is.na(oct$Temp)] / 10^6, # in mol/kg
+                S = oct$Salinity[!is.na(oct$Temp)],
+                T = oct$Temp[!is.na(oct$Temp)],          # in deg C
+                Patm = oct$Pressure[!is.na(oct$Temp)] * 0.098692326671601,
+                                                         # in atm
+                P = oct$SeaPressure[!is.na(oct$Temp)] / 10,   # in bar
                 k1k2 = "l",                              # l = Lueker et al. (2000)
                                                          # kf: unspecified b/c low temps
                 ks = "d",                                # d = Dickson (1990)
                 b = "l10")                               # l10 = Lee et al. (2010)
 
 # combine oct & carb data
-oct <- cbind(oct,
-             pH = octCarb$pH,
-             fCO2 = octCarb$fCO2,
-             pCO2 = octCarb$pCO2,
-             OmegaAragonite = octCarb$OmegaAragonite,
-             OmegaCalcite = octCarb$OmegaCalcite)
+for(i in c(1:38, 40, 42:44, 47:194, 197:228)) {
+  r <- 1
+  oct$pH[i] <- octCarb$pH[r]
+  oct$fCO2[i] <- octCarb$fCO2[r]
+  oct$pCO2[i] <- octCarb$pCO2[r]
+  oct$OmegaAragonite[i] <- octCarb$OmegaAragonite[r]
+  oct$OmegaCalcite[i] <- octCarb$OmegaCalcite[r]
+  r <- r + 1
+}
 ```
 
 ## Calculate AOU
@@ -196,7 +199,7 @@ EM7 <- which(oct$Station == "003" & oct$Cast == "Surface")
 # bottom EMs
 EM4 <- which(oct$Station == "033" & oct$Cast == "Bottom")
 EM5 <- which(oct$Station == "021" & oct$Cast == "Bottom")
-EM6 <- which(oct$Station == "053" & oct$Cast == "Bottom")
+EM6 <- which(oct$Station == "076" & oct$Cast == "Bottom")
 
 # pull values for EMs
 S1 <- oct$Salinity[EM1]
@@ -991,7 +994,7 @@ g.post$fac1[[33]]
 ## Look at output
 ```{r}
 summ1 <- read.table("summary_statistics1.txt", skip = 8) %>%
-  select(-V1) %>%
+  dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
 
@@ -1001,6 +1004,15 @@ oct$EM2 <- NA
 oct$EM2sd <- NA
 oct$EM3 <- NA
 oct$EM3sd <- NA
+oct$EM4 <- NA
+oct$EM4sd <- NA
+oct$EM5 <- NA
+oct$EM5sd <- NA
+oct$EM6 <- NA
+oct$EM6sd <- NA
+oct$EM7 <- NA
+oct$EM7sd <- NA
+oct$sum <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface" &
@@ -1020,10 +1032,13 @@ for(i in 1:nrow(oct)) {
                            summ1$Station == as.integer(oct$Station[i])]
     oct$EM3sd[i] <- summ1$SD[summ1$EM == "EM3" &
                            summ1$Station == as.integer(oct$Station[i])]
-    oct$sum[i] <- oct$EM1[i] + oct$EM2[i] + oct$EM3[i]
+    oct$sum[i] <- sum(oct$EM1[i], oct$EM2[i], oct$EM3[i])
   }
 }
+```
 
+## Plots for above
+```{r}
 ggplot(oct[oct$Cast == "Surface", ]) +
   geom_point(aes(x = Salinity, y = Temp, col = EM1)) +
   scale_colour_viridis(option = "viridis") +
@@ -1064,29 +1079,6 @@ ggplot(oct[oct$Cast == "Surface", ]) +
 
 ## Identify EM stat parameters
 ```{r}
-# surface EM1
-EMs1 <- oct$Salinity[oct$Cast == "Surface" &
-                     oct$Station > "008" &
-                     oct$Salinity >= S1 - 0.15 & oct$Salinity <= S1 + 0.15 &
-                     oct$Temp >= T1 - 0.3 & oct$Temp <= T1 + 0.3]
-for(i in 1:length(EMs1)) {
-  EMs1[i] <- which(oct$Salinity == EMs1[i])
-}
-for(i in 1:length(EMs1)) {
-  print(oct$Station[EMs1[i]])
-}
-
-# calc mean & sd for later use
-mean_sal_EMs1 <- mean(oct$Salinity[EMs1])
-sd_sal_EMs1 <- sd(oct$Salinity[EMs1])
-sal_err1 <- sqrt((1/length(EMs1)) * (0.003^2 * length(EMs1)))
-err_sal_EMs1 <- sd_sal_EMs1 + sal_err1
-
-mean_temp_EMs1 <- mean(oct$Temp[EMs1])
-sd_temp_EMs1 <- sd(oct$Temp[EMs1])
-temp_err1 <- sqrt((1/length(EMs1)) * (0.002^2 * length(EMs1)))
-err_temp_EMs1 <- sd_temp_EMs1 + temp_err1
-
 # surface EM7
 EMs7 <- oct$Salinity[oct$Cast == "Surface" &
                      oct$Station != "022" & oct$Station != "023" &
@@ -1234,14 +1226,9 @@ g.post$fac1[[1]]
 ## Look at output
 ```{r}
 summ3 <- read.table("summary_statistics3.txt", skip = 8) %>%
-  select(-V1) %>%
+  dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
-
-oct$EM1 <- NA
-oct$EM1sd <- NA
-oct$EM7 <- NA
-oct$EM7sd <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface" &
@@ -1254,9 +1241,13 @@ for(i in 1:nrow(oct)) {
                            summ3$Station == as.integer(oct$Station[i])]
     oct$EM7sd[i] <- summ3$SD[summ3$EM == "EM7" &
                            summ3$Station == as.integer(oct$Station[i])]
+    oct$sum[i] <- sum(oct$EM1[i], oct$EM7[i])
   }
 }
+```
 
+## Plots for above
+```{r}
 ggplot(oct[oct$Cast == "Surface", ]) +
   geom_point(aes(x = Salinity, y = Temp, col = EM1)) +
   scale_colour_viridis(option = "viridis") +
@@ -1289,7 +1280,7 @@ ggplot(oct[oct$Cast == "Surface", ]) +
 EMs4 <- oct$Salinity[oct$Cast == "Bottom" &
                      oct$Station != "022" & oct$Station != "023" &
                      oct$Station != "104" & 
-                     oct$Salinity >= S4 - 0.3 & oct$Salinity <= S4 + 0.3 &
+                     oct$Salinity >= S4 - 0.25 & oct$Salinity <= S4 + 0.25 &
                      oct$Temp >= T4 - 0.6 & oct$Temp <= T4 + 0.6]
 for(i in 1:length(EMs4)) {
   EMs4[i] <- which(oct$Salinity == EMs4[i])
@@ -1301,19 +1292,19 @@ for(i in 1:length(EMs4)) {
 # calc mean & sd for later use
 mean_sal_EMs4 <- mean(oct$Salinity[EMs4])
 sd_sal_EMs4 <- sd(oct$Salinity[EMs4])
-sal_err1 <- sqrt((1/length(EMs4)) * (0.003^2 * length(EMs4)))
-err_sal_EMs4 <- sd_sal_EMs4 + sal_err1
+sal_err4 <- sqrt((1/length(EMs4)) * (0.003^2 * length(EMs4)))
+err_sal_EMs4 <- sd_sal_EMs4 + sal_err4
 
 mean_temp_EMs4 <- mean(oct$Temp[EMs4])
 sd_temp_EMs4 <- sd(oct$Temp[EMs4])
-temp_err1 <- sqrt((1/length(EMs4)) * (0.002^2 * length(EMs4)))
-err_temp_EMs4 <- sd_temp_EMs4 + temp_err1
+temp_err4 <- sqrt((1/length(EMs4)) * (0.002^2 * length(EMs4)))
+err_temp_EMs4 <- sd_temp_EMs4 + temp_err4
 
 # bottom EM5
 EMs5 <- oct$Salinity[oct$Cast == "Bottom" &
                      oct$Station != "022" & oct$Station != "023" &
                      oct$Station != "104" & 
-                     oct$Salinity >= S5 - 0.3 & oct$Salinity <= S5 + 0.3 &
+                     oct$Salinity >= S5 - 0.25 & oct$Salinity <= S5 + 0.25 &
                      oct$Temp >= T5 - 0.6 & oct$Temp <= T5 + 0.6]
 for(i in 1:length(EMs5)) {
   EMs5[i] <- which(oct$Salinity == EMs5[i])
@@ -1325,19 +1316,19 @@ for(i in 1:length(EMs5)) {
 # calc mean & sd for later use
 mean_sal_EMs5 <- mean(oct$Salinity[EMs5])
 sd_sal_EMs5 <- sd(oct$Salinity[EMs5])
-sal_err2 <- sqrt((1/length(EMs5)) * (0.003^2 * length(EMs5)))
-err_sal_EMs5 <- sd_sal_EMs5 + sal_err2
+sal_err5 <- sqrt((1/length(EMs5)) * (0.003^2 * length(EMs5)))
+err_sal_EMs5 <- sd_sal_EMs5 + sal_err5
 
 mean_temp_EMs5 <- mean(oct$Temp[EMs5])
 sd_temp_EMs5 <- sd(oct$Temp[EMs5])
-temp_err2 <- sqrt((1/length(EMs5)) * (0.002^2 * length(EMs5)))
-err_temp_EMs5 <- sd_temp_EMs5 + temp_err2
+temp_err5 <- sqrt((1/length(EMs5)) * (0.002^2 * length(EMs5)))
+err_temp_EMs5 <- sd_temp_EMs5 + temp_err5
 
 # bottom EM6
 EMs6 <- oct$Salinity[oct$Cast == "Bottom" &
                      oct$Station != "022" & oct$Station != "023" &
                      oct$Station != "104" & 
-                     oct$Salinity >= S6 - 0.3 & oct$Salinity <= S6 + 0.3 &
+                     oct$Salinity >= S6 - 0.25 & oct$Salinity <= S6 + 0.25 &
                      oct$Temp >= T6 - 0.6 & oct$Temp <= T6 + 0.6]
 for(i in 1:length(EMs6)) {
   EMs6[i] <- which(oct$Salinity == EMs6[i])
@@ -1349,13 +1340,13 @@ for(i in 1:length(EMs6)) {
 # calc mean & sd for later use
 mean_sal_EMs6 <- mean(oct$Salinity[EMs6])
 sd_sal_EMs6 <- sd(oct$Salinity[EMs6])
-sal_err3 <- sqrt((1/length(EMs6)) * (0.003^2 * length(EMs6)))
-err_sal_EMs6 <- sd_sal_EMs6 + sal_err3
+sal_err6 <- sqrt((1/length(EMs6)) * (0.003^2 * length(EMs6)))
+err_sal_EMs6 <- sd_sal_EMs6 + sal_err6
 
 mean_temp_EMs6 <- mean(oct$Temp[EMs6])
 sd_temp_EMs6 <- sd(oct$Temp[EMs6])
-temp_err3 <- sqrt((1/length(EMs6)) * (0.002^2 * length(EMs6)))
-err_temp_EMs6 <- sd_temp_EMs6 + temp_err3
+temp_err6 <- sqrt((1/length(EMs6)) * (0.002^2 * length(EMs6)))
+err_temp_EMs6 <- sd_temp_EMs6 + temp_err6
 ```
 
 ## Bayesian mixing model
@@ -1416,7 +1407,7 @@ iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
                  plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
 iso + theme(legend.position = "none")
 
-calc_area(source = source, mix = mix, discr = discr) # 1411.205
+calc_area(source = source, mix = mix, discr = discr) # 922.1111
 
 # uninformative (technically "generalist") prior (alpha = 1)
 # Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
@@ -1471,25 +1462,20 @@ g.post$fac1[[1]]
 
 # Gelman diagnostic should be < 1.05
 # "extreme" MCMC parameters: 1; 0; 0
+# EM6 = 076: 2; 0; 0
 
 # Geweke diagnostic should have ~5% outside +/-1.96 (~31-32/634) in each chain
 # "extreme" parameters: 34/22/24
+# EM6 = 076: 38 / 37 / 29
 
 ```
 
 ## Look at output
 ```{r}
 summ2 <- read.table("summary_statistics2.txt", skip = 8) %>%
-  select(-V1) %>%
+  dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
-
-oct$EM4 <- NA
-oct$EM4sd <- NA
-oct$EM5 <- NA
-oct$EM5sd <- NA
-oct$EM6 <- NA
-oct$EM6sd <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Bottom" &
@@ -1508,9 +1494,13 @@ for(i in 1:nrow(oct)) {
                            summ2$Station == as.integer(oct$Station[i])]
     oct$EM6sd[i] <- summ2$SD[summ2$EM == "EM6" &
                            summ2$Station == as.integer(oct$Station[i])]
+    oct$sum[i] <- sum(oct$EM4[i], oct$EM5[i], oct$EM6[i])
   }
 }
+```
 
+## Plots for above
+```{r}
 ggplot(oct[oct$Cast == "Bottom", ]) +
   geom_point(aes(x = Salinity, y = Temp, col = EM4)) +
   scale_colour_viridis(option = "viridis") +
@@ -1547,6 +1537,173 @@ ggplot(oct[oct$Cast == "Bottom", ]) +
   geom_abline(slope = 1) +
   theme_bw()
 ```
+
+## Calculate mixing-normalized DIC, TA & DO values
+```{r}
+DIC1 <- mean(oct$DIC[EMs1])
+DIC2 <- mean(oct$DIC[EMs2])
+DIC3 <- mean(oct$DIC[EMs3])
+DIC4 <- mean(oct$DIC[EMs4])
+DIC5 <- mean(oct$DIC[EMs5])
+DIC6 <- mean(oct$DIC[EMs6])
+DIC7 <- mean(oct$DIC[EMs7])
+
+sdDIC1 <- sd(oct$DIC[EMs1])
+sdDIC2 <- sd(oct$DIC[EMs2])
+sdDIC3 <- sd(oct$DIC[EMs3])
+sdDIC4 <- sd(oct$DIC[EMs4])
+sdDIC5 <- sd(oct$DIC[EMs5])
+sdDIC6 <- sd(oct$DIC[EMs6])
+sdDIC7 <- sd(oct$DIC[EMs7])
+
+TA1 <- mean(oct$TA[EMs1])
+TA2 <- mean(oct$TA[EMs2])
+TA3 <- mean(oct$TA[EMs3])
+TA4 <- mean(oct$TA[EMs4])
+TA5 <- mean(oct$TA[EMs5])
+TA6 <- mean(oct$TA[EMs6])
+TA7 <- mean(oct$TA[EMs7])
+
+sdTA1 <- sd(oct$TA[EMs1])
+sdTA2 <- sd(oct$TA[EMs2])
+sdTA3 <- sd(oct$TA[EMs3])
+sdTA4 <- sd(oct$TA[EMs4])
+sdTA5 <- sd(oct$TA[EMs5])
+sdTA6 <- sd(oct$TA[EMs6])
+sdTA7 <- sd(oct$TA[EMs7])
+
+DO1 <- mean(oct$DO[EMs1])
+DO2 <- mean(oct$DO[EMs2])
+DO3 <- mean(oct$DO[EMs3])
+DO4 <- mean(oct$DO[EMs4])
+DO5 <- mean(oct$DO[EMs5])
+DO6 <- mean(oct$DO[EMs6])
+DO7 <- mean(oct$DO[EMs7])
+
+sdDO1 <- sd(oct$DO[EMs1])
+sdDO2 <- sd(oct$DO[EMs2])
+sdDO3 <- sd(oct$DO[EMs3])
+sdDO4 <- sd(oct$DO[EMs4])
+sdDO5 <- sd(oct$DO[EMs5])
+sdDO6 <- sd(oct$DO[EMs6])
+sdDO7 <- sd(oct$DO[EMs7])
+
+oct$DICn <- NA
+oct$dDIC <- NA
+oct$TAn <- NA
+oct$dTA <- NA
+oct$DOn <- NA
+oct$dDO <- NA
+
+## process used to solve the system of eq is at the end of this script
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface" &
+     oct$Station[i] > "005") {
+       oct$DICn[i] = oct$EM1[i]*DIC1 + oct$EM2[i]*DIC2 + oct$EM3[i]*DIC3
+       oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
+       oct$TAn[i] = oct$EM1[i]*TA1 + oct$EM2[i]*TA2 + oct$EM3[i]*TA3
+       oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
+       oct$DOn[i] = oct$EM1[i]*DO1 + oct$EM2[i]*DO2 + oct$EM3[i]*DO3
+       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
+       oct$sdDICn[i] = sqrt(oct$EM1sd[i]^2 * DIC1 + sdDIC1^2 * oct$EM1[i] +
+                            oct$EM2sd[i]^2 * DIC2 + sdDIC2^2 * oct$EM2[i] +
+                            oct$EM3sd[i]^2 * DIC3 + sdDIC3^2 * oct$EM3[i])
+       oct$sdTAn[i] = sqrt(oct$EM1sd[i]^2 * TA1 + sdTA1^2 * oct$EM1[i] +
+                           oct$EM2sd[i]^2 * TA2 + sdTA2^2 * oct$EM2[i] +
+                           oct$EM3sd[i]^2 * TA3 + sdTA3^2 * oct$EM3[i])
+       oct$sdDOn[i] = sqrt(oct$EM1sd[i]^2 * DO1 + sdDO1^2 * oct$EM1[i] +
+                           oct$EM2sd[i]^2 * DO2 + sdDO2^2 * oct$EM2[i] +
+                           oct$EM3sd[i]^2 * DO3 + sdDO3^2 * oct$EM3[i])
+     } else if(oct$Cast[i] == "Bottom") {
+       oct$DICn[i] = oct$EM4[i]*DIC4 + oct$EM5[i]*DIC5 + oct$EM6[i]*DIC6
+       oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
+       oct$TAn[i] = oct$EM4[i]*TA4 + oct$EM5[i]*TA5 + oct$EM6[i]*TA6
+       oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
+       oct$DOn[i] = oct$EM4[i]*DO4 + oct$EM5[i]*DO5 + oct$EM6[i]*DO6
+       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
+       oct$sdDICn[i] = sqrt(oct$EM4sd[i]^2 * DIC4 + sdDIC4^2 * oct$EM4[i] +
+                            oct$EM5sd[i]^2 * DIC5 + sdDIC5^2 * oct$EM5[i] +
+                            oct$EM6sd[i]^2 * DIC6 + sdDIC6^2 * oct$EM6[i])
+       oct$sdTAn[i] = sqrt(oct$EM4sd[i]^2 * TA4 + sdTA4^2 * oct$EM4[i] +
+                           oct$EM5sd[i]^2 * TA5 + sdTA5^2 * oct$EM5[i] +
+                           oct$EM6sd[i]^2 * TA6 + sdTA6^2 * oct$EM6[i])
+       oct$sdDOn[i] = sqrt(oct$EM4sd[i]^2 * DO4 + sdDO4^2 * oct$EM4[i] +
+                           oct$EM5sd[i]^2 * DO5 + sdDO5^2 * oct$EM5[i] +
+                           oct$EM6sd[i]^2 * DO6 + sdDO6^2 * oct$EM6[i])
+     } else {
+       oct$DICn[i] = oct$EM1[i]*DIC1 + oct$EM7[i]*DIC7
+       oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
+       oct$TAn[i] = oct$EM1[i]*TA1 + oct$EM7[i]*TA7
+       oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
+       oct$DOn[i] = oct$EM1[i]*DO1 + oct$EM7[i]*DO7
+       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
+       oct$sdDICn[i] = sqrt(oct$EM1sd[i]^2 * DIC1 + sdDIC1^2 * oct$EM1[i] +
+                            oct$EM7sd[i]^2 * DIC7 + sdDIC7^2 * oct$EM7[i])
+       oct$sdTAn[i] = sqrt(oct$EM1sd[i]^2 * TA1 + sdTA1^2 * oct$EM1[i] +
+                           oct$EM7sd[i]^2 * TA7 + sdTA7^2 * oct$EM7[i])
+       oct$sdDOn[i] = sqrt(oct$EM1sd[i]^2 * DO1 + sdDO1^2 * oct$EM1[i] +
+                           oct$EM7sd[i]^2 * DO7 + sdDO7^2 * oct$EM7[i])
+     }
+}
+```
+
+## Look at dissolution-signal sites
+```{r}
+oct$dDIC.ex <- NA
+oct$dTA.ex <- NA
+oct$ratio <- NA
+oct$TAcorr <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$dDIC[i]) &
+     oct$dDIC[i] > max(oct$sdDICn, na.rm = T) &
+     oct$dTA[i] > max(oct$sdTAn, na.rm = T)) {
+    oct$dDIC.ex[i] <- oct$dDIC[i] - (oct$dDO[i] * 106/-138)
+    oct$dTA.ex[i] <- oct$dTA[i] - (oct$dDO[i] * -17/-138)
+    oct$ratio[i] <- oct$dTA.ex[i] / oct$dDIC.ex[i]
+    oct$TAcorr[i] <- oct$TA[i] - (oct$AOU[i] * -17 / -138)
+  }
+}
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+ggplot() +
+  geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "Oct")) +
+  geom_abline(slope = 2, linetype = 2) +
+  annotate("text", x = 32, y = 56, label = "2:1 line", fontface = 4) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "royalblue",
+                      name = "Month") +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+ggplot() +
+  geom_point(aes(x = dDIC.ex, y = ratio, shape = Cast, col = "Oct")) +
+  geom_hline(yintercept = 2, linetype = 2) +
+  annotate("text", x = 30, y = 1.75, label = "TA:DIC = 2", fontface = 4) +
+  ylab("Ratio of TA excess : DIC excess") +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "royalblue",
+                      name = "Month") +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+ggplot() +
+  geom_point(aes(x = OmegaAragonite, y = TAcorr, shape = Cast, col = "Oct")) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "royalblue",
+                      name = "Month") +
+  theme_bw()
+```
+
+
 
 
 
