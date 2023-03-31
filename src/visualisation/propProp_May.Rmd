@@ -117,39 +117,93 @@ ggplot(may, aes(x = Density, y = TA, shape = Cast, col = Cast)) +
   theme_bw()
 ```
 
-## Plot delta values
+## Delta plots
 ```{r}
-may %>%
-  ggplot(aes(x = dDIC, y = dTA)) +
-  geom_point(aes(shape = Cast)) +
+ggplot() +
+  geom_point(data = may, aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
+  #geom_errorbar(data = may, aes(x = dDIC, y = dTA,
+  #                              xmin = dDIC - sdDICn, xmax = dDIC + sdDICn),
+  #              col = "royalblue", alpha = 0.3, width = 1) +
+  #geom_errorbar(data = may, aes(x = dDIC, y = dTA,
+  #                              ymin = dTA - sdTAn, ymax = dTA + sdTAn),
+  #              col = "royalblue", alpha = 0.3, width = 1) +
+  annotate("rect", alpha = 0.2, fill = "chartreuse3",
+           xmin = -median(may$sdDICn, na.rm = T),
+           xmax = median(may$sdDICn, na.rm = T),
+           ymin = -Inf,
+           ymax = Inf) +
+  annotate("rect", alpha = 0.2, fill = "chartreuse3",
+           xmin = -Inf,
+           xmax = -median(may$sdDICn, na.rm = T),
+           ymin = -median(may$sdTAn, na.rm = T),
+           ymax = median(may$sdTAn, na.rm = T)) +
+  annotate("rect", alpha = 0.2, fill = "chartreuse3",
+           xmin = median(may$sdDICn, na.rm = T),
+           xmax = Inf,
+           ymin = -median(may$sdTAn, na.rm = T),
+           ymax = median(may$sdTAn, na.rm = T)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
+  geom_abline(slope = 2) +
+  geom_abline(slope = -17/106) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
-  xlim(-41, 33) +
+  scale_colour_manual(values = "chartreuse3",
+                      name = "Month") +
   theme_bw()
 
-# negative DIC means DIC < expected --> photosynth signal
-  # combination of photosynth & calcification/precipitation
-# positive DIC means DIC > expected --> respiration signal
-  # combination of respiration & dissolution
-
-# positive TA is combination of dissolution & photosynthesis
-# negative TA is combination of calcification/precipitation & respiration
-
-# surface
-may %>%
-  filter(Cast == "Surface") %>%
-  ggplot(aes(x = dDIC, y = dTA)) +
-  geom_point(aes(shape = Cast, col = pCO2)) + # color by pCO2
+# dDO plots
+ggplot() +
+  geom_point(data = may, aes(x = dDIC, y = dDO, shape = Cast, col = "May")) +
+  annotate("rect", alpha = 0.2, fill = "chartreuse3",
+           xmin = -median(may$sdDICn, na.rm = T),
+           xmax = median(may$sdDICn, na.rm = T),
+           ymin = -Inf,
+           ymax = Inf) +
+  annotate("rect", alpha = 0.2, fill = "chartreuse3",
+           xmin = -Inf,
+           xmax = -median(may$sdDICn, na.rm = T),
+           ymin = -median(may$sdDOn, na.rm = T),
+           ymax = median(may$sdDOn, na.rm = T)) +
+  annotate("rect", alpha = 0.2, fill = "chartreuse3",
+           xmin = median(may$sdDICn, na.rm = T),
+           xmax = Inf,
+           ymin = -median(may$sdDOn, na.rm = T),
+           ymax = median(may$sdDOn, na.rm = T)) +
+  #geom_text(data = may, aes(x = dDIC, y = dDO, label = Station , col = "May")) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
-  scale_shape_manual(values = 1) +
-  scale_colour_viridis(option = "viridis") +
+  geom_abline(slope = -138/106) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "chartreuse3",
+                      name = "Month") +
+  theme_bw()
+
+ggplot() +
+  geom_point(data = may, aes(x = dTA, y = dDO, shape = Cast, col = "May")) +
+  annotate("rect", alpha = 0.2, fill = "chartreuse3",
+           xmin = -median(may$sdTAn, na.rm = T),
+           xmax = median(may$sdTAn, na.rm = T),
+           ymin = -Inf,
+           ymax = Inf) +
+  annotate("rect", alpha = 0.2, fill = "chartreuse3",
+           xmin = -Inf,
+           xmax = -median(may$sdTAn, na.rm = T),
+           ymin = -median(may$sdDOn, na.rm = T),
+           ymax = median(may$sdDOn, na.rm = T)) +
+  annotate("rect", alpha = 0.2, fill = "chartreuse3",
+           xmin = median(may$sdTAn, na.rm = T),
+           xmax = Inf,
+           ymin = -median(may$sdDOn, na.rm = T),
+           ymax = median(may$sdDOn, na.rm = T)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(slope = -138/-17) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "chartreuse3",
+                      name = "Month") +
   theme_bw()
 ```
 
@@ -180,8 +234,8 @@ may %>%
   geom_point(aes(shape = Cast, col = AOU)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
+  geom_abline(slope = 2) +
+  geom_abline(slope = -17/106) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_color_viridis(option = "magma") +
