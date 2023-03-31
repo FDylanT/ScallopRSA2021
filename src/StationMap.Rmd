@@ -14,11 +14,13 @@ This script creates a map of the planned October 2021 RSA stations overlaid on t
 library(tidyverse)
 library(sf)
 library(nngeo)
+library(PBSmapping)
 #library(marmap)
 library(ggmap)
 library(sp)
 #library(devtools)
 #library(ggOceanMaps)
+library(cowplot)
 ```
 
 ## Register Google API key
@@ -89,35 +91,28 @@ GB_sf <- st_union(st_geometry(NLS_North), st_geometry(CL1_South)) %>%
 ## Create coastline polygon
 ```{r}
 # get Massachusetts coastline
-library(maps)
-library(mapdata)
+#library(maps)
+#library(mapdata)
 library(maptools) # retiring by the end of 2023; transition to 'sp'
 
-mass <- map(database = "worldHires",
-            regions = "USA",
-            xlim = c(-73.5, -69.9),
-            ylim = c(41.2, 42.9),
-            fill = TRUE,
-            col = "black",
-            plot = FALSE)
-IDs <- sapply(strsplit(mass$names, ":"), function(x) x[1])
-mass_SP <- map2SpatialPolygons(mass, IDs = IDs, proj4string = CRS("EPSG:4326"))
-#plot(mass_SP)
-#st_crs(mass_SP)
-
-data <- data.frame(f = 99.9)
-row.names(data) <- mass_SP@polygons[[1]]@ID
-mass_SPDF <- SpatialPolygonsDataFrame(mass_SP, data)
-
-mass_sf <- st_as_sf(mass_SPDF) %>%
+mass <- Rgshhs("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/PBSmapping/gshhs_f.b",
+                xlim = c(286.5, 296.5), ylim = c(38, 46), level = 4)
+mass_sf <- as(mass$SP, "SpatialPolygonsDataFrame") %>%
+  st_as_sf() %>%
   st_transform(crs = 26919)
-#st_crs(mass_sf)
 
-#ggplot() +
-#  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-#  coord_sf(xlim = c(371957.88, 756099.58),
-#           ylim = c(4428833.79, 4709654.16),
-#           crs = st_crs(26919))
+borders <- Rgshhs("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/PBSmapping/gshhg-bin-2.3.7/wdb_borders_f.b",
+                xlim = c(286.5, 296.5), ylim = c(38, 44))
+borders_sf <- as(borders2$SP, "SpatialLines") %>%
+  st_as_sf() %>%
+  st_transform(crs = 26919)
+
+ggplot() +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = borders_sf, colour = "black") +
+  coord_sf(xlim = c(104812.98, 925854.69),
+           ylim = c(4215380.56, 5108772.44),
+           crs = st_crs(26919))
 ```
 
 ## Load data
@@ -169,26 +164,10 @@ station_sf <- st_as_sf(station_SPDF)
 
 ## Non-satellite maps
 ```{r}
-# zoomed out
-EastCoast <- ggplot() +
-  #geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.3, linetype = "dashed") +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = "black") +
-  geom_rect(aes(xmin = -70.5, xmax = -66, ymin = 40, ymax = 42.5),
-            colour = "#08519C", fill = alpha("grey", 0)) +
-  coord_sf(xlim = c(-75, -62), ylim = c(38, 45), crs = st_crs(4326)) +
-  scale_x_continuous(breaks = c(-74, -70, -66, -62)) +
-  scale_y_continuous(breaks = c(38, 40, 42, 44)) +
-  theme_bw() +
-  theme(axis.title = element_blank(),
-        #axis.text = element_text(size = 6),
-        axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        plot.margin = margin(t = 3, r = 3, b = 0, l = 0))
-
 # create base map with NOAA data
 library(marmap)
-GB_bathy <- getNOAA.bathy(lon1 = -71, lon2 = -65,
-lat1 = 39, lat2 = 43, resolution = 1)
+GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62,
+lat1 = 37, lat2 = 46, resolution = 1)
 
 # fortify for use with ggplot
 ggbathy <- GB_bathy %>%
@@ -197,27 +176,31 @@ ggbathy <- GB_bathy %>%
   select(-c(x, y, z)) %>%
   mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180, -780, -1380, -1980, -2580, -3180, -Inf)))
 
+# zoomed out
+EastCoast <- ggplot() +
+  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
+  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), na.value = "#C6DBEF") +
+  geom_sf(data = mass_sf, fill = "darkgrey", colour = "black", linewidth = 0.05) +
+  geom_sf(data = borders_sf, colour = "black", linewidth = 0.1) +
+  geom_rect(aes(xmin = -70.5, xmax = -66, ymin = 40, ymax = 42.5),
+            colour = "#08306B", fill = alpha("grey", 0), linewidth = 0.5) +
+  coord_sf(xlim = c(-73, -63.5), ylim = c(38, 44.5), crs = st_crs(4326)) +
+  scale_x_continuous(breaks = c(-70, -66)) +
+  scale_y_continuous(breaks = c(38, 40, 42, 44)) +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        #axis.text = element_text(size = 6),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.margin = margin(t = 3, r = 3, b = 0, l = 0),
+        legend.position = "none")
+
 # zoomed in
 Georges <- ggplot() +
   geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
   scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), na.value = "#C6DBEF") +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  geom_point(data = station_sf[(station_sf$Station != 9 &
-                                station_sf$Station != 43 &
-                                station_sf$Station != 91), ],
-             aes(x = Long, y = Lat), shape = 1) +
-  geom_point(data = station_sf[station_sf$Station == 21, ], aes(x = Long, y = Lat),
-             size = 3.5, shape = 17, stroke = 1.25) +
-  geom_point(data = station_sf[station_sf$Station == 34, ], aes(x = Long, y = Lat),
-             size = 3.5, shape = 17, stroke = 1.25) +
-  geom_point(data = station_sf[station_sf$Station == 53, ], aes(x = Long, y = Lat),
-             size = 3.5, shape = 17, stroke = 1.25) +
-  geom_point(data = station_sf[station_sf$Station == 9, ], aes(x = Long, y = Lat),
-             size = 3.5, shape = 2, stroke = 1.25) +
-  geom_point(data = station_sf[station_sf$Station == 43, ], aes(x = Long, y = Lat),
-             size = 3.5, shape = 2, stroke = 1.25) +
-  geom_point(data = station_sf[station_sf$Station == 91, ], aes(x = Long, y = Lat),
-             size = 3.5, shape = 2, stroke = 1.25) +
+  geom_point(data = station_sf, aes(x = Long, y = Lat), shape = 17) +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = "black") +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -226,10 +209,8 @@ Georges <- ggplot() +
         axis.text = element_text(size = 12),
         legend.position = "none")
 
-library(cowplot)
-
 ggdraw(Georges) +
-  draw_plot(EastCoast, x = 0.22, y = 0.715, width = 0.3, height = 0.26)
+  draw_plot(EastCoast, x = 0.72, y = 0, width = 0.32, height = 0.32)
 ```
 
 ## Using satellite map
