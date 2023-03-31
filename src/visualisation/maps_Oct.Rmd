@@ -829,14 +829,14 @@ May.TvS <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
-  guides(shape = guide_legend(title.position = "top", title.hjust = 0.5),
-         col = guide_legend(title.position = "top", title.hjust = 0.5)) +
   scale_x_continuous(limits = c(32.294, 34.397), breaks = c(33, 34)) +
   ylim(6.716, 10.081) +
   xlab("Salinity (PSU)") +
   ylab("Temperature (°C)") +
+  labs(title = "May") +
   theme_bw() +
-  theme(legend.title = element_text(face = "bold"),
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"),
         legend.position = "bottom")
 
 Oct.TvS <- ggplot() +
@@ -845,16 +845,18 @@ Oct.TvS <- ggplot() +
              col = "royalblue") +
   scale_shape_manual(values = 1,
                      guide = guide_legend(reverse = TRUE)) +
-  xlab("Salinity (PSU)") +
-  ylab("Temperature (°C)") +
   xlim(31.59, 35.65) +
   ylim(8.31, 20.7) +
+  xlab("Salinity (PSU)") +
+  ylab("Temperature (°C)") +
+  labs(title = "October") +
   theme_bw() +
-  theme(legend.position = "none")
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none")
 
 May.TvS.2 <- ggplot() +
   geom_point(data = may[may$Cast == "Bottom", ], aes(x = Salinity, y = Temp, shape = Cast, col = "May")) +
-  scale_shape_manual(values = 1,
+  scale_shape_manual(values = 16,
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
@@ -871,10 +873,10 @@ Oct.TvS.2 <- ggplot() +
              col = "royalblue") +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
-  xlab("Salinity (PSU)") +
-  ylab("Temperature (°C)") +
   xlim(31.59, 35.65) +
   ylim(8.31, 20.7) +
+  xlab("Salinity (PSU)") +
+  ylab("Temperature (°C)") +
   theme_bw() +
   theme(legend.position = "none")
 
@@ -885,6 +887,8 @@ legend.only <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("chartreuse3", "royalblue"),
                       name = "Month") +
+  guides(shape = guide_legend(title.position = "top", title.hjust = 0.5),
+         col = guide_legend(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
   theme(legend.title = element_text(face = "bold"),
         legend.position = "bottom")
@@ -893,16 +897,21 @@ theme_set(theme_minimal())
 
 plot_grid(
   plot_grid(
-    May.TvS + theme(legend.position = "none"),
-    Oct.TvS,
+    get_title(May.TvS),
+    get_title(Oct.TvS),
+    ncol = 2, nrow = 1),
+  plot_grid(
+    May.TvS + theme(plot.title = element_blank(), legend.position = "none"),
+    Oct.TvS + theme(plot.title = element_blank()),
     May.TvS.2,
     Oct.TvS.2,
     ncol = 2, nrow = 2,
-    align = "hv"),
+    align = "hv",
+    labels = c("A", "B", "C", "D")),
   plot_grid(
     get_legend(legend.only)),
-  nrow = 2,
-  rel_heights = c(12, 1)
+  nrow = 3,
+  rel_heights = c(1, 24, 3)
 )
 ```
 
