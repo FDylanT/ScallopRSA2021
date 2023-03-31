@@ -69,7 +69,7 @@ rm(chd)
 ```
 
 ## Fill in missing temp & DO values
-```{r}
+
 # temp
 for(i in 1:nrow(may)) {
   if(may$Station[i] == "006") {
@@ -173,7 +173,6 @@ for(i in 1:nrow(may)) {
                  0.387 * may$DO[may$Station == "113" & may$Cast == cast]
   }
 }
-```
 
 ## Calculate density & carbon system parameters
 ```{r}
@@ -192,24 +191,28 @@ may$DO_L <- may$DO
 may$DO <- may$DO / (may$Density / 1000) # convert m^3 to L
 
 mayCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
-                var1 = may$TA / 10^6,                    # in mol/kg
-                var2 = may$DIC / 10^6,                   # in mol/kg
-                S = may$Salinity,
-                T = may$Temp,                            # in deg C
-                Patm = may$Pressure * 0.098692326671601, # in atm
-                P = may$SeaPressure / 10,                # in bar
+                var1 = may$TA[!is.na(may$Temp)] / 10^6,  # in mol/kg
+                var2 = may$DIC[!is.na(may$Temp)] / 10^6, # in mol/kg
+                S = may$Salinity[!is.na(may$Temp)],
+                T = may$Temp[!is.na(may$Temp)],          # in deg C
+                Patm = may$Pressure[!is.na(may$Temp)] * 0.098692326671601,
+                                                         # in atm
+                P = may$SeaPressure[!is.na(may$Temp)] / 10,   # in bar
                 k1k2 = "l",                              # l = Lueker et al. (2000)
                                                          # kf: unspecified b/c low temps
                 ks = "d",                                # d = Dickson (1990)
                 b = "l10")                               # l10 = Lee et al. (2010)
 
 # combine may & carb data
-may <- cbind(may,
-             pH = mayCarb$pH,
-             fCO2 = mayCarb$fCO2,
-             pCO2 = mayCarb$pCO2,
-             OmegaAragonite = mayCarb$OmegaAragonite,
-             OmegaCalcite = mayCarb$OmegaCalcite)
+for(i in c(1:10, 13:22, 25:30, 33:42, 45:58, 61:160, 163:220, 223:226)) {
+  r <- 1
+  may$pH[i] <- mayCarb$pH[r]
+  may$fCO2[i] <- mayCarb$fCO2[r]
+  may$pCO2[i] <- mayCarb$pCO2[r]
+  may$OmegaAragonite[i] <- mayCarb$OmegaAragonite[r]
+  may$OmegaCalcite[i] <- mayCarb$OmegaCalcite[r]
+  r <- r + 1
+}
 ```
 
 ## Calculate AOU
@@ -253,7 +256,7 @@ EM3 <- which(may$Station == "113" & may$Cast == "Surface")
 # bottom EMs
 EM4 <- which(may$Station == "062" & may$Cast == "Bottom") # already-in-GB water
 EM5 <- which(may$Station == "079" & may$Cast == "Bottom") # central water
-EM6 <- which(may$Station == "004" & may$Cast == "Bottom") # GoM water (incl 041 etc)
+EM6 <- which(may$Station == "004" & may$Cast == "Bottom") # GoM water (046, 048)
 EM7 <- which(may$Station == "059" & may$Cast == "Bottom") # slope water
 
 # pull values for EMs
@@ -292,7 +295,10 @@ TA4 <- may$TA[EM4]
 TA5 <- may$TA[EM5]
 TA6 <- may$TA[EM6]
 TA7 <- may$TA[EM7]
+```
 
+## Calculate contributions from each EM (triangles, not quadrangle)
+```{r}
 may$a1 <- NA
 may$a2 <- NA
 may$a3 <- NA
@@ -308,8 +314,7 @@ for(i in 1:nrow(may)) {
             ((S3-S1) - (T3-T1)*(S2-S1)/(T2-T1))
        may$a2[i] = (may$Temp[i] - T1 - may$a3[i]*(T3-T1)) / (T2-T1)
        may$a1[i] = 1 - (may$a2[i] + may$a3[i])
-     } else if(may$Cast[i] == "Bottom" &
-               may$Station[i] != "059" &
+     } else if(may$Station[i] != "059" &
                may$Station[i] != "064" &
                may$Station[i] != "087" &
                may$Station[i] != "053" &
@@ -320,25 +325,21 @@ for(i in 1:nrow(may)) {
                may$Station[i] != "077" &
                may$Station[i] != "076" &
                may$Station[i] != "081" &
-               may$Station[i] != "060" &
+               may$Station[i] != "093" &
                may$Station[i] != "078" &
                may$Station[i] != "072" &
+               may$Station[i] != "060" &
                may$Station[i] != "058" &
                may$Station[i] != "049" &
-               may$Station[i] != "069" &
-               may$Station[i] != "093" &
-               may$Station[i] != "104") {
+               may$Station[i] != "069"){
        may$a6[i] = (may$Salinity[i] - S4 - may$Temp[i]*(S5-S4)/(T5-T4) +
              T4*(S5-S4)/(T5-T4)) /
             ((S6-S4) - (T6-T4)*(S5-S4)/(T5-T4))
        may$a5[i] = (may$Temp[i] - T4 - may$a6[i]*(T6-T4)) / (T5-T4)
        may$a4[i] = 1 - (may$a5[i] + may$a6[i])
      } else {
-       may$a7[i] = (may$Salinity[i] - S5 - may$Temp[i]*(S6-S5)/(T6-T5) +
-             T5*(S6-S5)/(T6-T5)) /
-            ((S7-S5) - (T7-T5)*(S6-S5)/(T6-T5))
-       may$a6[i] = (may$Temp[i] - T5 - may$a7[i]*(T7-T5)) / (T6-T5)
-       may$a5[i] = 1 - (may$a6[i] + may$a7[i])
+       may$a7[i] = (may$Salinity[i] - S5) / (S7 - S5)
+       may$a5[i] = 1 - may$a7[i]
      }
 }
 ```
@@ -358,34 +359,11 @@ for(i in 1:nrow(may)) {
        may$dDIC[i] = may$DIC[i] - may$DICn[i]   # observed - expected
        may$TAn[i] = may$a1[i]*TA1 + may$a2[i]*TA2 + may$a3[i]*TA3
        may$dTA[i] = may$TA[i] - may$TAn[i]   # observed - expected
-     } else if(may$Cast[i] == "Bottom" &
-               may$Station[i] != "059" &
-               may$Station[i] != "064" &
-               may$Station[i] != "087" &
-               may$Station[i] != "053" &
-               may$Station[i] != "086" &
-               may$Station[i] != "063" &
-               may$Station[i] != "047" &
-               may$Station[i] != "043" &
-               may$Station[i] != "077" &
-               may$Station[i] != "076" &
-               may$Station[i] != "081" &
-               may$Station[i] != "060" &
-               may$Station[i] != "078" &
-               may$Station[i] != "072" &
-               may$Station[i] != "058" &
-               may$Station[i] != "049" &
-               may$Station[i] != "069" &
-               may$Station[i] != "093" &
-               may$Station[i] != "104") {
-       may$DICn[i] = may$a4[i]*DIC4 + may$a5[i]*DIC5 + may$a6[i]*DIC6
-       may$dDIC[i] = may$DIC[i] - may$DICn[i]   # observed - expected
-       may$TAn[i] = may$a4[i]*TA4 + may$a5[i]*TA5 + may$a6[i]*TA6
-       may$dTA[i] = may$TA[i] - may$TAn[i]   # observed - expected
      } else {
-       may$DICn[i] = may$a5[i]*DIC5 + may$a7[i]*DIC7
+       may$DICn[i] = may$a4[i]*DIC4 + may$a5[i]*DIC5 + may$a6[i]*DIC6 +
+         may$a7[i]*DIC7
        may$dDIC[i] = may$DIC[i] - may$DICn[i]   # observed - expected
-       may$TAn[i] = may$a5[i]*TA5 + may$a7[i]*TA7
+       may$TAn[i] = may$a4[i]*TA4 + may$a5[i]*TA5 + may$a6[i]*TA6 + may$a7[i]*TA7
        may$dTA[i] = may$TA[i] - may$TAn[i]   # observed - expected
      }
 }
@@ -409,31 +387,9 @@ for(i in 1:nrow(may)) {
   if(may$Cast[i] == "Surface") {
     may$DOn[i] = may$a1[i]*DO1 + may$a2[i]*DO2 + may$a3[i]*DO3
     may$dDO[i] = may$DO[i] - may$DOn[i]   # observed - expected
-  } else if(may$Cast[i] == "Bottom" &
-            may$Station[i] != "059" &
-            may$Station[i] != "064" &
-            may$Station[i] != "087" &
-            may$Station[i] != "053" &
-            may$Station[i] != "086" &
-            may$Station[i] != "063" &
-            may$Station[i] != "047" &
-            may$Station[i] != "043" &
-            may$Station[i] != "077" &
-            may$Station[i] != "076" &
-            may$Station[i] != "081" &
-            may$Station[i] != "060" &
-            may$Station[i] != "078" &
-            may$Station[i] != "072" &
-            may$Station[i] != "058" &
-            may$Station[i] != "049" &
-            may$Station[i] != "069" &
-            may$Station[i] != "093" &
-            may$Station[i] != "104") {
-       may$DOn[i] = may$a4[i]*DO4 + may$a5[i]*DO5 + may$a6[i]*DO6
+  } else {
+       may$DOn[i] = may$a4[i]*DO4 + may$a5[i]*DO5 + may$a6[i]*DO6 + may$a7[i]*DO7
        may$dDO[i] = may$DO[i] - may$DOn[i]   # observed - expected
-    } else {
-      may$DOn[i] = may$a5[i]*DO5 + may$a7[i]*DO7
-      may$dDO[i] = may$DO[i] - may$DOn[i]
     }
 }
 ```
@@ -716,6 +672,31 @@ for(i in 1:nrow(may)) {
 }
 ```
 
+## Calculate CO2 atm equilibration time
+```{r}
+eqCO2sys <- carb(flag = 24,                               # pCO2 and ALK given
+                 var1 = 420,
+                 var2 = may$TA / 10^6,                    # in mol/kg
+                 S = may$Salinity,
+                 T = may$Temp,
+                 Patm = may$Pressure * 0.098692326671601, # in atm
+                 P = may$SeaPressure / 10,                # in bar
+                 k1k2 = "l",
+                 ks = "d",
+                 b = "l10")
+
+may$eqDIC <- NA
+may$d <- NA
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+    may$eqDIC[i] = eqCO2sys$DIC[i] * 10^6
+    may$d[i] = (may$DIC[i] - may$eqDIC[i]) /
+                (may$flux[i] / may$MLD[i]) * may$Density[i]
+  }
+}
+```
+
 ## Calculate DICair-sea
 ```{r}
 # umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
@@ -724,15 +705,22 @@ mayResTime <- 63   # average time for a particle to transit GB (Brink 2003)
 may$DICf <- NA
 
 for(i in 1:nrow(may)) {
-  if(may$Cast[i] == "Surface") {
-    may$DICf[i] = -1 * may$flux[i] / may$MLD[i] / may$Density[i] * mayResTime
-  }  
+  if(may$Cast[i] == "Surface" &
+     !is.na(may$MLD_frac[i])) {
+    if(abs(may$d[i]) < 63) {
+      may$DICf[i] = -1 * may$flux[i] / may$MLD[i] / may$Density[i] * may$d[i]
+    } else {
+      may$DICf[i] = -1 * may$flux[i] / may$MLD[i] / may$Density[i] * mayResTime
+    }
+  }
+}
+
+for(i in 1:nrow(may)) {
   if(may$Cast[i] == "Bottom" &
-     !is.na(may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"]) &
-     may$MLD_frac[may$Station == may$Station[i] &
-                  may$Cast == "Surface"] > 0.75) {
-    may$DICf[i] = -1 * may$flux[i] / may$MLD[i] / may$Density[i] * mayResTime
+     !is.na(may$MLD_frac[i]) &
+     may$MLD_frac[i] > 0.9) {
+    may$DICf[i] = may$DICf[which(may$Cast == "Surface" &
+                                 may$Station == may$Station[i])]
   }
 }
 ```
@@ -973,7 +961,7 @@ discr <- load_discr_data(filename = "./mixing/discr_surface.csv", mix)
 iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
                  plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
 iso + theme(legend.position = "none") +
-  scale_x_continuous(limits = c(32.2, 33.4)) +
+  scale_x_continuous(limits = c(32.2, 33.2)) +
   scale_y_continuous(limits = c(6.9, 9))
 
 calc_area(source = source, mix = mix, discr = discr) # 263.1986
@@ -1117,7 +1105,7 @@ ggplot(may[may$Cast == "Surface", ]) +
   theme_bw()
 ```
 
-# Bottom: left triangle
+# Bottom: quadrangle
 
 ## Identify EM stat parameters
 ```{r}
@@ -1136,13 +1124,13 @@ for(i in 1:length(EMs4)) {
 # calc mean & sd for later use
 mean_sal_EMs4 <- mean(may$Salinity[EMs4])
 sd_sal_EMs4 <- sd(may$Salinity[EMs4])
-sal_err1 <- sqrt((1/length(EMs4)) * (0.003^2 * length(EMs4)))
-err_sal_EMs4 <- sd_sal_EMs4 + sal_err1
+sal_err4 <- sqrt((1/length(EMs4)) * (0.003^2 * length(EMs4)))
+err_sal_EMs4 <- sd_sal_EMs4 + sal_err4
 
 mean_temp_EMs4 <- mean(may$Temp[EMs4])
 sd_temp_EMs4 <- sd(may$Temp[EMs4])
-temp_err1 <- sqrt((1/length(EMs4)) * (0.002^2 * length(EMs4)))
-err_temp_EMs4 <- sd_temp_EMs4 + temp_err1
+temp_err4 <- sqrt((1/length(EMs4)) * (0.002^2 * length(EMs4)))
+err_temp_EMs4 <- sd_temp_EMs4 + temp_err4
 
 # bottom EM5
 EMs5 <- may$Salinity[may$Cast == "Bottom" &
@@ -1158,16 +1146,17 @@ for(i in 1:length(EMs5)) {
 # calc mean & sd for later use
 mean_sal_EMs5 <- mean(may$Salinity[EMs5])
 sd_sal_EMs5 <- sd(may$Salinity[EMs5])
-sal_err2 <- sqrt((1/length(EMs5)) * (0.003^2 * length(EMs5)))
-err_sal_EMs5 <- sd_sal_EMs5 + sal_err2
+sal_err5 <- sqrt((1/length(EMs5)) * (0.003^2 * length(EMs5)))
+err_sal_EMs5 <- sd_sal_EMs5 + sal_err5
 
 mean_temp_EMs5 <- mean(may$Temp[EMs5])
 sd_temp_EMs5 <- sd(may$Temp[EMs5])
-temp_err2 <- sqrt((1/length(EMs5)) * (0.002^2 * length(EMs5)))
-err_temp_EMs5 <- sd_temp_EMs5 + temp_err2
+temp_err5 <- sqrt((1/length(EMs5)) * (0.002^2 * length(EMs5)))
+err_temp_EMs5 <- sd_temp_EMs5 + temp_err5
 
 # bottom EM6
 EMs6 <- may$Salinity[may$Cast == "Bottom" &
+                     may$Station != "003" & may$Station != "004" &
                      may$Salinity >= S6 - 0.1 & may$Salinity <= S6 + 0.1 &
                      may$Temp >= T6 - 0.2 & may$Temp <= T6 + 0.2]
 for(i in 1:length(EMs6)) {
@@ -1180,13 +1169,35 @@ for(i in 1:length(EMs6)) {
 # calc mean & sd for later use
 mean_sal_EMs6 <- mean(may$Salinity[EMs6])
 sd_sal_EMs6 <- sd(may$Salinity[EMs6])
-sal_err3 <- sqrt((1/length(EMs6)) * (0.003^2 * length(EMs6)))
-err_sal_EMs6 <- sd_sal_EMs6 + sal_err3
+sal_err6 <- sqrt((1/length(EMs6)) * (0.003^2 * length(EMs6)))
+err_sal_EMs6 <- sd_sal_EMs6 + sal_err6
 
 mean_temp_EMs6 <- mean(may$Temp[EMs6])
 sd_temp_EMs6 <- sd(may$Temp[EMs6])
-temp_err3 <- sqrt((1/length(EMs6)) * (0.002^2 * length(EMs6)))
-err_temp_EMs6 <- sd_temp_EMs6 + temp_err3
+temp_err6 <- sqrt((1/length(EMs6)) * (0.002^2 * length(EMs6)))
+err_temp_EMs6 <- sd_temp_EMs6 + temp_err6
+
+# bottom EM7
+EMs7 <- may$Salinity[may$Cast == "Bottom" &
+                     may$Salinity >= S7 - 0.2 & may$Salinity <= S7 + 0.2 &
+                     may$Temp >= T7 - 0.5 & may$Temp <= T7 + 0.5]
+for(i in 1:length(EMs7)) {
+  EMs7[i] <- which(may$Salinity == EMs7[i])
+}
+for(i in 1:length(EMs7)) {
+  print(may$Station[EMs7[i]])
+}
+
+# calc mean & sd for later use
+mean_sal_EMs7 <- mean(may$Salinity[EMs7])
+sd_sal_EMs7 <- sd(may$Salinity[EMs7])
+sal_err7 <- sqrt((1/length(EMs7)) * (0.003^2 * length(EMs7)))
+err_sal_EMs7 <- sd_sal_EMs7 + sal_err7
+
+mean_temp_EMs7 <- mean(may$Temp[EMs7])
+sd_temp_EMs7 <- sd(may$Temp[EMs7])
+temp_err7 <- sqrt((1/length(EMs7)) * (0.002^2 * length(EMs7)))
+err_temp_EMs7 <- sd_temp_EMs7 + temp_err7
 ```
 
 ## Bayesian mixing model
@@ -1196,30 +1207,11 @@ read.csv("./data/MayCruiseData.csv") %>%
   rename(Temp = Temperature) %>%
   filter(Cast == "Bottom",
          !is.na(Temp),
-         Station != 59 &
-         Station != 64 &
-         Station != 87 &
-         Station != 53 &
-         Station != 86 &
-         Station != 63 &
-         Station != 47 &
-         Station != 43 &
-         Station != 77 &
-         Station != 76 &
-         Station != 81 &
-         Station != 60 &
-         Station != 78 &
-         Station != 72 &
-         Station != 58 &
-         Station != 49 &
-         Station != 69 &
-         Station != 93 &
-         Station != 104 &
-         ###
          Station != 1 &
          Station != 2 &
-         Station != 113
-         ) %>%
+         Station != 3 &
+         Station != 4 &
+         Station != 113) %>%
   write_csv("./mixing/MayCruiseData_bottom.csv")
 
 # load mixture data
@@ -1231,12 +1223,12 @@ mix <- load_mix_data(filename = "./mixing/MayCruiseData_bottom.csv",
                      cont_effects = NULL)
 
 # create source data
-EM <- c("EM4", "EM5", "EM6")
-MeanTemp <- c(mean_temp_EMs4, mean_temp_EMs5, mean_temp_EMs6)
-SDTemp <- c(err_temp_EMs4, err_temp_EMs5, err_temp_EMs6)
-MeanSalinity <- c(mean_sal_EMs4, mean_sal_EMs5, mean_sal_EMs6)
-SDSalinity <- c(err_sal_EMs4, err_sal_EMs5, err_sal_EMs6)
-n <- c(length(EMs4), length(EMs5), length(EMs6))
+EM <- c("EM4", "EM5", "EM6", "EM7")
+MeanTemp <- c(mean_temp_EMs4, mean_temp_EMs5, mean_temp_EMs6, mean_temp_EMs7)
+SDTemp <- c(err_temp_EMs4, err_temp_EMs5, err_temp_EMs6, err_temp_EMs7)
+MeanSalinity <- c(mean_sal_EMs4, mean_sal_EMs5, mean_sal_EMs6, mean_sal_EMs7)
+SDSalinity <- c(err_sal_EMs4, err_sal_EMs5, err_sal_EMs6, err_sal_EMs7)
+n <- c(length(EMs4), length(EMs5), length(EMs6), 2)
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
                 MeanSalinity, SDSalinity, n), "./mixing/sources_bottom.csv",
@@ -1250,10 +1242,10 @@ source <- load_source_data(filename = "./mixing/sources_bottom.csv",
                            mix)
 
 # create discrimination data: 0 because conservative parameters
-MeanTemp <- rep(0, 3)
-SDTemp <- rep(0, 3)
-MeanSalinity <- rep(0, 3)
-SDSalinity <- rep(0, 3)
+MeanTemp <- rep(0, 4)
+SDTemp <- rep(0, 4)
+MeanSalinity <- rep(0, 4)
+SDSalinity <- rep(0, 4)
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
                 MeanSalinity, SDSalinity), "./mixing/discr_bottom.csv",
@@ -1269,7 +1261,7 @@ iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
                  plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
 iso + theme(legend.position = "none")
 
-calc_area(source = source, mix = mix, discr = discr) # 93.34312
+calc_area(source = source, mix = mix, discr = discr) # 93.34312 # 170.8278 (4 EM)
 
 # uninformative (technically "generalist") prior (alpha = 1)
 # Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
@@ -1278,20 +1270,20 @@ plot_prior(alpha.prior = 1, source, plot_save_pdf = FALSE, plot_save_png = TRUE)
 
 ## Write model
 ```{r}
-model_filename <- "./bottom_model_may.txt"
+model_filename <- "./bottom_model_may4.txt"
 resid_err <- FALSE # because n=1 per Station
 process_err <- TRUE
 write_JAGS_model(model_filename, resid_err, process_err, mix, source)
 
 run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
             calcDIC = TRUE)
-jags.2m <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
+jags.2m4 <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
 ```
 
 ## Check for convergence
 ```{r}
 output_options2m <- list(summary_save = TRUE,
-                       summary_name = "summary_statistics2m",
+                       summary_name = "summary_statistics2m4",
                        sup_post = TRUE,
                        plot_post_save_pdf = FALSE,
                        plot_post_name = "posterior_density2m",
@@ -1313,28 +1305,30 @@ output_options2m <- list(summary_save = TRUE,
                        diag_save_ggmcmc = FALSE,
                        return_obj = TRUE)
 
-options(max.print = 3000) # change global option
+options(max.print = 10000) # change global option
 output_JAGS(jags.2m, mix, source, output_options2m)
 
-diag <- output_diagnostics(jags.2m, mix, source, output_options2m)
-df.stats <- output_stats(jags.2m, mix, source, output_options2m)
+diag <- output_diagnostics(jags.2m4, mix, source, output_options2m)
+df.stats <- output_stats(jags.2m4, mix, source, output_options2m)
 g.post <- output_posteriors(jags.2m, mix, source, output_options2m)
 
 g.post$fac1[[1]]
 
 # Gelman diagnostic should be < 1.05
 # 581; 440; 380   # good GRIEF what happened here
-# 9; 0; 0
+# 9; 0; 0 *good convergence; not great output
+# 3; 0; 0
 
-# Geweke diagnostic should have ~5% outside +/-1.96 (32/640) in each chain
+# Geweke diagnostic should have ~5% outside +/-1.96 (40-41/813) in each chain
 # 43 / 29 / 35
-# 37 / 28 / 33
+# 37 / 28 / 33 *good convergence; not great output
+# 30 / 84 / 105
 ```
 
 ## Look at output
 ```{r}
 summ2m <- read.table("summary_statistics2m.txt", skip = 8) %>%
-  select(-V1) %>%
+  dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
 
@@ -1344,6 +1338,8 @@ may$EM5 <- NA
 may$EM5sd <- NA
 may$EM6 <- NA
 may$EM6sd <- NA
+may$EM7 <- NA
+may$EM7sd <- NA
 
 for(i in 1:nrow(may)) {
   if(may$Cast[i] == "Bottom") {
@@ -1363,6 +1359,10 @@ for(i in 1:nrow(may)) {
                            summ2m$Station == as.integer(may$Station[i])]
     may$EM6sd[i] <- summ2m$SD[summ2m$EM == "EM6" &
                            summ2m$Station == as.integer(may$Station[i])]
+    may$EM7[i] <- summ2m$Mean[summ2m$EM == "EM7" &
+                           summ2m$Station == as.integer(may$Station[i])]
+    may$EM7sd[i] <- summ2m$SD[summ2m$EM == "EM7" &
+                           summ2m$Station == as.integer(may$Station[i])]
   }
 }
 
@@ -1381,6 +1381,11 @@ ggplot(may[may$Cast == "Bottom", ]) +
   scale_colour_viridis(option = "viridis") +
   theme_bw()
 
+ggplot(may[may$Cast == "Bottom", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM7)) +
+  scale_colour_viridis(option = "viridis", breaks = c(0.25, 0.5, 0.75)) +
+  theme_bw()
+
 
 
 ggplot(may[may$Cast == "Bottom", ]) +
@@ -1388,7 +1393,6 @@ ggplot(may[may$Cast == "Bottom", ]) +
   geom_text(aes(x = a4, y = EM4, label = Station)) +
   geom_abline(slope = 1) +
   theme_bw()
-
 
 ggplot(may[may$Cast == "Bottom", ]) +
   #geom_point(aes(x = a5, y = EM5)) +
@@ -1401,6 +1405,114 @@ ggplot(may[may$Cast == "Bottom", ]) +
   geom_text(aes(x = a6, y = EM6, label = Station)) +
   geom_abline(slope = 1) +
   theme_bw()
+
+ggplot(may[may$Cast == "Bottom", ]) +
+  #geom_point(aes(x = a7, y = EM7)) +
+  geom_text(aes(x = a7, y = EM7, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+```
+
+## Calculate mixing-normalized DIC, TA & DO values
+```{r}
+DIC1 <- mean(may$DIC[EMs1])
+DIC2 <- mean(may$DIC[EMs2])
+DIC3 <- mean(may$DIC[EMs3])
+DIC4 <- mean(may$DIC[EMs4])
+DIC5 <- mean(may$DIC[EMs5])
+DIC6 <- mean(may$DIC[EMs6])
+DIC7 <- mean(may$DIC[EMs7])
+
+sdDIC1 <- sd(may$DIC[EMs1])
+sdDIC2 <- sd(may$DIC[EMs2])
+sdDIC3 <- sd(may$DIC[EMs3])
+sdDIC4 <- sd(may$DIC[EMs4])
+sdDIC5 <- sd(may$DIC[EMs5])
+sdDIC6 <- sd(may$DIC[EMs6])
+sdDIC7 <- sd(may$DIC[EMs7])
+
+TA1 <- mean(may$TA[EMs1])
+TA2 <- mean(may$TA[EMs2])
+TA3 <- mean(may$TA[EMs3])
+TA4 <- mean(may$TA[EMs4])
+TA5 <- mean(may$TA[EMs5])
+TA6 <- mean(may$TA[EMs6])
+TA7 <- mean(may$TA[EMs7])
+
+sdTA1 <- sd(may$TA[EMs1])
+sdTA2 <- sd(may$TA[EMs2])
+sdTA3 <- sd(may$TA[EMs3])
+sdTA4 <- sd(may$TA[EMs4])
+sdTA5 <- sd(may$TA[EMs5])
+sdTA6 <- sd(may$TA[EMs6])
+sdTA7 <- sd(may$TA[EMs7])
+
+DO1 <- mean(may$DO[EMs1])
+DO2 <- mean(may$DO[EMs2])
+DO3 <- mean(may$DO[EMs3])
+DO4 <- mean(may$DO[EMs4])
+DO5 <- mean(may$DO[EMs5])
+DO6 <- mean(may$DO[EMs6])
+DO7 <- mean(may$DO[EMs7])
+
+sdDO1 <- sd(may$DO[EMs1])
+sdDO2 <- sd(may$DO[EMs2])
+sdDO3 <- sd(may$DO[EMs3])
+sdDO4 <- sd(may$DO[EMs4])
+sdDO5 <- sd(may$DO[EMs5])
+sdDO6 <- sd(may$DO[EMs6])
+sdDO7 <- sd(may$DO[EMs7])
+
+may$DICn <- NA
+may$dDIC <- NA
+may$TAn <- NA
+may$dTA <- NA
+may$DOn <- NA
+may$dDO <- NA
+
+## process used to solve the system of eq is at the end of this script
+
+for(i in 1:nrow(may)) {
+  if(may$Cast[i] == "Surface") {
+       may$DICn[i] = may$EM1[i]*DIC1 + may$EM2[i]*DIC2 + may$EM3[i]*DIC3
+       may$dDIC[i] = may$DIC[i] - may$DICn[i]   # observed - expected
+       may$TAn[i] = may$EM1[i]*TA1 + may$EM2[i]*TA2 + may$EM3[i]*TA3
+       may$dTA[i] = may$TA[i] - may$TAn[i]   # observed - expected
+       may$DOn[i] = may$EM1[i]*DO1 + may$EM2[i]*DO2 + may$EM3[i]*DO3
+       may$dDO[i] = may$DO[i] - may$DOn[i]   # observed - expected
+       may$sdDICn[i] = sqrt(may$EM1sd[i]^2 * DIC1 + sdDIC1^2 * may$EM1[i] +
+                            may$EM2sd[i]^2 * DIC2 + sdDIC2^2 * may$EM2[i] +
+                            may$EM3sd[i]^2 * DIC3 + sdDIC3^2 * may$EM3[i])
+       may$sdTAn[i] = sqrt(may$EM1sd[i]^2 * TA1 + sdTA1^2 * may$EM1[i] +
+                           may$EM2sd[i]^2 * TA2 + sdTA2^2 * may$EM2[i] +
+                           may$EM3sd[i]^2 * TA3 + sdTA3^2 * may$EM3[i])
+       may$sdDOn[i] = sqrt(may$EM1sd[i]^2 * DO1 + sdDO1^2 * may$EM1[i] +
+                           may$EM2sd[i]^2 * DO2 + sdDO2^2 * may$EM2[i] +
+                           may$EM3sd[i]^2 * DO3 + sdDO3^2 * may$EM3[i])
+     } else if(may$Cast[i] == "Bottom") {
+       may$DICn[i] = may$EM4[i]*DIC4 + may$EM5[i]*DIC5 + may$EM6[i]*DIC6 +
+         may$EM7[i]*DIC7
+       may$dDIC[i] = may$DIC[i] - may$DICn[i]   # observed - expected
+       may$TAn[i] = may$EM4[i]*TA4 + may$EM5[i]*TA5 + may$EM6[i]*TA6 +
+         may$EM7[i]*TA7
+       may$dTA[i] = may$TA[i] - may$TAn[i]   # observed - expected
+       may$DOn[i] = may$EM4[i]*DO4 + may$EM5[i]*DO5 + may$EM6[i]*DO6 +
+         may$EM7[i]*DO7
+       may$dDO[i] = may$DO[i] - may$DOn[i]   # observed - expected
+       may$sdDICn[i] = sqrt(may$EM4sd[i]^2 * DIC4 + sdDIC4^2 * may$EM4[i] +
+                            may$EM5sd[i]^2 * DIC5 + sdDIC5^2 * may$EM5[i] +
+                            may$EM6sd[i]^2 * DIC6 + sdDIC6^2 * may$EM6[i] +
+                            may$EM7sd[i]^2 * DIC7 + sdDIC7^2 * may$EM7[i])
+       may$sdTAn[i] = sqrt(may$EM4sd[i]^2 * TA4 + sdTA4^2 * may$EM4[i] +
+                           may$EM5sd[i]^2 * TA5 + sdTA5^2 * may$EM5[i] +
+                           may$EM6sd[i]^2 * TA6 + sdTA6^2 * may$EM6[i] +
+                           may$EM7sd[i]^2 * TA7 + sdTA7^2 * may$EM7[i])
+       may$sdDOn[i] = sqrt(may$EM4sd[i]^2 * DO4 + sdDO4^2 * may$EM4[i] +
+                           may$EM5sd[i]^2 * DO5 + sdDO5^2 * may$EM5[i] +
+                           may$EM6sd[i]^2 * DO6 + sdDO6^2 * may$EM6[i] +
+                           may$EM7sd[i]^2 * TA7 + sdTA7^2 * may$EM7[i])
+     }
+}
 ```
 
 
