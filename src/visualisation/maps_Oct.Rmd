@@ -827,12 +827,12 @@ May.TvS <- ggplot() +
   geom_point(data = may[may$Cast == "Surface", ], aes(x = Salinity, y = Temp, shape = Cast, col = "May")) +
   scale_shape_manual(values = 1,
                      guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = c("chartreuse3"),
+  scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
   guides(shape = guide_legend(title.position = "top", title.hjust = 0.5),
          col = guide_legend(title.position = "top", title.hjust = 0.5)) +
-  xlim(31.5, 35.649) +
-  ylim(6.715, 20.7) +
+  scale_x_continuous(limits = c(32.294, 34.397), breaks = c(33, 34)) +
+  ylim(6.716, 10.081) +
   xlab("Salinity (PSU)") +
   ylab("Temperature (°C)") +
   theme_bw() +
@@ -847,19 +847,19 @@ Oct.TvS <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   xlab("Salinity (PSU)") +
   ylab("Temperature (°C)") +
-  xlim(31.5, 35.649) +
-  ylim(6.715, 20.7) +
+  xlim(31.59, 35.65) +
+  ylim(8.31, 20.7) +
   theme_bw() +
   theme(legend.position = "none")
 
 May.TvS.2 <- ggplot() +
   geom_point(data = may[may$Cast == "Bottom", ], aes(x = Salinity, y = Temp, shape = Cast, col = "May")) +
-  scale_shape_manual(values = c(16, 1),
+  scale_shape_manual(values = 1,
                      guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = c("chartreuse3", "royalblue"),
+  scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
-  xlim(31.5, 35.649) +
-  ylim(6.715, 20.7) +
+  scale_x_continuous(limits = c(32.294, 34.397), breaks = c(33, 34)) +
+  ylim(6.716, 10.081) +
   xlab("Salinity (PSU)") +
   ylab("Temperature (°C)") +
   theme_bw() +
@@ -873,21 +873,18 @@ Oct.TvS.2 <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   xlab("Salinity (PSU)") +
   ylab("Temperature (°C)") +
-  xlim(31.5, 35.649) +
-  ylim(6.715, 20.7) +
+  xlim(31.59, 35.65) +
+  ylim(8.31, 20.7) +
   theme_bw() +
   theme(legend.position = "none")
 
 legend.only <- ggplot() +
-  geom_point(data = may[may$Cast == "Surface", ], aes(x = Salinity, y = Temp, shape = Cast, col = "May")) +
-  geom_point(data = oct[oct$Station == "043", ],
-             aes(x = Salinity, y = Temp, shape = Cast, col = "October")) +
+  geom_point(data = may, aes(x = Salinity, y = Temp, shape = Cast, col = "May")) +
+  geom_point(data = oct, aes(x = Salinity, y = Temp, shape = Cast, col = "October")) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("chartreuse3", "royalblue"),
                       name = "Month") +
-  guides(shape = guide_legend(title.position = "top", title.hjust = 0.5),
-         col = guide_legend(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
   theme(legend.title = element_text(face = "bold"),
         legend.position = "bottom")
