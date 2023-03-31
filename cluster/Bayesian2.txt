@@ -1,0 +1,40 @@
+Running on node(s): pn010 starting in: /vortexfs1/scratch/dylan.titmuss
+Mon Mar 27 10:49:02 EDT 2023
+Running Bayesian script on a single CPU core
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Loading required package: coda
+Linked to JAGS 4.3.0
+Loaded modules: basemod,bugs
+[1] "055"
+[1] "057"
+[1] "062"
+[1] "066"
+[1] "034"
+[1] "079"
+[1] "042"
+[1] "046"
+[1] "048"
+[1] "059"
+[1] "064"
+module glm loaded
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+Graph information:
+   Observed stochastic nodes: 202
+   Unobserved stochastic nodes: 317
+   Total graph size: 8227
+
+Initializing model
+
+slurmstepd: error: *** JOB 3035979 ON pn010 CANCELLED AT 2023-03-27T16:49:23 DUE TO TIME LIMIT ***

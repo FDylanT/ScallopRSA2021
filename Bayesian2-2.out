@@ -1,7 +1,80 @@
+Running on node(s): pn003 starting in: /vortexfs1/scratch/dylan.titmuss
+Tue Mar 28 10:48:02 EDT 2023
+Running Bayesian script on a single CPU core
 
-#################################################################
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Loading required package: coda
+Linked to JAGS 4.3.0
+Loaded modules: basemod,bugs
+[1] "055"
+[1] "057"
+[1] "062"
+[1] "066"
+[1] "034"
+[1] "079"
+[1] "042"
+[1] "046"
+[1] "048"
+[1] "059"
+[1] "064"
+module glm loaded
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+Graph information:
+   Observed stochastic nodes: 202
+   Unobserved stochastic nodes: 317
+   Total graph size: 8227
+
+Initializing model
+
+dev.new(): using pdf(file="Rplots2.pdf")
+
+################################################################################
+# Gelman-Rubin Diagnostic
+################################################################################
+
+Generally the Gelman diagnostic should be < 1.05
+
+Out of 813 variables: 0 > 1.01
+                      0 > 1.05
+                      0 > 1.1
+
+The worst variables are:
+             Point est. Upper C.I.
+p.fac1[57,4]   1.005487   1.007098
+p.fac1[41,4]   1.003180   1.003917
+p.fac1[47,4]   1.001742   1.003371
+p.fac1[53,3]   1.001634   1.002341
+p.fac1[53,4]   1.001464   1.001545
+p.fac1[30,4]   1.001440   1.002249
+p.fac1[39,2]   1.001368   1.002824
+p.fac1[65,4]   1.001275   1.002905
+p.fac1[59,4]   1.001180   1.001675
+p.fac1[17,4]   1.001040   1.002164
+
+################################################################################
+# Geweke Diagnostic
+################################################################################
+
+The Geweke diagnostic is a standard z-score, so we'd expect 5% to be outside +/-1.96
+Number of variables outside +/-1.96 in each chain (out of 813):
+
+       Chain 1 Chain 2 Chain 3
+Geweke      60      28      46
+
+################################################################################
 # Summary Statistics
-#################################################################
+################################################################################
 
 DIC = 3149.843
 
@@ -410,3 +483,5 @@ p.Station 108.EM7 0.067 0.048 0.008 0.012 0.031 0.058 0.092 0.158 0.186
 p.Station 109.EM7 0.089 0.062 0.013 0.018 0.042 0.075 0.123 0.208 0.238
 p.Station 110.EM7 0.074 0.054 0.008 0.011 0.032 0.062 0.103 0.177 0.209
 p.Station 112.EM7 0.095 0.071 0.012 0.017 0.041 0.076 0.133 0.236 0.278
+NULL
+Tue Mar 28 21:58:18 EDT 2023
