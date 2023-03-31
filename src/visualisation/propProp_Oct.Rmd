@@ -285,8 +285,8 @@ oct %>%
   geom_point(aes(shape = Cast)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
+  geom_abline(slope = 2) +
+  geom_abline(slope = -17/106) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   theme_bw()
@@ -306,8 +306,8 @@ oct %>%
   geom_point(aes(shape = Cast, col = pCO2)) + # color by pCO2
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
+  geom_abline(slope = 2) +
+  geom_abline(slope = -17/106) +
   scale_shape_manual(values = 1) +
   scale_colour_viridis(limits = c(330, 510), option = "magma") +
   theme_bw()
@@ -340,8 +340,8 @@ oct %>%
   geom_point(aes(shape = Cast, col = AOU)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
+  geom_abline(slope = 2) +
+  geom_abline(slope = -17/106) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_color_viridis(option = "magma") +
@@ -483,18 +483,38 @@ oct %>%
   theme_bw()
 ```
 
-## May & Oct combined delta plots
+## Delta plots
 ```{r}
 ggplot() +
-  geom_point(data = may, aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
   geom_point(data = oct, aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
+  #geom_errorbar(data = oct, aes(x = dDIC, y = dTA,
+  #                              xmin = dDIC - sdDICn, xmax = dDIC + sdDICn),
+  #              col = "royalblue", alpha = 0.3, width = 1) +
+  #geom_errorbar(data = oct, aes(x = dDIC, y = dTA,
+  #                              ymin = dTA - sdTAn, ymax = dTA + sdTAn),
+  #              col = "royalblue", alpha = 0.3, width = 1) +
+  annotate("rect", alpha = 0.2, fill = "royalblue",
+           xmin = -max(oct$sdDICn, na.rm = T),
+           xmax = max(oct$sdDICn, na.rm = T),
+           ymin = -Inf,
+           ymax = Inf) +
+  annotate("rect", alpha = 0.2, fill = "royalblue",
+           xmin = -Inf,
+           xmax = -max(oct$sdDICn, na.rm = T),
+           ymin = -max(oct$sdTAn, na.rm = T),
+           ymax = max(oct$sdTAn, na.rm = T)) +
+  annotate("rect", alpha = 0.2, fill = "royalblue",
+           xmin = max(oct$sdDICn, na.rm = T),
+           xmax = Inf,
+           ymin = -max(oct$sdTAn, na.rm = T),
+           ymax = max(oct$sdTAn, na.rm = T)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
+  geom_abline(slope = 2) +
+  geom_abline(slope = -17/106) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = c("chartreuse3", "royalblue"),
+  scale_colour_manual(values = "royalblue",
                       name = "Month") +
   theme_bw()
 
@@ -518,8 +538,8 @@ ggplot() +
   #           aes(x = dDIC, y = dTA, label = Station, col = "Oct")) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
+  geom_abline(slope = 2) +
+  geom_abline(slope = -17/106) +
   scale_shape_manual(values = c(1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("chartreuse3", "royalblue"),
@@ -534,8 +554,8 @@ ggplot() +
              aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 2) +
-  geom_abline(intercept = 0, slope = -17/106) +
+  geom_abline(slope = 2) +
+  geom_abline(slope = -17/106) +
   scale_shape_manual(values = c(16),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("chartreuse3", "royalblue"),
@@ -547,31 +567,57 @@ ggplot() +
 
 # dDO plots
 ggplot() +
-  geom_point(data = may, aes(x = dDIC, y = dDO, shape = Cast, col = "May")) +
   geom_point(data = oct, aes(x = dDIC, y = dDO, shape = Cast, col = "Oct")) +
+  annotate("rect", alpha = 0.2, fill = "royalblue",
+           xmin = -max(oct$sdDICn, na.rm = T),
+           xmax = max(oct$sdDICn, na.rm = T),
+           ymin = -Inf,
+           ymax = Inf) +
+  annotate("rect", alpha = 0.2, fill = "royalblue",
+           xmin = -Inf,
+           xmax = -max(oct$sdDICn, na.rm = T),
+           ymin = -max(oct$sdDOn, na.rm = T),
+           ymax = max(oct$sdDOn, na.rm = T)) +
+  annotate("rect", alpha = 0.2, fill = "royalblue",
+           xmin = max(oct$sdDICn, na.rm = T),
+           xmax = Inf,
+           ymin = -max(oct$sdDOn, na.rm = T),
+           ymax = max(oct$sdDOn, na.rm = T)) +
   #geom_text(data = may, aes(x = dDIC, y = dDO, label = Station , col = "May")) +
-  #geom_text(data = oct, aes(x = dDIC, y = dDO, label = Station, col = "Oct")) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = -106/138) +
+  geom_abline(slope = -138/106) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = c("chartreuse3", "royalblue"),
+  scale_colour_manual(values = "royalblue",
                       name = "Month") +
   theme_bw()
 
 ggplot() +
-  geom_point(data = may, aes(x = dTA, y = dDO, shape = Cast, col = "May")) +
   geom_point(data = oct, aes(x = dTA, y = dDO, shape = Cast, col = "Oct")) +
+  annotate("rect", alpha = 0.2, fill = "royalblue",
+           xmin = -max(oct$sdTAn, na.rm = T),
+           xmax = max(oct$sdTAn, na.rm = T),
+           ymin = -Inf,
+           ymax = Inf) +
+  annotate("rect", alpha = 0.2, fill = "royalblue",
+           xmin = -Inf,
+           xmax = -max(oct$sdTAn, na.rm = T),
+           ymin = -max(oct$sdDOn, na.rm = T),
+           ymax = max(oct$sdDOn, na.rm = T)) +
+  annotate("rect", alpha = 0.2, fill = "royalblue",
+           xmin = max(oct$sdTAn, na.rm = T),
+           xmax = Inf,
+           ymin = -max(oct$sdDOn, na.rm = T),
+           ymax = max(oct$sdDOn, na.rm = T)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_abline(intercept = 0, slope = 17/138) +
+  geom_abline(slope = -138/-17) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = c("chartreuse3", "royalblue"),
+  scale_colour_manual(values = "royalblue",
                       name = "Month") +
   theme_bw()
-
 ```
 
 
