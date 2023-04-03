@@ -123,17 +123,17 @@ ggplot() +
   geom_point(data = may, aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
   #geom_errorbar(data = may, aes(x = dDIC, y = dTA,
   #                              xmin = dDIC - sdDICn, xmax = dDIC + sdDICn),
-  #              col = "royalblue", alpha = 0.3, width = 1) +
+  #              col = "chartreuse3", alpha = 0.3, width = 1) +
   #geom_errorbar(data = may, aes(x = dDIC, y = dTA,
   #                              ymin = dTA - sdTAn, ymax = dTA + sdTAn),
-  #              col = "royalblue", alpha = 0.3, width = 1) +
+  #              col = "chartreuse3", alpha = 0.3, width = 1) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
            xmin = -median(may$sdDICn, na.rm = T),
            xmax = median(may$sdDICn, na.rm = T),
            ymin = -Inf,
            ymax = Inf) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
-           xmin = -Inf,
+          xmin = -Inf,
            xmax = -median(may$sdDICn, na.rm = T),
            ymin = -median(may$sdTAn, na.rm = T),
            ymax = median(may$sdTAn, na.rm = T)) +
@@ -155,6 +155,12 @@ ggplot() +
 # dDO plots
 ggplot() +
   geom_point(data = may, aes(x = dDIC, y = dDO, shape = Cast, col = "May")) +
+  #geom_errorbar(data = may, aes(x = dDIC, y = dDO,
+  #                              xmin = dDIC - sdDICn, xmax = dDIC + sdDICn),
+  #              col = "chartreuse3", alpha = 0.3, width = 1) +
+  #geom_errorbar(data = may, aes(x = dDIC, y = dDO,
+  #                              ymin = dDO - sdDOn, ymax = dDO + sdDOn),
+  #              col = "chartreuse3", alpha = 0.3, width = 1) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
            xmin = -median(may$sdDICn, na.rm = T),
            xmax = median(may$sdDICn, na.rm = T),
@@ -182,6 +188,12 @@ ggplot() +
 
 ggplot() +
   geom_point(data = may, aes(x = dTA, y = dDO, shape = Cast, col = "May")) +
+  #geom_errorbar(data = may, aes(x = dTA, y = dDO,
+  #                              xmin = dTA - sdTAn, xmax = dTA + sdTAn),
+  #              col = "chartreuse3", alpha = 0.3, width = 1) +
+  #geom_errorbar(data = may, aes(x = dTA, y = dDO,
+  #                              ymin = dDO - sdDOn, ymax = dDO + sdDOn),
+  #              col = "chartreuse3", alpha = 0.3, width = 1) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
            xmin = -median(may$sdTAn, na.rm = T),
            xmax = median(may$sdTAn, na.rm = T),
@@ -205,6 +217,8 @@ ggplot() +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
   theme_bw()
+
+###                 calculate values for surface calc signal too
 ```
 
 ## pCO2 & flux prop-prop plots
