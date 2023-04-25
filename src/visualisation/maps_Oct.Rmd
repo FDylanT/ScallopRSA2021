@@ -12,16 +12,19 @@ Run chunks 1-7 of `Chemistry_Oct.Rmd` to load data.
 
 ## Load packages
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
+knitr::opts_chunk$set(echo = TRUE, root.dir = "./Repos/ScallopRSA2021")
 
 library(tidyverse)
 library(sp)
 library(sf)
+library(nngeo)
 library(viridis)
 library(RColorBrewer)
 library(pals)
-library(shades)
+library(Redmonder)
+library(rcartocolor)
 library(cowplot)
+library(ggsci)
 ```
 
 ## Load GB shapefiles
@@ -60,7 +63,7 @@ CL2_AccessSouthwest <- subset(GB, NewSAMS == "CL2-Access-Southwest") %>%
 SF_East <- subset(GB, NewSAMS == "SF-East") %>%
   fortify()
 
-# combine polygons and set CRS
+# combine polygons
 GB_sf <- st_union(st_geometry(NLS_North), st_geometry(CL1_South)) %>%
   st_union(st_geometry(CL1_Sliver)) %>%
   st_union(st_geometry(CL2_AccessSoutheast)) %>%
@@ -75,39 +78,29 @@ GB_sf <- st_union(st_geometry(NLS_North), st_geometry(CL1_South)) %>%
   st_union(st_geometry(NLS_SouthShallow)) %>%
   st_union(st_geometry(CL2_AccessSouthwest)) %>%
   st_union(st_geometry(SF_East)) %>%
-  st_transform(crs = 26919)
+  st_remove_holes() # remove slivers between polygon borders
   
 #summary(GB_sf)
 ```
 
 ## Create coastline polygon
 ```{r}
+# turn off spherical geometry to avoid "duplicate vertex" errors
+sf_use_s2(FALSE)
+
 # get Massachusetts coastline
-#library(maps)
-#library(mapdata)
-library(maptools) # retiring by the end of 2023; transition to 'sp'
-
-mass <- Rgshhs("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/PBSmapping/gshhs_f.b",
-                xlim = c(286.5, 296.5), ylim = c(38, 46), level = 4)
-mass_sf <- as(mass$SP, "SpatialPolygonsDataFrame") %>%
-  st_as_sf() %>%
-  st_transform(crs = 26919)
-#st_crs(mass_sf)
-
-#ggplot() +
-#  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-#  coord_sf(xlim = c(371957.88, 756099.58),
-#           ylim = c(4428833.79, 4709654.16),
-#           crs = st_crs(26919))
+mass <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp") %>%
+  st_make_valid() %>%
+  st_crop(xmin = -71, xmax = -66, ymin = 40, ymax = 43)
 ```
 
 ## Create bathy shapefile
 ```{r}
-library(marmap)
-GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62,
-lat1 = 37, lat2 = 46, resolution = 1)
+#library(marmap)
+#GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62,
+#lat1 = 37, lat2 = 46, resolution = 1)
 
-bathy_xyz <- as.xyz(GB_bathy)
+#bathy_xyz <- as.xyz(GB_bathy)
 
 #####
 #library(raster)
@@ -127,12 +120,17 @@ station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
                                                         "OmegaAragonite",
                                                         "OmegaCalcite",
                                                         "DICn", "TAn",
-                                                        "dDIC", "dTA", "dDO",
-                                                        "flux"
+                                                        "dDIC", "dTA", "dDO"
+                                                        ,"flux"
+                                                        #,"dDIC.ex", "dTA.ex"
+                                                        #,"ratio"
                                                         #,"MLD", "MLD_frac",
-                                                        #"DICf",
-                                                        #"DICpr", "TApr", "DOpr"
-                                                        #,"DIC.other", "TA.other"
+                                                        ,"DICf"
+                                                        ,"DICpr", "TApr", "DOpr"
+                                                        ,"DIC.other", "TA.other"
+                                                        #,"rel.DICf", "rel.DICpr"
+                                                        #,"rel.DICres"
+                                                        #,"rel.TApr","rel.TAres"
                                                         #,"flux.O2", "DOf"
                                                         #,"d", "d.O2"
                                                         )],
@@ -233,9 +231,7 @@ max(bottom_sf2$pH) # 8.090394
 max(surface_sf2$pH) # 8.099045
 
 # pCO2
-min(bottom_sf2$pCO2) # 360.8097
 min(surface_sf2$pCO2) # 336.7068
-max(bottom_sf2$pCO2) # 660.5462
 max(surface_sf2$pCO2) # 491.8113
 
 # OmegaAragonite
@@ -256,7 +252,7 @@ max(surface_sf2$AOU) # -2.211892
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = Temp), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
                        aesthetics = c("fill", "colour")) +
   geom_tile(data = bathy_xyz, aes(x = V1, y = V2, fill = V3)) +
@@ -274,7 +270,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = Salinity), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(31, 36), palette = "OrRd",
                        direction = "horizontal",
                        aesthetics = c("fill", "colour"),
@@ -287,7 +283,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = DIC), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(1930, 2155), option = "rocket",
                      aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -298,7 +294,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = TA), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1,
                      aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -309,7 +305,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DO), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = DO), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(200, 290), palette = "PuBuGn",
                        direction = "trans",
                        aesthetics = c("fill", "colour")) +
@@ -321,7 +317,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = pH), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(7.8, 8.25), option = "viridis",
                      aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -332,7 +328,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = pCO2), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(350, 550), option = "viridis",
                        aesthetics = c("fill", "colour"),
                        name = bquote(italic("p"~CO[2]))) +
@@ -344,7 +340,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = OmegaAragonite), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(1.3, 3.15), option = "mako",
                      aesthetics = c("fill", "colour"), name = "Ω Aragonite") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -355,7 +351,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = AOU), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-55, 55), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -366,7 +362,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DO), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = DO), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -380,7 +376,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = Temp), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -391,7 +387,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = Salinity), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(31, 36), palette = "OrRd",
                        direction = "horizontal",
                        aesthetics = c("fill", "colour"),
@@ -404,7 +400,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = DIC), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(1930, 2155), option = "rocket",
                      aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -415,7 +411,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = TA), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(2140, 2355), option = "mako", direction = -1,
                      aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -426,7 +422,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DO), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = DO), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(200, 290), palette = "PuBuGn",
                        direction = "trans",
                        aesthetics = c("fill", "colour")) +
@@ -438,7 +434,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = pH), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(7.8, 8.25), option = "viridis",
                      aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -449,7 +445,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = pCO2), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(280, 560), palette = "RdBu",
                        aesthetics = c("fill", "colour"),
                        name = bquote(italic("p"~CO[2])),
@@ -462,7 +458,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = OmegaAragonite), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(1.3, 3.15), option = "mako",
                      aesthetics = c("fill", "colour"), name = "Ω Aragonite") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -473,7 +469,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = AOU), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-55, 55), palette = "BrBG",
                        breaks = c(-50, -25, 0, 25, 50),
                        aesthetics = c("fill", "colour")) +
@@ -485,49 +481,114 @@ ggplot() +
 
 ### DELTAs & SUBSEQUENT
 
-## Bounds (DIC + DO)
+## Bounds
 ```{r}
 # dDIC
-  #min(bottom_sf2$dDIC, na.rm = T) # -79.55213 - outlier
+  #min(surface_sf2$dDIC, na.rm = TRUE) # -41.66683
+sort(surface_sf2$dDIC)[2] # -24.51375
+max(surface_sf2$dDIC, na.rm = TRUE) # 27.98048
+
+  #min(bottom_sf2$dDIC, na.rm = TRUE) # -79.55213 - outlier
 sort(bottom_sf2$dDIC)[2] # -39.36527
-min(surface_sf2$dDIC, na.rm = T) # -41.66683
-max(bottom_sf2$dDIC, na.rm = T) # 60.98467
-max(surface_sf2$dDIC, na.rm = T) # 27.98048
+max(bottom_sf2$dDIC, na.rm = TRUE) # 60.98467
 
-# flux
-min(surface_sf2$flux) # -9450.262
-max(surface_sf2$flux) # 7275.122
+# dTA
+min(surface_sf2$dTA, na.rm = TRUE) # -25.18332
+max(surface_sf2$dTA, na.rm = TRUE) # 36.03762
 
-# CO2 eq days
-min(abs(surface_sf2$d), na.rm = T) # 6.146507
-max(abs(surface_sf2$d), na.rm = T) # 351.8752
-
-# DICf
-min(surface_sf2$DICf, na.rm = T) # -18.44854
-max(surface_sf2$DICf, na.rm = T) # 37.9091
+min(bottom_sf2$dTA, na.rm = TRUE) # -32.14353
+max(bottom_sf2$dTA, na.rm = TRUE) # 84.13417
 
 # dDO
-min(bottom_sf2$dDO, na.rm = T) # -31.79507
-min(surface_sf2$dDO, na.rm = T) # -14.41024
-max(bottom_sf2$dDO, na.rm = T) # 9.629293
-max(surface_sf2$dDO, na.rm = T) # 13.6312
+min(surface_sf2$dDO, na.rm = TRUE) # -14.41024
+max(surface_sf2$dDO, na.rm = TRUE) # 13.6312
 
-# O2 eq days
-min(abs(surface_sf2$d.O2), na.rm = T) # 1.196218
-max(abs(surface_sf2$d.O2), na.rm = T) # 29.33125
+min(bottom_sf2$dDO, na.rm = TRUE) # -31.79507
+max(bottom_sf2$dDO, na.rm = TRUE) # 9.629293
+
+# flux
+min(surface_sf2$flux, na.rm = TRUE) # -9450.262
+max(surface_sf2$flux, na.rm = TRUE) # 13483.32
+
+# DICf
+min(surface_sf2$DICf, na.rm = TRUE) # -1.133729
+max(surface_sf2$DICf, na.rm = TRUE) # 0.9571934
+
+min(bottom_sf2$DICf, na.rm = TRUE) # -0.1838733
+max(bottom_sf2$DICf, na.rm = TRUE) # 0.07930123
 
 # DICpr
-min(bottom_sf2$DICpr) # -29.69516
-min(surface_sf2$DICpr) # -46.45186
-max(bottom_sf2$DICpr) # 23.11835
-max(surface_sf2$DICpr) # 13.03101
+min(surface_sf2$DICpr, na.rm = TRUE) # -25.46558
+max(surface_sf2$DICpr, na.rm = TRUE) # 10.39905
+
+min(bottom_sf2$DICpr, na.rm = TRUE) # -7.396413
+max(bottom_sf2$DICpr, na.rm = TRUE) # 24.4223
 
 # DIC.other
-  #min(bottom_sf2$DIC.other) # -21.46247 - outlier
-sort(bottom_sf2$DIC.other)[2] # -47.62041
-min(surface_sf2$DIC.other) # -24.52235
-max(bottom_sf2$DIC.other) # 68.60094
-max(surface_sf2$DIC.other) # 65.9808
+min(surface_sf2$DIC.other, na.rm = TRUE) # -33.9237
+max(surface_sf2$DIC.other, na.rm = TRUE) # 33.09305
+
+  #min(bottom_sf2$DIC.other, na.rm = TRUE) # -72.15572 - outlier
+sort(bottom_sf2$DIC.other)[2] # -42.50883
+max(bottom_sf2$DIC.other, na.rm = TRUE) # 39.25938
+
+# TApr
+min(surface_sf2$TApr, na.rm = TRUE) # -1.667772
+max(surface_sf2$TApr, na.rm = TRUE) # 4.084102
+
+min(bottom_sf2$TApr, na.rm = TRUE) # -3.916783
+max(bottom_sf2$TApr, na.rm = TRUE) # 1.186217
+
+# TA.other
+min(surface_sf2$TA.other, na.rm = TRUE) # -25.66467
+max(surface_sf2$TA.other, na.rm = TRUE) # 33.90461
+
+min(bottom_sf2$TA.other, na.rm = TRUE) # -31.22055
+max(bottom_sf2$TA.other, na.rm = TRUE) # 87.42014
+
+# CO2 eq days
+min(abs(surface_sf2$d), na.rm = TRUE) # 6.146507
+max(abs(surface_sf2$d), na.rm = TRUE) # 351.8752
+
+# O2 eq days
+min(abs(surface_sf2$d.O2), na.rm = TRUE) # 1.196218
+max(abs(surface_sf2$d.O2), na.rm = TRUE) # 29.33125
+
+# dDIC.ex
+min(bottom_sf2$dDIC.ex, na.rm = TRUE) # 2.411912
+max(bottom_sf2$dDIC.ex, na.rm = TRUE) # 39.12395
+
+# dTA.ex
+min(bottom_sf2$dTA.ex, na.rm = TRUE) # 14.62046
+max(bottom_sf2$dTA.ex, na.rm = TRUE) # 87.4541
+
+# ratio
+min(bottom_sf2$ratio, na.rm = TRUE) # 1.017241
+max(bottom_sf2$ratio, na.rm = TRUE) # 8.467042
+
+# rel.DICn
+min(bottom_sf2$rel.DICn, na.rm = TRUE) # 0.963789
+min(surface_sf2$rel.DICn, na.rm = TRUE) # 0.9501362
+max(bottom_sf2$rel.DICn, na.rm = TRUE) # 0.9987124
+max(surface_sf2$rel.DICn, na.rm = TRUE) # 0.9990312
+
+# rel.DICf
+min(bottom_sf2$rel.DICf, na.rm = TRUE) # 0
+min(surface_sf2$rel.DICf, na.rm = TRUE) # 0
+max(bottom_sf2$rel.DICf, na.rm = TRUE) # 0.0003895451
+max(surface_sf2$rel.DICf, na.rm = TRUE) # 0.001072598
+
+# rel.DICpr
+min(bottom_sf2$rel.DICpr, na.rm = TRUE) # 0
+min(surface_sf2$rel.DICpr, na.rm = TRUE) # 0.00014422
+max(bottom_sf2$rel.DICpr, na.rm = TRUE) # 0.0115217
+max(surface_sf2$rel.DICpr, na.rm = TRUE) # 0.02573715
+
+# rel.DICres
+min(bottom_sf2$rel.DICres, na.rm = TRUE) # 0
+min(surface_sf2$rel.DICres, na.rm = TRUE) # 0
+max(bottom_sf2$rel.DICres, na.rm = TRUE) # 0.03334492
+max(surface_sf2$rel.DICres, na.rm = TRUE) # 0.02372795
 ```
 
 ## Surface plots
@@ -535,7 +596,7 @@ max(surface_sf2$DIC.other) # 65.9808
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = dDIC), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-61, 61), palette = "RdBu",
                        #breaks = c(-70, 0, 70),
                        aesthetics = c("fill", "colour")) +
@@ -547,7 +608,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = flux / 10^3), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-12.5, 12.5), palette = "BrBG",
                        aesthetics = c("fill", "colour"),
                        name = "CO2 flux\n(mmol/m^2/d)") +
@@ -560,7 +621,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = abs(d)), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = abs(d)), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(63, 300), palette = "GnBu",
                        breaks = c(63, 100, 200, 300),
                        direction = "trans",
@@ -573,9 +634,9 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = DICf), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-45, 45), palette = "RdBu",
-                       breaks = c(-40, -20, 0, 20, 40),
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gsea(limits = c(-2.5, 2.5), #palette = "RdBu",
+                       #breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
@@ -585,7 +646,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = dDO), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = dDO), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-32, 32), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -596,7 +657,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = abs(d.O2)), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = abs(d.O2)), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(0, 30), palette = "GnBu",
                        direction = "trans",
                        aesthetics = c("fill", "colour")) +
@@ -608,7 +669,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = flux.O2 / 10^3), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = flux.O2 / 10^3), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-120, 120), palette = "BrBG",
                        aesthetics = c("fill", "colour"),
                        name = "O2 flux\n(mmol/m^2/d)") +
@@ -620,7 +681,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = DICpr), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-500, 500), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -631,7 +692,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = DIC.other), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-300, 300), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -651,7 +712,7 @@ mean(abs(oct$dDIC[which(!(oct$Cast=="Surface" & (oct$Station=="001" |
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = dDIC), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-61, 61), palette = "RdBu",
                        #breaks = c(-70, 0, 70),
                        aesthetics = c("fill", "colour")) +
@@ -663,7 +724,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = flux / 10^3), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-12.5, 12.5), palette = "BrBG",
                        aesthetics = c("fill", "colour"),
                        name = "CO2 flux\n(mmol/m^2/d)") +
@@ -676,7 +737,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = DICf), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-45, 45), palette = "RdBu",
                        breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour")) +
@@ -688,7 +749,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dDO), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = dDO), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-32, 32), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -699,7 +760,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = DICpr), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-24, 24), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -710,7 +771,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = DIC.other), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-57, 57), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -719,34 +780,12 @@ ggplot() +
   theme_bw()
 ```
 
-## Bounds (TA)
-```{r}
-# dTA
-min(bottom_sf2$dTA, na.rm = T) # -32.14353
-min(surface_sf2$dTA, na.rm = T) # -25.18332
-max(bottom_sf2$dTA, na.rm = T) # 84.13417
-max(surface_sf2$dTA, na.rm = T) # 36.03762
-
-# TApr
-min(bottom_sf2$TApr) # -3.802776
-min(surface_sf2$TApr) # -3.162124
-max(bottom_sf2$TApr) # 0.4247735
-max(surface_sf2$TApr) # 2.883967
-
-# TA.other
-min(bottom_sf2$TA.other) # -11.84842
-min(surface_sf2$TA.other) # -15.74482
-  #max(bottom_sf2$TA.other) # 53.37569 - outlier
-sort(bottom_sf2$TA.other, decreasing = TRUE)[2] # 29.53493
-max(surface_sf2$TA.other) # 29.86669
-```
-
 ## Surface plots
 ```{r}
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = dTA), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = dTA), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-85, 85), palette = "RdBu",
                        breaks = c(-80, -40, 0, 40, 80),
                        aesthetics = c("fill", "colour")) +
@@ -758,7 +797,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = TApr), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-4, 4), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -769,7 +808,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = TA.other), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-30, 30), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -783,7 +822,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dTA), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = dTA), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-85, 85), palette = "RdBu",
                        breaks = c(-80, -40, 0, 40, 80),
                        aesthetics = c("fill", "colour")) +
@@ -795,7 +834,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = TApr), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-4, 4), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -806,7 +845,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = TA.other), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(-30, 30), palette = "RdBu",
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -917,13 +956,12 @@ plot_grid(
 
 ### 12-panel chem parameter maps
 ```{r}
-greens <- c("#005576", "#006565", "#007554", "#008543", "#009633", "#00A622", terrain.colors(10)[2:5])
-
 # May
 DIC <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = DIC), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = DIC), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(1930, 2155),
                      option = "plasma",
                        aesthetics = c("fill", "colour"),
@@ -944,8 +982,9 @@ DIC <- ggplot() +
 
 TA <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = TA), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = TA), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(2140, 2355),
                        colours = parula(100),
                        aesthetics = c("fill", "colour"),
@@ -966,10 +1005,11 @@ TA <- ggplot() +
 
 DO <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DO), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = DO), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = DO), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(200, 330),
-                       colours = greens,
+                       colours = carto_pal(7, "ag_GrnYl"),
                        aesthetics = c("fill", "colour"),
                        name = "DO (umol/kg)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -988,8 +1028,9 @@ DO <- ggplot() +
 
 DIC2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = DIC), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(fill = DIC), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(1930, 2155),
                      option = "plasma",
                        aesthetics = c("fill", "colour"),
@@ -1004,8 +1045,9 @@ DIC2 <- ggplot() +
 
 TA2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = TA), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(fill = TA), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(2140, 2355),
                        colours = parula(100),
                        aesthetics = c("fill", "colour"),
@@ -1020,10 +1062,11 @@ TA2 <- ggplot() +
 
 DO2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DO), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = DO), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(fill = DO), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(200, 330),
-                       colours = greens,
+                       colours = carto_pal(7, "ag_GrnYl"),
                        aesthetics = c("fill", "colour"),
                        name = "DO (umol/kg)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1037,8 +1080,9 @@ DO2 <- ggplot() +
 # October
 DICo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = DIC), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = DIC), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(1930, 2155),
                      option = "plasma",
                        aesthetics = c("fill", "colour"),
@@ -1053,8 +1097,9 @@ DICo <- ggplot() +
 
 TAo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = TA), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = TA), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(2140, 2355),
                        colours = parula(100),
                        aesthetics = c("fill", "colour"),
@@ -1069,10 +1114,11 @@ TAo <- ggplot() +
 
 DOo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DO), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = DO), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = DO), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(200, 330),
-                       colours = greens,
+                       colours = carto_pal(7, "ag_GrnYl"),
                        aesthetics = c("fill", "colour"),
                        name = "DO (umol/kg)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1085,8 +1131,9 @@ DOo <- ggplot() +
 
 DIC2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = DIC), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = DIC), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(1930, 2155),
                      option = "plasma",
                        aesthetics = c("fill", "colour"),
@@ -1101,8 +1148,9 @@ DIC2o <- ggplot() +
 
 TA2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = TA), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = TA), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(2140, 2355),
                        colours = parula(100),
                        aesthetics = c("fill", "colour"),
@@ -1117,10 +1165,11 @@ TA2o <- ggplot() +
 
 DO2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DO), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = DO), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = DO), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(200, 330),
-                       colours = greens,
+                       colours = carto_pal(7, "ag_GrnYl"),
                        aesthetics = c("fill", "colour"),
                        name = "DO (umol/kg)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1134,10 +1183,15 @@ DO2o <- ggplot() +
 theme_set(theme_minimal())
 
 plot_grid(
+  #plot_grid(
+  #  get_title(DIC),
+  #  get_title(TA),
+  #  get_title(DO),
+  #  nrow = 1),
   plot_grid(
-    get_title(DIC),
-    get_title(TA),
-    get_title(DO),
+    get_legend(DIC),
+    get_legend(TA),
+    get_legend(DO),
     nrow = 1),
   plot_grid(
     DIC + theme(plot.title = element_blank(), legend.position = "none"),
@@ -1154,32 +1208,21 @@ plot_grid(
     DO2o,
     ncol = 3, nrow = 4,
     align = "hv",
-    labels = c("A", "", "", "B", "", "", "C", "", "", "D", "", "")),
-  plot_grid(
-    get_legend(DIC),
-    get_legend(TA),
-    get_legend(DO),
-    nrow = 1),
-  nrow = 3,
-  rel_heights = c(1, 48, 3)
+    labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, surface", "", "")),
+  nrow = 2,
+  #rel_heights = c(1, 48, 3)
+  rel_heights = c(4, 48)
 )
 ```
 
 ### 12-panel derived parameter maps
 ```{r}
-library(rcartocolor)
-display_carto_all(colorblind_friendly = TRUE)
-
-Sunset
-ag_Sunset
-BluYl
-ag_GrnYl
-
 # May
 pH <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = pH), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = pH), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(7.85, 8.17), option = "viridis",
                      aesthetics = c("fill", "colour"),
                      name = "pH") +
@@ -1193,13 +1236,15 @@ pH <- ggplot() +
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
         legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        legend.key.width = unit(1.5, "cm"))
  
 omega <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = OmegaAragonite), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1.3, 3.11), option = "plasma",
+  geom_sf(data = surface_sf_m3, aes(fill = OmegaAragonite), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1.3, 3.11), option = "inferno",
                        aesthetics = c("fill", "colour"),
                        name = "Ω Aragonite") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1212,13 +1257,16 @@ omega <- ggplot() +
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
         legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        legend.key.width = unit(1.5, "cm"))
 
 AOU <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = AOU), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-48, 48), palette = "BrBG",
+  geom_sf(data = surface_sf_m3, aes(fill = AOU), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(-48, 48),
+                       colours = rev(redmonder.pal(11, "dPBIRdGn")),
                        breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour"),
                        name = "AOU (umol/kg)") +
@@ -1232,12 +1280,14 @@ AOU <- ggplot() +
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
         legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        legend.key.width = unit(1.5, "cm"))
 
 pH2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = pH), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(fill = pH), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(7.85, 8.17), option = "viridis",
                      aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1250,11 +1300,11 @@ pH2 <- ggplot() +
 
 omega2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = OmegaAragonite), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1.3, 3.11), palette = "YlGn",
-                       aesthetics = c("fill", "colour"),
-                       name = "Omega\nAragonite") +
+  geom_sf(data = bottom_sf_m3, aes(fill = OmegaAragonite), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1.3, 3.11), option = "inferno",
+                       aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom Aragonite [May]") +
@@ -1265,9 +1315,11 @@ omega2 <- ggplot() +
 
 AOU2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = AOU), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-48, 48), palette = "BrBG",
+  geom_sf(data = bottom_sf_m3, aes(fill = AOU), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(-48, 48),
+                       colours = rev(redmonder.pal(11, "dPBIRdGn")),
                        breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1281,8 +1333,9 @@ AOU2 <- ggplot() +
 # October
 pHo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = pH), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = pH), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(7.85, 8.17), option = "viridis",
                      aesthetics = c("fill", "colour"),
                      name = "pH                  ") +
@@ -1296,9 +1349,10 @@ pHo <- ggplot() +
 
 omega.o <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = OmegaAragonite), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1.3, 3.11), palette = "YlGn",
+  geom_sf(data = surface_sf3, aes(fill = OmegaAragonite), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1.3, 3.11), option = "inferno",
                        aesthetics = c("fill", "colour"),
                        name = "Omega\nAragonite        ") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1311,12 +1365,13 @@ omega.o <- ggplot() +
 
 AOUo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = AOU), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-48, 48), palette = "BrBG",
+  geom_sf(data = surface_sf3, aes(fill = AOU), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(-48, 48),
+                       colours = rev(redmonder.pal(11, "dPBIRdGn")),
                        breaks = c(-40, -20, 0, 20, 40),
-                       aesthetics = c("fill", "colour"),
-                       name = "AOU (umol/kg)") +
+                       aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface AOU [Oct]") +
@@ -1327,8 +1382,9 @@ AOUo <- ggplot() +
 
 pH2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = pH), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = pH), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(7.85, 8.17), option = "viridis",
                      aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1341,11 +1397,11 @@ pH2o <- ggplot() +
 
 omega2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = OmegaAragonite), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_viridis(limits = c(1.3, 3.11), palette = "YlGn",
-                       aesthetics = c("fill", "colour"),
-                       name = "Omega\nAragonite") +
+  geom_sf(data = bottom_sf3, aes(fill = OmegaAragonite), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_viridis(limits = c(1.3, 3.11), option = "inferno",
+                       aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom Aragonite [Oct]") +
@@ -1356,9 +1412,11 @@ omega2o <- ggplot() +
 
 AOU2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = AOU), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-48, 48), palette = "BrBG",
+  geom_sf(data = bottom_sf3, aes(fill = AOU), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(-48, 48),
+                       colours = rev(redmonder.pal(11, "dPBIRdGn")),
                        breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1372,10 +1430,15 @@ AOU2o <- ggplot() +
 theme_set(theme_minimal())
 
 plot_grid(
+  #plot_grid(
+  #  get_title(pH),
+  #  get_title(omega),
+  #  get_title(AOU),
+  #  nrow = 1),
   plot_grid(
-    get_title(pH),
-    get_title(omega),
-    get_title(AOU),
+    get_legend(pH),
+    get_legend(omega),
+    get_legend(AOU),
     nrow = 1),
   plot_grid(
     pH + theme(plot.title = element_blank(), legend.position = "none"),
@@ -1392,14 +1455,10 @@ plot_grid(
     AOU2o,
     ncol = 3, nrow = 4,
     align = "hv",
-    labels = c("A", "", "", "B", "", "", "C", "", "", "D", "", "")),
-  plot_grid(
-    get_legend(pH),
-    get_legend(omega),
-    get_legend(AOU),
-    nrow = 1),
-  nrow = 3,
-  rel_heights = c(1, 48, 3)
+    labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, surface", "", "")),
+  nrow = 2,
+  #rel_heights = c(1, 48, 3)
+  rel_heights = c(4, 48)
 )
 ```
 
@@ -1407,13 +1466,13 @@ plot_grid(
 ```{r}
 may_pCO2 <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = pCO2), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(179, 661),
-                       breaks = c(240, 420, 600),
-                       palette = "RdBu",
+  geom_sf(data = surface_sf_m3, aes(fill = pCO2), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(280, 492),
+                       colours = ocean.haline(100),
                        aesthetics = c("fill", "colour"),
-                       name = bquote(bold(pCO[2]*" (uatm)"))) +
+                       name = bquote(bold(pCO[2]*" (μatm)"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = bquote(bold(pCO[2]))) +
@@ -1424,15 +1483,18 @@ may_pCO2 <- ggplot() +
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
         legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        legend.key.width = unit(1.5, "cm"))
 
 may_flux <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = flux / 10^3), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-12.5, 12.5), palette = "BrBG",
+  geom_sf(data = surface_sf_m3, aes(fill = flux / 10^3), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(-13, 13),
+                       colours = redmonder.pal(11, "dPBIPuGn"),
                        aesthetics = c("fill", "colour"),
-                       name = expression(bold("Flux (mmol/m"^2*"/d)"))) +
+                       name = expression(bold(CO[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = bquote(bold(CO[2]*" Flux"))) +
@@ -1443,17 +1505,18 @@ may_flux <- ggplot() +
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
         legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        legend.key.width = unit(1.5, "cm"))
 
 oct_pCO2 <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = pCO2), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(179, 661),
-                       breaks = c(240, 420, 600),
-                       palette = "RdBu",
+  geom_sf(data = surface_sf3, aes(fill = pCO2), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(280, 492),
+                       colours = ocean.haline(100),
                        aesthetics = c("fill", "colour"),
-                       name = bquote(pCO[2]*" (uatm)   ")) +
+                       name = bquote(pCO[2]*" (μatm)   ")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface pCO2 [Oct]") +
@@ -1464,11 +1527,13 @@ oct_pCO2 <- ggplot() +
 
 oct_flux <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = flux / 10^3), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-12.5, 12.5), palette = "BrBG",
+  geom_sf(data = surface_sf3, aes(fill = flux / 10^3), size = 4, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(-13, 13),
+                       colours = redmonder.pal(11, "dPBIPuGn"),
                        aesthetics = c("fill", "colour"),
-                       name = "CO2 flux\n(mmol/m^2/d)") +
+                       name = "CO2 flux\n(mmol m^-2 d^-1)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface CO2 flux [Oct]") +
@@ -1481,9 +1546,13 @@ oct_flux <- ggplot() +
 theme_set(theme_minimal())
 
 plot_grid(
+  #plot_grid(
+  #  get_title(may_pCO2),
+  #  get_title(may_flux),
+  #  nrow = 1),
   plot_grid(
-    get_title(may_pCO2),
-    get_title(may_flux),
+    get_legend(may_pCO2),
+    get_legend(may_flux),
     nrow = 1),
   plot_grid(
     may_pCO2 + theme(plot.title = element_blank(), legend.position = "none"),
@@ -1492,39 +1561,32 @@ plot_grid(
     oct_flux,
     ncol = 2, nrow = 2,
     align = "hv",
-    labels = c("A", "", "B", "")),
-  plot_grid(
-    get_legend(may_pCO2),
-    get_legend(may_flux),
-    nrow = 1),
-  nrow = 3,
-  rel_heights = c(1, 24, 3)
+    labels = c("(A) May, surface", "", "(B) Oct, surface", "")),
+  nrow = 2,
+  #rel_heights = c(1, 3, 24)
+  rel_heights = c(4, 24)
 )
 ```
 
 ## 6-panel delta plots
 ```{r}
-may$dDIC[may$Station == "112" & may$Cast == "Bottom"] <- NA
-may$dTA[may$Station == "112" & may$Cast == "Bottom"] <- NA
-may$dDO[may$Station == "112" & may$Cast == "Bottom"] <- NA
-
 deltaTA.DIC <- ggplot() +
   geom_point(data = may, aes(x = dDIC, y = dTA, shape = Cast, col = "May")) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
-           xmin = -median(may$sdDICn, na.rm = T),
-           xmax = median(may$sdDICn, na.rm = T),
+           xmin = -median(may$sdDICn, na.rm = TRUE),
+           xmax = median(may$sdDICn, na.rm = TRUE),
            ymin = -Inf,
            ymax = Inf) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
            xmin = -Inf,
-           xmax = -median(may$sdDICn, na.rm = T),
-           ymin = -median(may$sdTAn, na.rm = T),
-           ymax = median(may$sdTAn, na.rm = T)) +
+           xmax = -median(may$sdDICn, na.rm = TRUE),
+           ymin = -median(may$sdTAn, na.rm = TRUE),
+           ymax = median(may$sdTAn, na.rm = TRUE)) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
-           xmin = median(may$sdDICn, na.rm = T),
+           xmin = median(may$sdDICn, na.rm = TRUE),
            xmax = Inf,
-           ymin = -median(may$sdTAn, na.rm = T),
-           ymax = median(may$sdTAn, na.rm = T)) +
+           ymin = -median(may$sdTAn, na.rm = TRUE),
+           ymax = median(may$sdTAn, na.rm = TRUE)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(slope = 2) +
@@ -1535,29 +1597,31 @@ deltaTA.DIC <- ggplot() +
                       name = "Month",
                       guide = "none") +
   guides(shape = guide_legend(title.position = "top", title.hjust = 0.5)) +
-  labs(title = "May") +
+  labs(title = "May", x = "ΔDIC", y = "ΔTA") +
   theme_bw() +
   theme(plot.title = element_text(face = "bold", hjust = 0.5),
         legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        legend.text = element_text(size = 11),
+        axis.text = element_text(size = 9))
 
 deltaDO.DIC <- ggplot() +
   geom_point(data = may, aes(x = dDIC, y = dDO, shape = Cast, col = "May")) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
-           xmin = -median(may$sdDICn, na.rm = T),
-           xmax = median(may$sdDICn, na.rm = T),
+           xmin = -median(may$sdDICn, na.rm = TRUE),
+           xmax = median(may$sdDICn, na.rm = TRUE),
            ymin = -Inf,
            ymax = Inf) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
            xmin = -Inf,
-           xmax = -median(may$sdDICn, na.rm = T),
-           ymin = -median(may$sdDOn, na.rm = T),
-           ymax = median(may$sdDOn, na.rm = T)) +
+           xmax = -median(may$sdDICn, na.rm = TRUE),
+           ymin = -median(may$sdDOn, na.rm = TRUE),
+           ymax = median(may$sdDOn, na.rm = TRUE)) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
-           xmin = median(may$sdDICn, na.rm = T),
+           xmin = median(may$sdDICn, na.rm = TRUE),
            xmax = Inf,
-           ymin = -median(may$sdDOn, na.rm = T),
-           ymax = median(may$sdDOn, na.rm = T)) +
+           ymin = -median(may$sdDOn, na.rm = TRUE),
+           ymax = median(may$sdDOn, na.rm = TRUE)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(slope = -138/106) +
@@ -1565,26 +1629,28 @@ deltaDO.DIC <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
+  labs(x = "ΔDIC", y = "ΔDO") +
   theme_bw() +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.text = element_text(size = 9))
 
 deltaDO.TA <- ggplot() +
   geom_point(data = may, aes(x = dTA, y = dDO, shape = Cast, col = "May")) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
-           xmin = -median(may$sdTAn, na.rm = T),
-           xmax = median(may$sdTAn, na.rm = T),
+           xmin = -median(may$sdTAn, na.rm = TRUE),
+           xmax = median(may$sdTAn, na.rm = TRUE),
            ymin = -Inf,
            ymax = Inf) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
            xmin = -Inf,
-           xmax = -median(may$sdTAn, na.rm = T),
-           ymin = -median(may$sdDOn, na.rm = T),
-           ymax = median(may$sdDOn, na.rm = T)) +
+           xmax = -median(may$sdTAn, na.rm = TRUE),
+           ymin = -median(may$sdDOn, na.rm = TRUE),
+           ymax = median(may$sdDOn, na.rm = TRUE)) +
   annotate("rect", alpha = 0.2, fill = "chartreuse3",
-           xmin = median(may$sdTAn, na.rm = T),
+           xmin = median(may$sdTAn, na.rm = TRUE),
            xmax = Inf,
-           ymin = -median(may$sdDOn, na.rm = T),
-           ymax = median(may$sdDOn, na.rm = T)) +
+           ymin = -median(may$sdDOn, na.rm = TRUE),
+           ymax = median(may$sdDOn, na.rm = TRUE)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(slope = -138/-17) +
@@ -1592,26 +1658,28 @@ deltaDO.TA <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
+  labs(x = "ΔTA", y = "ΔDO") +
   theme_bw() +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.text = element_text(size = 9))
 
 deltaTA.DICo <- ggplot() +
   geom_point(data = oct, aes(x = dDIC, y = dTA, shape = Cast, col = "Oct")) +
   annotate("rect", alpha = 0.2, fill = "royalblue",
-           xmin = -median(oct$sdDICn, na.rm = T),
-           xmax = median(oct$sdDICn, na.rm = T),
+           xmin = -median(oct$sdDICn, na.rm = TRUE),
+           xmax = median(oct$sdDICn, na.rm = TRUE),
            ymin = -Inf,
            ymax = Inf) +
   annotate("rect", alpha = 0.2, fill = "royalblue",
            xmin = -Inf,
-           xmax = -median(oct$sdDICn, na.rm = T),
-           ymin = -median(oct$sdTAn, na.rm = T),
-           ymax = median(oct$sdTAn, na.rm = T)) +
+           xmax = -median(oct$sdDICn, na.rm = TRUE),
+           ymin = -median(oct$sdTAn, na.rm = TRUE),
+           ymax = median(oct$sdTAn, na.rm = TRUE)) +
   annotate("rect", alpha = 0.2, fill = "royalblue",
-           xmin = median(oct$sdDICn, na.rm = T),
+           xmin = median(oct$sdDICn, na.rm = TRUE),
            xmax = Inf,
-           ymin = -median(oct$sdTAn, na.rm = T),
-           ymax = median(oct$sdTAn, na.rm = T)) +
+           ymin = -median(oct$sdTAn, na.rm = TRUE),
+           ymax = median(oct$sdTAn, na.rm = TRUE)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(slope = 2) +
@@ -1620,28 +1688,29 @@ deltaTA.DICo <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
                       name = "Month") +
-  labs(title = "October") +
+  labs(title = "October", x = "ΔDIC", y = "ΔTA") +
   theme_bw() +
   theme(plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.position = "none")
+        legend.position = "none",
+        axis.text = element_text(size = 9))
 
 deltaDO.DICo <- ggplot() +
   geom_point(data = oct, aes(x = dDIC, y = dDO, shape = Cast, col = "Oct")) +
   annotate("rect", alpha = 0.2, fill = "royalblue",
-           xmin = -median(oct$sdDICn, na.rm = T),
-           xmax = median(oct$sdDICn, na.rm = T),
+           xmin = -median(oct$sdDICn, na.rm = TRUE),
+           xmax = median(oct$sdDICn, na.rm = TRUE),
            ymin = -Inf,
            ymax = Inf) +
   annotate("rect", alpha = 0.2, fill = "royalblue",
            xmin = -Inf,
-           xmax = -median(oct$sdDICn, na.rm = T),
-           ymin = -median(oct$sdDOn, na.rm = T),
-           ymax = median(oct$sdDOn, na.rm = T)) +
+           xmax = -median(oct$sdDICn, na.rm = TRUE),
+           ymin = -median(oct$sdDOn, na.rm = TRUE),
+           ymax = median(oct$sdDOn, na.rm = TRUE)) +
   annotate("rect", alpha = 0.2, fill = "royalblue",
-           xmin = median(oct$sdDICn, na.rm = T),
+           xmin = median(oct$sdDICn, na.rm = TRUE),
            xmax = Inf,
-           ymin = -median(oct$sdDOn, na.rm = T),
-           ymax = median(oct$sdDOn, na.rm = T)) +
+           ymin = -median(oct$sdDOn, na.rm = TRUE),
+           ymax = median(oct$sdDOn, na.rm = TRUE)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(slope = -138/106) +
@@ -1649,26 +1718,28 @@ deltaDO.DICo <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
                       name = "Month") +
+  labs(x = "ΔDIC", y = "ΔDO") +
   theme_bw() +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.text = element_text(size = 9))
 
 deltaDO.TAo <- ggplot() +
   geom_point(data = oct, aes(x = dTA, y = dDO, shape = Cast, col = "Oct")) +
   annotate("rect", alpha = 0.2, fill = "royalblue",
-           xmin = -median(oct$sdTAn, na.rm = T),
-           xmax = median(oct$sdTAn, na.rm = T),
+           xmin = -median(oct$sdTAn, na.rm = TRUE),
+           xmax = median(oct$sdTAn, na.rm = TRUE),
            ymin = -Inf,
            ymax = Inf) +
   annotate("rect", alpha = 0.2, fill = "royalblue",
            xmin = -Inf,
-           xmax = -median(oct$sdTAn, na.rm = T),
-           ymin = -median(oct$sdDOn, na.rm = T),
-           ymax = median(oct$sdDOn, na.rm = T)) +
+           xmax = -median(oct$sdTAn, na.rm = TRUE),
+           ymin = -median(oct$sdDOn, na.rm = TRUE),
+           ymax = median(oct$sdDOn, na.rm = TRUE)) +
   annotate("rect", alpha = 0.2, fill = "royalblue",
-           xmin = median(oct$sdTAn, na.rm = T),
+           xmin = median(oct$sdTAn, na.rm = TRUE),
            xmax = Inf,
-           ymin = -median(oct$sdDOn, na.rm = T),
-           ymax = median(oct$sdDOn, na.rm = T)) +
+           ymin = -median(oct$sdDOn, na.rm = TRUE),
+           ymax = median(oct$sdDOn, na.rm = TRUE)) +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(slope = -138/-17) +
@@ -1676,8 +1747,10 @@ deltaDO.TAo <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
                       name = "Month") +
+  labs(x = "ΔTA", y = "ΔDO") +
   theme_bw() +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.text = element_text(size = 9))
 
 plot_grid(
   plot_grid(
@@ -1693,7 +1766,7 @@ plot_grid(
     deltaDO.TAo,
     ncol = 2, nrow = 3,
     align = "hv",
-    labels = c("A", "", "B", "", "C", "")),
+    labels = c("A", "B", "C", "D", "E", "F")),
   plot_grid(
     get_legend(deltaTA.DIC)),
   nrow = 3,
@@ -1701,60 +1774,523 @@ plot_grid(
 )
 ```
 
-## 6-panel relative contribution maps (Oct)
+## 8-panel relative contribution maps (Oct)
 ```{r}
 dDIC <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = dDIC), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-61, 61), palette = "RdBu",
+  geom_sf(data = surface_sf_v2[surface_sf_v2$Station == "009", ],
+          fill = "grey8",
+          size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = dDIC), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-28, 28),
+                       breaks = c(-25, 0, 25),
                        aesthetics = c("fill", "colour"),
-                       name = "Δ DIC") +
+                       name = "ΔDIC") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+oDICpr <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = DICpr), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-25.5, 25.5), #palette = "RdBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "Bio ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface DIC_bio [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+oDICf <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = DICf), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-1.14, 1.14), #palette = "RdBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "Flux") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface DIC_flux [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+oDICo <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = DIC.other), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-33.93, 33.93), #palette = "RdBu",
+                       breaks = c(-30, -15, 0, 15, 30),
+                       aesthetics = c("fill", "colour"),
+                       name = "ε ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface DIC_residual [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold", size = 16),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+dDIC2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_v2[bottom_sf_v2$Station == "009", ],
+          fill = "grey8",
+          size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = dDIC), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-61, 61),
+                       breaks = c(-60, -30, 0, 30, 60),
+                       aesthetics = c("fill", "colour"),
+                       name = "ΔDIC") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+oDICpr2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = DICpr), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-24.5, 24.5), #palette = "RdBu",
+                       #breaks = c(-50, -25, 0, 25, 50),
+                       aesthetics = c("fill", "colour"),
+                       name = "Bio ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom DIC_bio [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+oDICf2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = DICf), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-0.2, 0.2), #palette = "RdBu",
+                       #breaks = c(-50, -25, 0, 25, 50),
+                       aesthetics = c("fill", "colour"),
+                       name = "Flux") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom DIC_flux [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+oDICo2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = DIC.other), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-42.51, 42.51), #palette = "RdBu",
+                       #breaks = c(-50, -25, 0, 25, 50),
+                       aesthetics = c("fill", "colour"),
+                       name = "ε ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom DIC_residual [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold", size = 16),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+```
+
+## Same for TA
+```{r}
+dTA <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = dTA), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = dTA), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-36.04, 36.04),
+                       breaks = c(-30, -15, 0, 15, 30),
+                       aesthetics = c("fill", "colour"),
+                       name = "ΔTA") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+TApr <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = TApr), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-4.09, 4.09), #palette = "RdBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "Bio") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface TA_bio [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+TAo <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = TA.other), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-33.91, 33.91), #palette = "RdBu",
+                       breaks = c(-30, -15, 0, 15, 30),
+                       aesthetics = c("fill", "colour"),
+                       name = "ε") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface TA_residual [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold", size = 16),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+dTA2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = dTA), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = dTA), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-84.14, 84.14),
+                       breaks = c(-80, -40, 0, 40, 80),
+                       aesthetics = c("fill", "colour"),
+                       name = "ΔTA") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+TApr2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = TApr), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-4.09, 4.09), #palette = "RdBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "Bio") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom TA_bio [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+
+TAo2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = TA.other), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-87.43, 87.43), #palette = "RdBu",
+                       breaks = c(-80, -40, 0, 40, 80),
+                       aesthetics = c("fill", "colour"),
+                       name = "ε ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom TA_residual [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold", size = 16),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "cm"),
+        legend.key.width = unit(1, "cm"))
+```
+
+## Build massive combo plot
+```{r}
+theme_set(theme_minimal())
+
+plot_grid(
+  plot_grid(
+    plot_grid(
+      get_title(dDIC)),
+    plot_grid(
+      get_title(dDIC2))
+  ),
+  plot_grid(
+    plot_grid(
+      dDIC + theme(plot.title = element_blank()),
+      oDICpr,
+      oDICf,
+      oDICo,
+      nrow = 4,
+      align = "hv",
+      labels = c("A", "B", "C", "D")),
+    plot_grid(
+      dTA + theme(plot.title = element_blank()),
+      TApr,
+      get_legend(TApr + theme(legend.position = "none")),
+      TAo,
+      nrow = 4,
+      align = "hv"),
+    plot_grid(
+      dDIC2 + theme(plot.title = element_blank()),
+      oDICpr2,
+      oDICf2,
+      oDICo2,
+      nrow = 4,
+      align = "hv"),
+    plot_grid(
+      dTA2 + theme(plot.title = element_blank()),
+      TApr2,
+      get_legend(TApr + theme(legend.position = "none")),
+      TAo2,
+      nrow = 4,
+      align = "hv"),
+    ncol = 4
+  ),
+  nrow = 2,
+  rel_heights = c(1, 32)
+)
+```
+
+## DIC & TA solo plots
+```{r}
+theme_set(theme_minimal())
+
+plot_grid(
+  plot_grid(
+    get_title(dDIC)),
+  plot_grid(
+    get_title(dDIC2)),
+  plot_grid(
+    dDIC + theme(plot.title = element_blank()),
+    oDICf,
+    oDICpr,
+    oDICo,
+    nrow = 4,
+    align = "hv",
+    labels = c("A", "B", "C", "D")),
+  plot_grid(
+    dDIC2 + theme(plot.title = element_blank()),
+    oDICf2,
+    oDICpr2,
+    oDICo2,
+    nrow = 4,
+    align = "hv"),
+  ncol = 2, nrow = 2,
+  rel_heights = c(1, 32)
+)
+
+plot_grid(
+  plot_grid(
+    get_title(dTA)),
+  plot_grid(
+    get_title(dTA2)),
+  plot_grid(
+    dTA + theme(plot.title = element_blank()),
+    TApr,
+    TAo,
+    ncol = 1,
+    align = "hv",
+    labels = c("A", "B", "C", "D")),
+  plot_grid(
+    dTA2 + theme(plot.title = element_blank()),
+    TApr2,
+    TAo2,
+    ncol = 1,
+    align = "hv"),
+  ncol = 2, nrow = 2,
+  rel_heights = c(1, 32)
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 6-panel delta maps (Oct)
+```{r}
+# dDIC: 28/61, dTA: 37/85, dDO: 15/32
+
+dDIC <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_v2[surface_sf_v2$Station == "009", ],
+          fill = "midnightblue",
+          size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = dDIC), size = 6, shape = 18) +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gsea(limits = c(-28, 28),
+                       breaks = c(-25, 0, 25),
+                       aesthetics = c("fill", "colour"),
+                       name = "ΔDIC") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Surface") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5))
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"))
 
 dTA <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = dTA), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = dTA), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-85, 85), palette = "RdBu",
-                       breaks = c(-80, -40, 0, 40, 80),
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gsea(limits = c(-37, 37),
+                       breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
-                       name = "Δ TA  ") +
+                       name = "ΔTA") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface delta TA [Oct]") +
   theme_bw() +
   theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
 
 dDO <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = dDO), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = dDO), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-32, 32), palette = "RdBu",
-                       breaks = c(-30, -15, 0, 15, 30),
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gsea(limits = c(-15, 15),
+                       breaks = c(-12, -6, 0, 6, 12),
                        aesthetics = c("fill", "colour"),
-                       name = "Δ DO ") +
+                       name = "ΔDO") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface delta DO [Oct]") +
   theme_bw() +
   theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
 
 dDIC2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_v2[bottom_sf_v2$Station == "009", ],
+          fill = "midnightblue",
+          size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = dDIC), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-61, 61), palette = "RdBu",
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gsea(limits = c(-61, 61),
+                       breaks = c(-60, -30, 0, 30, 60),
                        aesthetics = c("fill", "colour"),
-                       name = "delta DIC") +
+                       name = "ΔDIC") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Bottom") +
@@ -1762,58 +2298,60 @@ dDIC2 <- ggplot() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.position = "none")
+        legend.title = element_text(face = "bold"))
 
 dTA2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dTA), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = dTA), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-85, 85), palette = "RdBu",
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gsea(limits = c(-85, 85),
+                       breaks = c(-80, -40, 0, 40, 80),
                        aesthetics = c("fill", "colour"),
-                       name = "delta TA") +
+                       name = "ΔTA") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom delta TA [Oct]") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.position = "none")
+        legend.title = element_text(face = "bold"))
 
 dDO2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dDO), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = dDO), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-32, 32), palette = "RdBu",
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gsea(limits = c(-32, 32),
+                       breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
-                       name = "delta DO") +
+                       name = "ΔDO") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom delta DO [Oct]") +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.position = "none")
+        legend.title = element_text(face = "bold"))
 
 theme_set(theme_minimal())
 
 plot_grid(
   plot_grid(
-    get_title(dDIC),
-    get_title(dDIC2),
-    nrow = 1),
+    get_title(dDIC)),
   plot_grid(
-    ggplot(),
-    scale = 1),
+    ggplot()),
   plot_grid(
-    dDIC + theme(legend.position = "none", plot.title = element_blank()),
-    dDIC2 + theme(plot.title = element_blank()),
+    get_title(dDIC2)),
+  plot_grid(
+    ggplot()),
+  plot_grid(
+    dDIC + theme(plot.title = element_blank(), legend.position = "none"),
     dTA + theme(legend.position = "none"),
-    dTA2,
     dDO + theme(legend.position = "none"),
-    dDO2,
-    ncol = 2, nrow = 3,
+    nrow = 3,
     align = "hv",
-    labels = c("A", "", "B", "", "C", "")),
+    labels = c("A", "B", "C")),
   plot_grid(
     get_legend(dDIC),
     ggplot(),
@@ -1821,11 +2359,328 @@ plot_grid(
     ggplot(),
     get_legend(dDO),
     ggplot(),
-    ncol = 1),
-  ncol = 2, nrow = 2,
+    nrow = 3),
+  plot_grid(
+    dDIC2 + theme(plot.title = element_blank(), legend.position = "none"),
+    dTA2 + theme(legend.position = "none"),
+    dDO2 + theme(legend.position = "none"),
+    nrow = 3,
+    align = "hv"),
+  plot_grid(
+    get_legend(dDIC2),
+    ggplot(),
+    get_legend(dTA2),
+    ggplot(),
+    get_legend(dDO2),
+    ggplot(),
+    nrow = 3),
+  ncol = 4, nrow = 2,
   rel_heights = c(1, 32),
-  rel_widths = c(12, 1)
+  rel_widths = c(12, 1, 12, 1)
 )
+```
+
+## 8-panel percent contribution maps (Oct)
+```{r}
+rel.DICf <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = rel.DICf), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = rel.DICf), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔDIC.flux") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"))
+
+rel.DICpr <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = rel.DICpr), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = rel.DICpr), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔDIC.bio") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface DIC_bio [Oct]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
+
+rel.DICres <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = rel.DICres), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = rel.DICres), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔDIC.res") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface DIC_residual [Oct]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
+
+rel.DICf2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = rel.DICf), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = rel.DICf), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔDIC.flux") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"))
+
+rel.DICpr2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = rel.DICpr), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = rel.DICpr), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔDIC.bio") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom DIC_bio [Oct]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
+
+rel.DICres2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = rel.DICres), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = rel.DICres), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔDIC.res") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom DIC_residual [Oct]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
+
+theme_set(theme_minimal())
+
+plot_grid(
+  plot_grid(
+    get_title(rel.DICf)),
+  plot_grid(
+    get_title(rel.DICf2)),
+  plot_grid(
+    ggplot()),
+  plot_grid(
+    rel.DICf + theme(plot.title = element_blank(), legend.position = "none"),
+    rel.DICpr + theme(legend.position = "none"),
+    rel.DICres + theme(legend.position = "none"),
+    ncol = 1,
+    align = "hv",
+    labels = c("A", "B", "C", "D")),
+  plot_grid(
+    rel.DICf2 + theme(plot.title = element_blank(), legend.position = "none"),
+    rel.DICpr2 + theme(legend.position = "none"),
+    rel.DICres2 + theme(legend.position = "none"),
+    ncol = 1,
+    align = "hv"),
+  plot_grid(
+    get_legend(rel.DICf2),
+    ggplot(),
+    get_legend(rel.DICpr2),
+    ggplot(),
+    get_legend(rel.DICres2),
+    ggplot(),
+    ncol = 1),
+  ncol = 3,
+  rel_heights = c(1, 32),
+  rel_widths = c(6, 6, 1)
+)
+```
+
+### Same as above, TA
+```{r}
+rel.TApr <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = rel.TApr), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = rel.TApr), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔTA.bio") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Surface") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"))
+
+rel.TAres <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = rel.TAres), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(col = rel.TAres), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔTA.res") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface TA_residual [Oct]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
+
+rel.TApr2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = rel.TApr), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = rel.TApr), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔTA.bio") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"))
+
+rel.TAres2 <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = rel.TAres), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = rel.TAres), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 1),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = "% ΔTA.res") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Bottom TA_residual [Oct]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
+
+theme_set(theme_minimal())
+
+plot_grid(
+  plot_grid(
+    get_title(rel.TApr)),
+  plot_grid(
+    get_title(rel.TApr2)),
+  plot_grid(
+    ggplot()),
+  plot_grid(
+    rel.TApr + theme(plot.title = element_blank(), legend.position = "none"),
+    rel.TAres + theme(legend.position = "none"),
+    ncol = 1,
+    align = "hv",
+    labels = c("A", "B", "C", "D")),
+  plot_grid(
+    rel.TApr2 + theme(plot.title = element_blank(), legend.position = "none"),
+    rel.TAres2 + theme(legend.position = "none"),
+    ncol = 1,
+    align = "hv"),
+  plot_grid(
+    get_legend(rel.TApr2),
+    ggplot(),
+    get_legend(rel.TAres2),
+    ggplot(),
+    ncol = 1),
+  ncol = 3,
+  rel_heights = c(1, 32),
+  rel_widths = c(6, 6, 1)
+)
+```
+
+## "excess" plots
+```{r}
+# dDIC.ex: 2-40, dTA.ex: 13-88, ratio: 1-9
+
+dDIC.ex <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = dDIC.ex), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = dDIC.ex), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 40),
+                       colours = parula(100),
+#                       breaks = c(-40, -20, 0, 20, 40),
+                       aesthetics = c("fill", "colour"),
+                       name = "ΔDIC ex") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "Bottom") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold"))
+
+dTA.ex <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = dTA.ex), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = dTA.ex), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 88),
+                       colours = parula(100),
+#                       breaks = c(-30, -15, 0, 15, 30),
+                       aesthetics = c("fill", "colour"),
+                       name = "ΔTA ex") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface delta TA [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
+
+ratio <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = ratio), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(col = ratio), size = 6, shape = 18) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(0, 9),
+                       colours = parula(100),
+#                       breaks = c(-20, -10, 0, 10, 20),
+                       aesthetics = c("fill", "colour"),
+                       name = "Ratio") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface delta DO [May]") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"))
+
+theme_set(theme_minimal())
+
+plot_grid(
+    dDIC.ex,
+    dTA.ex,
+    ratio,
+    nrow = 3,
+    align = "hv",
+    labels = c("A", "B", "C"))
 ```
 
 ## Supplement
@@ -1834,7 +2689,7 @@ plot_grid(
 T <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = Temp), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
                        aesthetics = c("fill", "colour"),
                        name = "Temp (°C)") +
@@ -1853,7 +2708,7 @@ T <- ggplot() +
 S <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = Salinity), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
                        breaks = c(32, 33, 34, 35),
                        direction = "horizontal",
@@ -1874,7 +2729,7 @@ S <- ggplot() +
 T2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = Temp), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
                        aesthetics = c("fill", "colour"),
                        name = "Temp (°C)      ") +
@@ -1889,7 +2744,7 @@ T2 <- ggplot() +
 S2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = Salinity), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
                        breaks = c(32, 35),
                        direction = "horizontal",
@@ -1906,7 +2761,7 @@ S2 <- ggplot() +
 To <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = Temp), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
                        aesthetics = c("fill", "colour"),
                        name = "Temp (°C)      ") +
@@ -1921,7 +2776,7 @@ To <- ggplot() +
 So <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = Salinity), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
                        breaks = c(32, 33, 34, 35),
                        direction = "horizontal",
@@ -1938,7 +2793,7 @@ So <- ggplot() +
 T2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = Temp), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
                        aesthetics = c("fill", "colour"),
                        name = "Temp (°C)      ") +
@@ -1953,7 +2808,7 @@ T2o <- ggplot() +
 S2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(col = Salinity), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
                        breaks = c(32, 35),
                        direction = "horizontal",
@@ -1997,155 +2852,9 @@ plot_grid(
 
 
 
-## Removed from above
-```{r}
-oDICf <- ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = DICf), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-58, 58), palette = "RdBu",
-                       aesthetics = c("fill", "colour")) +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Surface DIC_flux [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
 
-oDICpr <- ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = DICpr), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-69, 69), palette = "RdBu",
-                       aesthetics = c("fill", "colour")) +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Surface DIC_bio [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
 
-oDICo <- ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = DIC.other), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-69, 69), palette = "RdBu",
-                       aesthetics = c("fill", "colour")) +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Surface DIC_residual [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
 
-oDICf2 <- ggplot() +
-  geom_sf(data = bottom_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = DICf), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-58, 58), palette = "RdBu",
-                       breaks = c(-50, -25, 0, 25, 50),
-                       aesthetics = c("fill", "colour"),
-                       name = "DIC.flux ") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Bottom DIC_flux [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
-
-oDICpr2 <- ggplot() +
-  geom_sf(data = bottom_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = DICpr), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-69, 69), palette = "RdBu",
-                       #breaks = c(-50, -25, 0, 25, 50),
-                       breaks = c(-60, 0, 60),
-                       aesthetics = c("fill", "colour"),
-                       name = "DIC.bio  ") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Bottom DIC_bio [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
-
-oDICo2 <- ggplot() +
-  geom_sf(data = bottom_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = DIC.other), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-69, 69), palette = "RdBu",
-                       #breaks = c(-50, -25, 0, 25, 50),
-                       breaks = c(-60, 0, 60),
-                       aesthetics = c("fill", "colour"),
-                       name = "DIC.resid") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Bottom DIC_residual [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
-
-TApr <- ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = TApr), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-32, 32), palette = "RdBu",
-                       aesthetics = c("fill", "colour")) +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Surface TA_bio [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
-
-TAo <- ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = TA.other), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-32, 32), palette = "RdBu",
-                       aesthetics = c("fill", "colour")) +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Surface TA_residual [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
-
-TApr2 <- ggplot() +
-  geom_sf(data = bottom_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = TApr), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-32, 32), palette = "RdBu",
-                       breaks = c(-30, 0, 30),
-                       aesthetics = c("fill", "colour"),
-                       name = "TA.bio  ") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Bottom TA_bio [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
-
-TAo2 <- ggplot() +
-  geom_sf(data = bottom_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = TA.other), size = 6, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(-32, 32), palette = "RdBu",
-                       breaks = c(-30, 0, 30),
-                       aesthetics = c("fill", "colour"),
-                       name = "TA.resid") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Bottom TA_residual [Oct]") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
-```
 
 
 
@@ -2155,7 +2864,7 @@ TAo2 <- ggplot() +
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = a1), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_3, aes(col = a1), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(0, 1), palette = "YlGnBu",
                        aesthetics = c("fill", "colour"),
                        name = "EM1") +
@@ -2266,7 +2975,7 @@ bathy <- bathy_full %>%
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = MLD_frac), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = MLD_frac), size = 8, shape = 18) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   #geom_contour(data = bathy, aes(x = x, y = y, z = z), col = "grey40", size = 0.2) +
   lightness(scale_fill_distiller(palette = "BuGn", direction = "horizontal",
                        aesthetics = c("fill", "colour")),
@@ -2313,7 +3022,7 @@ bathy_sf <- st_as_sf(spdf) %>%
 
 ggplot() +
   geom_sf(data = bathy_sf) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   geom_sf(data = b40, size = 0.2) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16))
 ```
@@ -2334,7 +3043,7 @@ ggplot() +
 ggplot(bottom_sf, aes(x = Long, y = Lat)) +
   geom_point(aes(colour = Salinity)) +
   geom_text(aes(label = Station), hjust = 0.05, vjust = 0.05, size = 3) +
-  #geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  #geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_colour_viridis() +
   coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
   scale_y_continuous(breaks = c(40, 41, 42))
@@ -2353,7 +3062,7 @@ ggplot() +
   geom_point(data = bottom_sf, aes(x = Long, y = Lat, colour = OmegaAragonite)) +
   geom_text(data = bottom_sf, aes(x = Long, y = Lat, label = Station),
             hjust = -0.05, vjust = 0.05, size = 3) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_colour_viridis() +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   scale_y_continuous(breaks = c(40, 41, 42))

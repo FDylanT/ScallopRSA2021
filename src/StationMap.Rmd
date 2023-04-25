@@ -25,7 +25,7 @@ library(cowplot)
 
 ## Register Google API key
 ```{r, include=FALSE}
-register_google(key = "AIzaSyBvvS_nvTml09h56OWd0Oniktayi0L8WDU")
+register_google(key = "AIzaSyBn1OxFq4DMK79J4qHmQoBvFlbHbeImABw")
 ```
 
 ## Load GB shapefiles
@@ -36,36 +36,21 @@ GB <- st_read("./data/2020SAMZones/GB_Estimation_Areas_2019_UTM19_PDT_SFModified
 #st_is_valid(GB)
 
 # subset shapefile to SAMs
-NLS_North <- subset(GB, NewSAMS == "NLS-North") %>%
-  fortify()
-CL1_South <- subset(GB, NewSAMS == "CL1-South") %>%
-  fortify()
-CL1_Sliver <- subset(GB, NewSAMS == "CL1-Sliver") %>%
-  fortify()
-CL2_AccessSoutheast <- subset(GB, NewSAMS == "CL2-Access-Southeast") %>%
-  fortify()
-SF <- subset(GB, NewSAMS == "SF") %>%
-  fortify()
-CL2_North <- subset(GB, NewSAMS == "CL2-North") %>%
-  fortify()
-CL1_Access <- subset(GB, NewSAMS == "CL1-Access") %>%
-  fortify()
-NF <- subset(GB, NewSAMS == "NF") %>%
-  fortify()
-CL2_Ext <- subset(GB, NewSAMS == "CL2-Ext") %>%
-  fortify()
-GSC <- subset(GB, NewSAMS == "GSC") %>%
-  fortify()
-NLS_SouthDeep <- subset(GB, NewSAMS == "NLS-South-Deep") %>%
-  fortify()
-NLS_West <- subset(GB, NewSAMS == "NLS-West") %>%
-  fortify()
-NLS_SouthShallow <- subset(GB, NewSAMS == "NLS-South-Shallow") %>%
-  fortify()
-CL2_AccessSouthwest <- subset(GB, NewSAMS == "CL2-Access-Southwest") %>%
-  fortify()
-SF_East <- subset(GB, NewSAMS == "SF-East") %>%
-  fortify()
+NLS_North <- subset(GB, NewSAMS == "NLS-North")
+CL1_South <- subset(GB, NewSAMS == "CL1-South")
+CL1_Sliver <- subset(GB, NewSAMS == "CL1-Sliver")
+CL2_AccessSoutheast <- subset(GB, NewSAMS == "CL2-Access-Southeast")
+SF <- subset(GB, NewSAMS == "SF")
+CL2_North <- subset(GB, NewSAMS == "CL2-North")
+CL1_Access <- subset(GB, NewSAMS == "CL1-Access")
+NF <- subset(GB, NewSAMS == "NF")
+CL2_Ext <- subset(GB, NewSAMS == "CL2-Ext")
+GSC <- subset(GB, NewSAMS == "GSC")
+NLS_SouthDeep <- subset(GB, NewSAMS == "NLS-South-Deep")
+NLS_West <- subset(GB, NewSAMS == "NLS-West")
+NLS_SouthShallow <- subset(GB, NewSAMS == "NLS-South-Shallow")
+CL2_AccessSouthwest <- subset(GB, NewSAMS == "CL2-Access-Southwest")
+SF_East <- subset(GB, NewSAMS == "SF-East")
 
 # combine polygons and set CRS
 GB_sf <- st_union(st_geometry(NLS_North), st_geometry(CL1_South)) %>%
@@ -82,8 +67,7 @@ GB_sf <- st_union(st_geometry(NLS_North), st_geometry(CL1_South)) %>%
   st_union(st_geometry(NLS_SouthShallow)) %>%
   st_union(st_geometry(CL2_AccessSouthwest)) %>%
   st_union(st_geometry(SF_East)) %>%
-  st_remove_holes() %>% # remove slivers between polygon borders
-  st_transform(crs = 26919)
+  st_remove_holes() # remove slivers between polygon borders
   
 #summary(GB_sf)
 ```
@@ -120,7 +104,7 @@ ggplot() +
 oct <- read.csv("./data/OctCruiseData.csv") %>%
   rename(Lat = Latitude_degrees_start,
          Long = Longitude_degrees_start) %>%
-  filter(Filtered != "Y", Cast == "Bottom") %>%
+  filter(Filtered == "", Cast == "Bottom") %>%
   mutate(Tow = ifelse(is.na(Tow_start_time), "N", "Y"))
 ```
 
@@ -169,7 +153,7 @@ library(marmap)
 GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62,
 lat1 = 37, lat2 = 46, resolution = 1)
 
-# fortify for use with ggplot
+# prepare for use with ggplot
 ggbathy <- GB_bathy %>%
   fortify() %>%
   mutate(lat = y, long = x, depth = z) %>%
@@ -305,7 +289,7 @@ map <- plot(GB_bathy, image = TRUE, land = TRUE, n = 0, lwd = 1, bpal = list(c(m
 ```{r}
 # fortify for use with ggplot
 ggbathy <- GB_bathy %>%
-  fortify() %>%
+  #fortify() %>%
   mutate(lat = y, long = x, depth = z) %>%
   select(-c(x, y, z)) %>%
   mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180, -780, -1380, -1980, -2580, -3180, -Inf)))

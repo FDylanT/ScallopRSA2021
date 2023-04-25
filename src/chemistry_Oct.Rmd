@@ -71,8 +71,8 @@ rm(Long_split_oct)
 rm(chd)
 ```
 
-## Fill in missing temp & DO values
-
+## *SKIP SOMETIMES* Fill in missing temp & DO values
+```
 # temp
 for(i in 1:nrow(oct)) {
   if(oct$Station[i] == "022") {
@@ -112,6 +112,7 @@ for(i in 1:nrow(oct)) {
                  0.236 * oct$DO[oct$Station == "106" & oct$Cast == cast]
   }
 }
+```
 
 ## Calculate density & carbon system parameters
 ```{r}
@@ -240,11 +241,10 @@ TA6 <- oct$TA[EM6]
 ```
 
 # Surface: triangle
-
-## Identify EM stat parameters
 ```{r}
 # surface EM1
 EMs1 <- oct$Salinity[oct$Cast == "Surface" &
+                     !is.na(oct$Temp) &
                      oct$Station > "008" &
                      oct$Salinity >= S1 - 0.15 & oct$Salinity <= S1 + 0.15 &
                      oct$Temp >= T1 - 0.3 & oct$Temp <= T1 + 0.3]
@@ -268,6 +268,7 @@ err_temp_EMs1 <- sd_temp_EMs1 + temp_err1
 
 # surface EM2
 EMs2 <- oct$Salinity[oct$Cast == "Surface" &
+                     !is.na(oct$Temp) &
                      oct$Station > "008" &
                      oct$Salinity >= S2 - 0.15 & oct$Salinity <= S2 + 0.15 &
                      oct$Temp >= T2 - 0.3 & oct$Temp <= T2 + 0.3]
@@ -291,6 +292,7 @@ err_temp_EMs2 <- sd_temp_EMs2 + temp_err2
 
 # surface EM3
 EMs3 <- oct$Salinity[oct$Cast == "Surface" &
+                     !is.na(oct$Temp) &
                      oct$Station > "008" &
                      oct$Salinity >= S3 - 0.15 & oct$Salinity <= S3 + 0.15 &
                      oct$Temp >= T3 - 0.3 & oct$Temp <= T3 + 0.3]
@@ -314,144 +316,6 @@ temp_err3 <- sqrt((1/length(EMs3)) * (0.002^2 * length(EMs3)))
 err_temp_EMs3 <- sd_temp_EMs3 + temp_err3
 ```
 
-## Bayesian mixing model
-```{r}
-# create mixture data: surface data w/ NAs & non-triangle sites excluded
-read.csv("./data/OctCruiseData.csv") %>%
-  rename(Temp = Temperature) %>%
-  filter(Filtered == "",
-         Cast == "Surface",
-         !is.na(Temp),
-         Station > 8) %>% # exclude sites 001-008
-  select(-Filtered) %>%
-  write_csv("./mixing/OctCruiseData_surface.csv")
-
-# load mixture data
-mix <- load_mix_data(filename = "./mixing/OctCruiseData_surface.csv", 
-                     iso_names = c("Salinity", "Temp"),
-                     factors = "Station",
-                     fac_random = FALSE, # indiv. station is fixed effect
-                     fac_nested = NULL,
-                     cont_effects = NULL)
-
-# create source data
-EM <- c("EM1", "EM2", "EM3")
-MeanTemp <- c(mean_temp_EMs1, mean_temp_EMs2, mean_temp_EMs3)
-SDTemp <- c(err_temp_EMs1, err_temp_EMs2, err_temp_EMs3)
-MeanSalinity <- c(mean_sal_EMs1, mean_sal_EMs2, mean_sal_EMs3)
-SDSalinity <- c(err_sal_EMs1, err_sal_EMs2, err_sal_EMs3)
-n <- c(length(EMs1), length(EMs2), length(EMs3))
-
-write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity, n), "./mixing/sources_surface.csv",
-          row.names = FALSE)
-
-# load source data
-source <- load_source_data(filename = "./mixing/sources_surface.csv",
-                           source_factors = NULL, 
-                           conc_dep = FALSE, 
-                           data_type = "means", 
-                           mix)
-
-# create discrimination data: 0 because conservative parameters
-MeanTemp <- rep(0, 3)
-SDTemp <- rep(0, 3)
-MeanSalinity <- rep(0, 3)
-SDSalinity <- rep(0, 3)
-
-write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity), "./mixing/discr_surface.csv",
-          row.names = FALSE)
-
-# load discrimination data
-discr <- load_discr_data(filename = "./mixing/discr_surface.csv", mix)
-```
-
-## Make isospace plot & choose prior
-```{r}
-iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
-                 plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
-iso + theme(legend.position = "none")
-
-#iso$plot_env$source.labels$label
-
-calc_area(source = source, mix = mix, discr = discr) # 100.2011
-
-# uninformative (technically "generalist") prior (alpha = 1)
-# Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
-plot_prior(alpha.prior = 1, source, plot_save_pdf = FALSE, plot_save_png = TRUE)
-```
-
-## Write model
-```{r}
-model_filename <- "./surface_model_2.txt"
-resid_err <- FALSE # because n=1 per Station
-process_err <- TRUE
-write_JAGS_model(model_filename, resid_err, process_err, mix, source)
-
-run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
-            calcDIC = TRUE)
-jags.1.1 <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
-```
-
-## Check for convergence
-```{r}
-output_options1 <- list(summary_save = TRUE,
-                       summary_name = "summary_statistics1",
-                       sup_post = TRUE,
-                       plot_post_save_pdf = FALSE,
-                       plot_post_name = "posterior_density1",
-                       sup_pairs = TRUE,
-                       plot_pairs_save_pdf = FALSE,
-                       plot_pairs_name = "pairs_plot1",
-                       sup_xy = FALSE,
-                       plot_xy_save_pdf = FALSE,
-                       plot_xy_name = "xy_plot1",
-                       gelman = TRUE,
-                       heidel = FALSE,
-                       geweke = TRUE,
-                       diag_save = TRUE,
-                       diag_name = "diagnostics1",
-                       indiv_effect = FALSE,
-                       plot_post_save_png = FALSE,
-                       plot_pairs_save_png = FALSE,
-                       plot_xy_save_png = FALSE,
-                       diag_save_ggmcmc = FALSE,
-                       return_obj = TRUE)
-
-options(max.print = 3000) # change global option
-output_JAGS(jags.1, mix, source, output_options1)
-
-diag <- output_diagnostics(jags.1.1, mix, source, output_options1)
-df.stats <- output_stats(jags.1.1, mix, source, output_options1)
-g.post <- output_posteriors(jags.1.1, mix, source, output_options1)
-
-g.post$fac1[[33]]
-
-# Gelman diagnostic should be < 1.05
-# w/ "normal" MCMC parameters:                                     31; 0; 0
-# w/ "long" MCMC params:                                           16; 0; 0
-# w/ run = list(chainLength = 1000000, burn =  200000, thin = 100): 0; 0; 0
-# w/ run = list(chainLength = 1000000, burn =  500000, thin = 100): 0; 0; 0
-# w/ "very long" MCMC params:
-#          list(chainLength = 1000000, burn =  500000, thin = 500): 2; 0; 0
-# w/ run = list(chainLength = 2000000, burn =  500000, thin = 500): 0; 0; 0
-# w/ "extreme" MCMC params:
-#          list(chainLength = 3000000, burn = 1500000, thin = 500): 0; 0; 0
-
-# Geweke diagnostic should have ~5% outside +/-1.96 (~31-32/634) in each chain
-# w/ "normal" MCMC parameters:                                       91 / 32 / 62
-# w/ "long" MCMC params:                                             36 / 70 / 87
-# w/ run = list(chainLength = 1000000, burn =  200000, thin = 100):  90 / 46 / 102
-# w/ run = list(chainLength = 1000000, burn =  500000, thin = 100): 116 / 86 / 43
-# w/ "very long" MCMC params:
-#          list(chainLength = 1000000, burn =  500000, thin = 500):  37 / 32 / 34
-# w/ run = list(chainLength = 2000000, burn =  500000, thin = 500):  38 / 38 / 20
-# w/ "extreme" MCMC params:
-#          list(chainLength = 3000000, burn = 1500000, thin = 500):  22 / 24 / 38
-```
-
-## Look at output
 ```{r}
 summ1 <- read.table("summary_statistics1.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
@@ -497,52 +361,11 @@ for(i in 1:nrow(oct)) {
 }
 ```
 
-## Plots for above
-```{r}
-ggplot(oct[oct$Cast == "Surface", ]) +
-  geom_point(aes(x = Salinity, y = Temp, col = EM1)) +
-  scale_colour_viridis(option = "viridis") +
-  theme_bw()
-
-ggplot(oct[oct$Cast == "Surface", ]) +
-  geom_point(aes(x = Salinity, y = Temp, col = EM2)) +
-  scale_colour_viridis(option = "viridis") +
-  theme_bw()
-
-ggplot(oct[oct$Cast == "Surface", ]) +
-  geom_point(aes(x = Salinity, y = Temp, col = EM3)) +
-  scale_colour_viridis(option = "viridis") +
-  theme_bw()
-
-
-
-ggplot(oct[oct$Cast == "Surface", ]) +
-  #geom_point(aes(x = a1, y = EM1)) +
-  geom_text(aes(x = a1, y = EM1, label = Station)) +
-  geom_abline(slope = 1) +
-  theme_bw()
-
-ggplot(oct[oct$Cast == "Surface", ]) +
-  #geom_point(aes(x = a2, y = EM2)) +
-  geom_text(aes(x = a2, y = EM2, label = Station)) +
-  geom_abline(slope = 1) +
-  theme_bw()
-
-ggplot(oct[oct$Cast == "Surface", ]) +
-  #geom_point(aes(x = a3, y = EM3)) +
-  geom_text(aes(x = a3, y = EM3, label = Station)) +
-  geom_abline(slope = 1) +
-  theme_bw()
-```
-
 # Surface: linear
-
-## Identify EM stat parameters
 ```{r}
 # surface EM7
 EMs7 <- oct$Salinity[oct$Cast == "Surface" &
-                     oct$Station != "022" & oct$Station != "023" &
-                     oct$Station != "104" & 
+                     !is.na(oct$Temp) &
                      oct$Salinity >= S7 - 0.15 & oct$Salinity <= S7 + 0.15 &
                      oct$Temp >= T7 - 0.3 & oct$Temp <= T7 + 0.3]
 for(i in 1:length(EMs7)) {
@@ -564,126 +387,6 @@ temp_err2 <- sqrt((1/length(EMs7)) * (0.002^2 * length(EMs7)))
 err_temp_EMs7 <- sd_temp_EMs7 + temp_err2
 ```
 
-## Bayesian mixing model
-```{r}
-# create mixture data: nearshore data (001 - 005)
-read.csv("./data/OctCruiseData.csv") %>%
-  rename(Temp = Temperature) %>%
-  filter(Filtered == "",
-         Cast == "Surface",
-         Station < 6) %>%
-  select(-Filtered) %>%
-  write_csv("./mixing/OctCruiseData_linear.csv")
-
-# load mixture data
-mix <- load_mix_data(filename = "./mixing/OctCruiseData_linear.csv", 
-                     iso_names = c("Salinity", "Temp"),
-                     factors = "Station",
-                     fac_random = FALSE, # indiv. station is fixed effect
-                     fac_nested = NULL,
-                     cont_effects = NULL)
-
-# create source data
-EM <- c("EM1", "EM7")
-MeanTemp <- c(mean_temp_EMs1, mean_temp_EMs7)
-SDTemp <- c(err_temp_EMs1, err_temp_EMs7)
-MeanSalinity <- c(mean_sal_EMs1, mean_sal_EMs7)
-SDSalinity <- c(err_sal_EMs1, err_sal_EMs7)
-n <- c(length(EMs1), length(EMs7))
-
-write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity, n), "./mixing/sources_linear.csv",
-          row.names = FALSE)
-
-# load source data
-source <- load_source_data(filename = "./mixing/sources_linear.csv",
-                           source_factors = NULL, 
-                           conc_dep = FALSE, 
-                           data_type = "means", 
-                           mix)
-
-# create discrimination data: 0 because conservative parameters
-MeanTemp <- rep(0, 2)
-SDTemp <- rep(0, 2)
-MeanSalinity <- rep(0, 2)
-SDSalinity <- rep(0, 2)
-
-write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity), "./mixing/discr_linear.csv",
-          row.names = FALSE)
-
-# load discrimination data
-discr <- load_discr_data(filename = "./mixing/discr_linear.csv", mix)
-```
-
-## Make isospace plot & choose prior
-```{r}
-iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
-                 plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
-iso + theme(legend.position = "none")
-
-calc_area(source = source, mix = mix, discr = discr) # 0
-
-# uninformative (technically "generalist") prior (alpha = 1)
-# Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
-plot_prior(alpha.prior = 1, source, plot_save_pdf = FALSE, plot_save_png = TRUE)
-```
-
-## Write model
-```{r}
-model_filename <- "./linear_model.txt"
-resid_err <- FALSE # because n=1 per Station
-process_err <- TRUE
-write_JAGS_model(model_filename, resid_err, process_err, mix, source)
-
-run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
-            calcDIC = TRUE)
-jags.3 <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
-```
-
-## Check for convergence
-```{r}
-output_options3 <- list(summary_save = TRUE,
-                       summary_name = "summary_statistics3",
-                       sup_post = TRUE,
-                       plot_post_save_pdf = FALSE,
-                       plot_post_name = "posterior_density3",
-                       sup_pairs = TRUE,
-                       plot_pairs_save_pdf = FALSE,
-                       plot_pairs_name = "pairs_plot3",
-                       sup_xy = FALSE,
-                       plot_xy_save_pdf = FALSE,
-                       plot_xy_name = "xy_plot3",
-                       gelman = TRUE,
-                       heidel = FALSE,
-                       geweke = TRUE,
-                       diag_save = TRUE,
-                       diag_name = "diagnostics3",
-                       indiv_effect = FALSE,
-                       plot_post_save_png = FALSE,
-                       plot_pairs_save_png = FALSE,
-                       plot_xy_save_png = FALSE,
-                       diag_save_ggmcmc = FALSE,
-                       return_obj = TRUE)
-
-options(max.print = 3000) # change global option
-output_JAGS(jags.3, mix, source, output_options3)
-
-diag <- output_diagnostics(jags.3, mix, source, output_options3)
-df.stats <- output_stats(jags.3, mix, source, output_options3)
-g.post <- output_posteriors(jags.3, mix, source, output_options3)
-
-g.post$fac1[[1]]
-
-# Gelman diagnostic should be < 1.05
-# "extreme" MCMC parameters: 1; 0; 0
-
-# Geweke diagnostic should have ~5% outside +/-1.96 (~31-32/634) in each chain
-# "extreme" parameters: 34/22/24
-
-```
-
-## Look at output
 ```{r}
 summ3 <- read.table("summary_statistics3.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
@@ -706,40 +409,11 @@ for(i in 1:nrow(oct)) {
 }
 ```
 
-## Plots for above
-```{r}
-ggplot(oct[oct$Cast == "Surface", ]) +
-  geom_point(aes(x = Salinity, y = Temp, col = EM1)) +
-  scale_colour_viridis(option = "viridis") +
-  theme_bw()
-
-ggplot(oct[oct$Cast == "Surface", ]) +
-  geom_point(aes(x = Salinity, y = Temp, col = EM7)) +
-  scale_colour_viridis(option = "viridis") +
-  theme_bw()
-
-
-ggplot(oct[oct$Cast == "Surface", ]) +
-  #geom_point(aes(x = a1, y = EM1)) +
-  geom_text(aes(x = a1, y = EM1, label = Station)) +
-  geom_abline(slope = 1) +
-  theme_bw()
-
-ggplot(oct[oct$Cast == "Surface", ]) +
-  #geom_point(aes(x = a7, y = EM7)) +
-  geom_text(aes(x = a7, y = EM7, label = Station)) +
-  geom_abline(slope = 1) +
-  theme_bw()
-```
-
 # Bottom: triangle
-
-## Identify EM stat parameters
 ```{r}
 # bottom EM4
 EMs4 <- oct$Salinity[oct$Cast == "Bottom" &
-                     oct$Station != "022" & oct$Station != "023" &
-                     oct$Station != "104" & 
+                     !is.na(oct$Temp) &
                      oct$Salinity >= S4 - 0.25 & oct$Salinity <= S4 + 0.25 &
                      oct$Temp >= T4 - 0.6 & oct$Temp <= T4 + 0.6]
 for(i in 1:length(EMs4)) {
@@ -762,8 +436,7 @@ err_temp_EMs4 <- sd_temp_EMs4 + temp_err4
 
 # bottom EM5
 EMs5 <- oct$Salinity[oct$Cast == "Bottom" &
-                     oct$Station != "022" & oct$Station != "023" &
-                     oct$Station != "104" & 
+                     !is.na(oct$Temp) &
                      oct$Salinity >= S5 - 0.25 & oct$Salinity <= S5 + 0.25 &
                      oct$Temp >= T5 - 0.6 & oct$Temp <= T5 + 0.6]
 for(i in 1:length(EMs5)) {
@@ -786,8 +459,7 @@ err_temp_EMs5 <- sd_temp_EMs5 + temp_err5
 
 # bottom EM6
 EMs6 <- oct$Salinity[oct$Cast == "Bottom" &
-                     oct$Station != "022" & oct$Station != "023" &
-                     oct$Station != "104" & 
+                     !is.na(oct$Temp) &
                      oct$Salinity >= S6 - 0.25 & oct$Salinity <= S6 + 0.25 &
                      oct$Temp >= T6 - 0.6 & oct$Temp <= T6 + 0.6]
 for(i in 1:length(EMs6)) {
@@ -809,128 +481,6 @@ temp_err6 <- sqrt((1/length(EMs6)) * (0.002^2 * length(EMs6)))
 err_temp_EMs6 <- sd_temp_EMs6 + temp_err6
 ```
 
-## Bayesian mixing model
-```{r}
-# create mixture data: bottom data w/ NAs excluded
-read.csv("./data/OctCruiseData.csv") %>%
-  rename(Temp = Temperature) %>%
-  filter(Filtered == "",
-         Cast == "Bottom",
-         !is.na(Temp)) %>%
-  select(-Filtered) %>%
-  write_csv("./mixing/OctCruiseData_bottom.csv")
-
-# load mixture data
-mix <- load_mix_data(filename = "./mixing/OctCruiseData_bottom.csv", 
-                     iso_names = c("Salinity", "Temp"),
-                     factors = "Station",
-                     fac_random = FALSE, # indiv. station is fixed effect
-                     fac_nested = NULL,
-                     cont_effects = NULL)
-
-# create source data
-EM <- c("EM4", "EM5", "EM6")
-MeanTemp <- c(mean_temp_EMs4, mean_temp_EMs5, mean_temp_EMs6)
-SDTemp <- c(err_temp_EMs4, err_temp_EMs5, err_temp_EMs6)
-MeanSalinity <- c(mean_sal_EMs4, mean_sal_EMs5, mean_sal_EMs6)
-SDSalinity <- c(err_sal_EMs4, err_sal_EMs5, err_sal_EMs6)
-n <- c(length(EMs4), length(EMs5), length(EMs6))
-
-write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity, n), "./mixing/sources_bottom.csv",
-          row.names = FALSE)
-
-# load source data
-source <- load_source_data(filename = "./mixing/sources_bottom.csv",
-                           source_factors = NULL, 
-                           conc_dep = FALSE, 
-                           data_type = "means", 
-                           mix)
-
-# create discrimination data: 0 because conservative parameters
-MeanTemp <- rep(0, 3)
-SDTemp <- rep(0, 3)
-MeanSalinity <- rep(0, 3)
-SDSalinity <- rep(0, 3)
-
-write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity), "./mixing/discr_bottom.csv",
-          row.names = FALSE)
-
-# load discrimination data
-discr <- load_discr_data(filename = "./mixing/discr_bottom.csv", mix)
-```
-
-## Make isospace plot & choose prior
-```{r}
-iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
-                 plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
-iso + theme(legend.position = "none")
-
-calc_area(source = source, mix = mix, discr = discr) # 922.1111
-
-# uninformative (technically "generalist") prior (alpha = 1)
-# Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
-plot_prior(alpha.prior = 1, source, plot_save_pdf = FALSE, plot_save_png = TRUE)
-```
-
-## Write model
-```{r}
-model_filename <- "./bottom_model.txt"
-resid_err <- FALSE # because n=1 per Station
-process_err <- TRUE
-write_JAGS_model(model_filename, resid_err, process_err, mix, source)
-
-run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
-            calcDIC = TRUE)
-jags.2 <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
-```
-
-## Check for convergence
-```{r}
-output_options2 <- list(summary_save = TRUE,
-                       summary_name = "summary_statistics2",
-                       sup_post = TRUE,
-                       plot_post_save_pdf = FALSE,
-                       plot_post_name = "posterior_density2",
-                       sup_pairs = TRUE,
-                       plot_pairs_save_pdf = FALSE,
-                       plot_pairs_name = "pairs_plot2",
-                       sup_xy = FALSE,
-                       plot_xy_save_pdf = FALSE,
-                       plot_xy_name = "xy_plot2",
-                       gelman = TRUE,
-                       heidel = FALSE,
-                       geweke = TRUE,
-                       diag_save = TRUE,
-                       diag_name = "diagnostics2",
-                       indiv_effect = FALSE,
-                       plot_post_save_png = FALSE,
-                       plot_pairs_save_png = FALSE,
-                       plot_xy_save_png = FALSE,
-                       diag_save_ggmcmc = FALSE,
-                       return_obj = TRUE)
-
-options(max.print = 3000) # change global option
-output_JAGS(jags.2, mix, source, output_options2)
-
-diag <- output_diagnostics(jags.2, mix, source, output_options2)
-df.stats <- output_stats(jags.2, mix, source, output_options2)
-g.post <- output_posteriors(jags.2, mix, source, output_options2)
-
-g.post$fac1[[1]]
-
-# Gelman diagnostic should be < 1.05
-# "extreme" MCMC parameters: 1; 0; 0
-# EM6 = 076: 2; 0; 0
-
-# Geweke diagnostic should have ~5% outside +/-1.96 (~31-32/634) in each chain
-# "extreme" parameters: 34/22/24
-# EM6 = 076: 38 / 37 / 29
-
-```
-
-## Look at output
 ```{r}
 summ2 <- read.table("summary_statistics2.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
@@ -957,45 +507,6 @@ for(i in 1:nrow(oct)) {
     oct$sum[i] <- sum(oct$EM4[i], oct$EM5[i], oct$EM6[i])
   }
 }
-```
-
-## Plots for above
-```{r}
-ggplot(oct[oct$Cast == "Bottom", ]) +
-  geom_point(aes(x = Salinity, y = Temp, col = EM4)) +
-  scale_colour_viridis(option = "viridis") +
-  theme_bw()
-
-ggplot(oct[oct$Cast == "Bottom", ]) +
-  geom_point(aes(x = Salinity, y = Temp, col = EM5)) +
-  scale_colour_viridis(option = "viridis") +
-  theme_bw()
-
-ggplot(oct[oct$Cast == "Bottom", ]) +
-  geom_point(aes(x = Salinity, y = Temp, col = EM6)) +
-  scale_colour_viridis(option = "viridis") +
-  theme_bw()
-
-
-
-ggplot(oct[oct$Cast == "Bottom", ]) +
-  #geom_point(aes(x = a4, y = EM4)) +
-  geom_text(aes(x = a4, y = EM4, label = Station)) +
-  geom_abline(slope = 1) +
-  theme_bw()
-
-
-ggplot(oct[oct$Cast == "Bottom", ]) +
-  #geom_point(aes(x = a5, y = EM5)) +
-  geom_text(aes(x = a5, y = EM5, label = Station)) +
-  geom_abline(slope = 1) +
-  theme_bw()
-
-ggplot(oct[oct$Cast == "Bottom", ]) +
-  #geom_point(aes(x = a6, y = EM6)) +
-  geom_text(aes(x = a6, y = EM6, label = Station)) +
-  geom_abline(slope = 1) +
-  theme_bw()
 ```
 
 ## Calculate mixing-normalized DIC, TA & DO values
@@ -1104,157 +615,6 @@ for(i in 1:nrow(oct)) {
                            oct$EM7sd[i]^2 * TA7 + sdTA7^2 * oct$EM7[i])
        oct$sdDOn[i] = sqrt(oct$EM1sd[i]^2 * DO1 + sdDO1^2 * oct$EM1[i] +
                            oct$EM7sd[i]^2 * DO7 + sdDO7^2 * oct$EM7[i])
-     }
-}
-```
-
-## Look at dissolution-signal sites
-```{r}
-oct$dDIC.ex <- NA
-oct$dTA.ex <- NA
-oct$ratio <- NA
-oct$TAcorr <- NA
-
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Bottom" &
-     !is.na(oct$dDIC[i]) &
-     oct$dDIC[i] > median(oct$sdDICn, na.rm = T) &
-     oct$dTA[i] > median(oct$sdTAn, na.rm = T)) {
-    oct$dDIC.ex[i] <- oct$dDIC[i] - (oct$dDO[i] * 106/-138)
-    oct$dTA.ex[i] <- oct$dTA[i] - (oct$dDO[i] * -17/-138)
-    oct$ratio[i] <- oct$dTA.ex[i] / oct$dDIC.ex[i]
-    oct$TAcorr[i] <- oct$TA[i] - (oct$AOU[i] * -17 / -138)
-  }
-}
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-ggplot() +
-  geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "Oct")) +
-  geom_abline(slope = 2, linetype = 2) +
-  annotate("text", x = 32, y = 56, label = "2:1 line", fontface = 4) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "royalblue",
-                      name = "Month") +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-ggplot() +
-  geom_point(aes(x = dDIC.ex, y = ratio, shape = Cast, col = "Oct")) +
-  geom_hline(yintercept = 2, linetype = 2) +
-  annotate("text", x = 30, y = 1.75, label = "TA:DIC = 2", fontface = 4) +
-  ylab("Ratio of TA excess : DIC excess") +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "royalblue",
-                      name = "Month") +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-ggplot() +
-  geom_point(aes(x = OmegaAragonite, y = ratio, shape = Cast, col = "Oct")) +
-  ylab("Ratio of TA excess : DIC excess") +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "royalblue",
-                      name = "Month") +
-  theme_bw()
-```
-
-## *OLD* Calculate EM contributions
-```{r}
-oct$a1 <- NA
-oct$a2 <- NA
-oct$a3 <- NA
-oct$a4 <- NA
-oct$a5 <- NA
-oct$a6 <- NA
-oct$a7 <- NA
-
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface" &
-     oct$Station[i] > "005") {
-       oct$a3[i] = (oct$Salinity[i] - S1 - oct$Temp[i]*(S2-S1)/(T2-T1) +
-             T1*(S2-S1)/(T2-T1)) /
-            ((S3-S1) - (T3-T1)*(S2-S1)/(T2-T1))
-       oct$a2[i] = (oct$Temp[i] - T1 - oct$a3[i]*(T3-T1)) / (T2-T1)
-       oct$a1[i] = 1 - (oct$a2[i] + oct$a3[i])
-     } else if(oct$Cast[i] == "Bottom") {
-       oct$a6[i] = (oct$Salinity[i] - S4 - oct$Temp[i]*(S5-S4)/(T5-T4) +
-             T4*(S5-S4)/(T5-T4)) /
-            ((S6-S4) - (T6-T4)*(S5-S4)/(T5-T4))
-       oct$a5[i] = (oct$Temp[i] - T4 - oct$a6[i]*(T6-T4)) / (T5-T4)
-       oct$a4[i] = 1 - (oct$a5[i] + oct$a6[i])
-     } else {
-       oct$a7[i] = (oct$Salinity[i] - S1) / (S7 - S1)
-       oct$a1[i] = 1 - oct$a7[i]
-     }
-}
-```
-
-## Calculate mixing-normalized DIC & TA values
-```{r}
-oct$DICn <- NA
-oct$dDIC <- NA
-oct$TAn <- NA
-oct$dTA <- NA
-
-## process used to solve the system of eq is at the end of this script
-
-# a1*DIC1 + a2*DIC2 + a3*DIC3 = oct$DICn[i]
-# a1*TA1 + a2*TA2 + a3*TA3 = oct$TAn[i]
-# oct$DIC[i] - oct$DICn[i] = oct$dDICn[i]
-# oct$TA[i] - oct$TAn[i] = oct$dTAn[i]
-
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface" &
-     oct$Station[i] > "005") {
-       oct$DICn[i] = oct$a1[i]*DIC1 + oct$a2[i]*DIC2 + oct$a3[i]*DIC3
-       oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
-       oct$TAn[i] = oct$a1[i]*TA1 + oct$a2[i]*TA2 + oct$a3[i]*TA3
-       oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
-     } else if(oct$Cast[i] == "Bottom") {
-       oct$DICn[i] = oct$a4[i]*DIC4 + oct$a5[i]*DIC5 + oct$a6[i]*DIC6
-       oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
-       oct$TAn[i] = oct$a4[i]*TA4 + oct$a5[i]*TA5 + oct$a6[i]*TA6
-       oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
-     } else {
-       oct$DICn[i] = oct$a1[i]*DIC1 + oct$a7[i]*DIC7
-       oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
-       oct$TAn[i] = oct$a1[i]*TA1 + oct$a7[i]*TA7
-       oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
-     }
-}
-```
-
-## O2 mixing analysis
-```{r}
-DO1 <- oct$DO[EM1]
-DO2 <- oct$DO[EM2]
-DO3 <- oct$DO[EM3]
-
-DO4 <- oct$DO[EM4]
-DO5 <- oct$DO[EM5]
-DO6 <- oct$DO[EM6]
-DO7 <- oct$DO[EM7]
-
-oct$DOn <- NA
-oct$dDO <- NA
-
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface" &
-     oct$Station[i] > "008") {
-       oct$DOn[i] = oct$a1[i]*DO1 + oct$a2[i]*DO2 + oct$a3[i]*DO3
-       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
-     } else if(oct$Cast[i] == "Bottom") {
-       oct$DOn[i] = oct$a4[i]*DO4 + oct$a5[i]*DO5 + oct$a6[i]*DO6
-       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
-     } else {
-       oct$DOn[i] = oct$a1[i]*DO1 + oct$a7[i]*DO7
-       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
      }
 }
 ```
@@ -1538,28 +898,63 @@ for(i in 1:nrow(oct)) {
 }
 ```
 
-## Calculate CO2 atm equilibration time
+## Load residence time data
 ```{r}
-eqCO2sys <- carb(flag = 24,                               # pCO2 and ALK given
-                 var1 = 420,
-                 var2 = oct$TA / 10^6,                    # in mol/kg
-                 S = oct$Salinity,
-                 T = oct$Temp,
-                 Patm = oct$Pressure * 0.098692326671601, # in atm
-                 P = oct$SeaPressure / 10,                # in bar
-                 k1k2 = "l",
-                 ks = "d",
-                 b = "l10")
+resTimes <- read.csv("data/GB_ResTimes.csv")
 
-oct$eqDIC <- NA
-oct$d <- NA
+LongW <- rep(NA, 160)
+LongE <- rep(NA, 160)
+LatN <- rep(NA, 160)
+LatS <- rep(NA, 160)
+ResTime <- rep(NA, 160)
 
+res.new <- as.data.frame(cbind(LongW, LongE, LatN, LatS, ResTime))
+
+for(i in 1:nrow(resTimes)) {
+  longW <- resTimes$LongW[i]
+  longE <- resTimes$LongE[i]
+  latN <- resTimes$LatN[i]
+  latS <- resTimes$LatS[i]
+  res.new$LongW[i*4-3] <- longW
+  res.new$LongE[i*4-3] <- longE - 0.25
+  res.new$LatN[i*4-3] <- latN
+  res.new$LatS[i*4-3] <- latS + 0.25
+  res.new$LongW[i*4-2] <- longW + 0.25
+  res.new$LongE[i*4-2] <- longE
+  res.new$LatN[i*4-2] <- latN
+  res.new$LatS[i*4-2] <- latS + 0.25
+  res.new$LongW[i*4-1] <- longW
+  res.new$LongE[i*4-1] <- longE - 0.25
+  res.new$LatN[i*4-1] <- latN - 0.25
+  res.new$LatS[i*4-1] <- latS
+  res.new$LongW[i*4] <- longW + 0.25
+  res.new$LongE[i*4] <- longE
+  res.new$LatN[i*4] <- latN - 0.25
+  res.new$LatS[i*4] <- latS
+  res.new$ResTime[(i*4-3):(i*4)] <- resTimes$ResTime[i] / 4
+}
+
+#ggplot(resTimes, aes(x = LongW, y = LatN, col = ResTime)) +
+#  geom_point(shape = 15, size = 12) +
+#  scale_color_viridis() +
+#  theme_bw()
+
+#ggplot(res.new, aes(x = LongW, y = LatN, col = ResTime)) +
+#  geom_point(shape = 15, size = 8) +
+#  scale_color_viridis() +
+#  theme_bw()
+
+#ggplot(res.new, aes(x = LongE, y = LatS, col = ResTime)) +
+#  geom_point(shape = 15, size = 8) +
+#  scale_color_viridis() +
+#  theme_bw()
+
+# assign res time to each station
 for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Surface") {
-    oct$eqDIC[i] = eqCO2sys$DIC[i] * 10^6
-    oct$d[i] = (oct$DIC[i] - oct$eqDIC[i]) /
-                (oct$flux[i] / oct$MLD[i]) * oct$Density[i]
-  }
+  oct$resTime[i] = res.new$ResTime[which(oct$Lat[i] < res.new$LatN &
+                                           oct$Lat[i] >= res.new$LatS &
+                                           oct$Long[i] > res.new$LongW &
+                                           oct$Long[i] <= res.new$LongE)]
 }
 ```
 
@@ -1567,17 +962,12 @@ for(i in 1:nrow(oct)) {
 ```{r}
 # umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
 
-octResTime <- 63   # Brink et al. 2003
 oct$DICf <- NA
 
 for(i in 1:nrow(oct)) {
   if(oct$Cast[i] == "Surface" &
      !is.na(oct$MLD_frac[i])) {
-    if(abs(oct$d[i]) < 63) {
-      oct$DICf[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * oct$d[i]
-    } else {
-      oct$DICf[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * octResTime
-    }
+      oct$DICf[i] = -1 * oct$flux[i] / oct$MLD[i] / oct$Density[i] * oct$resTime[i]
   }
 }
 
@@ -1643,10 +1033,8 @@ for(i in 1:nrow(oct)) {
 }
 ```
 
-## Calculate O2 atm equilibration time
+## Calculate contribution to O2 from flux
 ```{r}
-oct$d.O2 <- (oct$DO - oct$O2sol) / (oct$flux. / oct$MLD) * oct$Density
-
 # umol/(m^2*d) * 1/[MLD]m * m^3/[rho]kg * [res.time]days = umol/kg
 oct$DOf <- NA
 
@@ -1655,11 +1043,7 @@ for(i in 1:nrow(oct)) {
      (oct$Cast[i] == "Surface" |
      (oct$Cast[i] == "Bottom" &
      oct$MLD_frac[i] > 0.9))) {
-    if(abs(oct$d.O2[i]) < 63) {
-      oct$DOf[i] = -1 * oct$flux.O2[i] / oct$MLD[i] / oct$Density[i] * oct$d.O2[i]
-    } else {
-      oct$DOf[i] = -1 * oct$flux.O2[i] / oct$MLD[i] / oct$Density[i] * octResTime
-    }
+     oct$DOf[i] = -1 * oct$flux.O2[i] / oct$MLD[i] / oct$Density[i] * oct$resTime[i]
   }
 }
 
@@ -1697,10 +1081,726 @@ for(i in 1:nrow(oct)) {
 oct$DIC.other <- NA
 oct$TA.other <- NA
 
-oct$DIC.other <- oct$DIC - oct$DICn - oct$DICf - oct$DICpr
-oct$DIC.other <- oct$DIC - oct$DICn - oct$DICpr
+oct$DIC.other <- oct$DIC - oct$DICn - oct$DICpr - oct$DICf
 oct$TA.other = oct$TA - oct$TAn - oct$TApr
 ```
+
+## Calculate relative contributions from each
+```{r}
+for(i in 1:nrow(oct)) {
+  oct$magnitude[i] <- sum(abs(oct$DICpr[i]), abs(oct$DICf[i]),
+                          abs(oct$DIC.other[i]))
+  oct$rel.DICpr[i] <- abs(oct$DICpr[i]) / oct$magnitude[i]
+  oct$rel.DICf[i] <- abs(oct$DICf[i]) / oct$magnitude[i]
+  oct$rel.DICres[i] <- abs(oct$DIC.other[i]) / oct$magnitude[i]
+  # check sums
+  #oct$rel.sum[i] <- sum(oct$rel.DICpr[i], oct$rel.DICf[i], oct$rel.DICres[i])
+  oct$magnitudeT[i] <- sum(abs(oct$TApr[i]), abs(oct$TA.other[i]))
+  oct$rel.TApr[i] <- abs(oct$TApr[i]) / oct$magnitudeT[i]
+  oct$rel.TAres[i] <- abs(oct$TA.other[i]) / oct$magnitudeT[i]
+  # check sums
+  #oct$rel.sum[i] <- sum(oct$rel.TApr[i], oct$rel.TAres[i])
+}
+```
+
+
+
+
+
+
+
+
+
+# Surface: triangle
+
+## Bayesian mixing model
+```{r}
+# create mixture data: surface data w/ NAs & non-triangle sites excluded
+read.csv("./data/OctCruiseData.csv") %>%
+  rename(Temp = Temperature) %>%
+  filter(Filtered == "",
+         Cast == "Surface",
+         !is.na(Temp),
+         Station > 8) %>% # exclude sites 001-008
+  select(-Filtered) %>%
+  write_csv("./mixing/OctCruiseData_surface.csv")
+
+# load mixture data
+mix <- load_mix_data(filename = "./mixing/OctCruiseData_surface.csv", 
+                     iso_names = c("Salinity", "Temp"),
+                     factors = "Station",
+                     fac_random = FALSE, # indiv. station is fixed effect
+                     fac_nested = NULL,
+                     cont_effects = NULL)
+
+# create source data
+EM <- c("EM1", "EM2", "EM3")
+MeanTemp <- c(mean_temp_EMs1, mean_temp_EMs2, mean_temp_EMs3)
+SDTemp <- c(err_temp_EMs1, err_temp_EMs2, err_temp_EMs3)
+MeanSalinity <- c(mean_sal_EMs1, mean_sal_EMs2, mean_sal_EMs3)
+SDSalinity <- c(err_sal_EMs1, err_sal_EMs2, err_sal_EMs3)
+n <- c(length(EMs1), length(EMs2), length(EMs3))
+
+write.csv(cbind(EM, MeanTemp, SDTemp,
+                MeanSalinity, SDSalinity, n), "./mixing/sources_surface.csv",
+          row.names = FALSE)
+
+# load source data
+source <- load_source_data(filename = "./mixing/sources_surface.csv",
+                           source_factors = NULL, 
+                           conc_dep = FALSE, 
+                           data_type = "means", 
+                           mix)
+
+# create discrimination data: 0 because conservative parameters
+MeanTemp <- rep(0, 3)
+SDTemp <- rep(0, 3)
+MeanSalinity <- rep(0, 3)
+SDSalinity <- rep(0, 3)
+
+write.csv(cbind(EM, MeanTemp, SDTemp,
+                MeanSalinity, SDSalinity), "./mixing/discr_surface.csv",
+          row.names = FALSE)
+
+# load discrimination data
+discr <- load_discr_data(filename = "./mixing/discr_surface.csv", mix)
+```
+
+## Make isospace plot & choose prior
+```{r}
+iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
+                 plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
+iso + theme(legend.position = "none")
+
+#iso$plot_env$source.labels$label
+
+calc_area(source = source, mix = mix, discr = discr) # 100.2011
+
+# uninformative (technically "generalist") prior (alpha = 1)
+# Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
+plot_prior(alpha.prior = 1, source, plot_save_pdf = FALSE, plot_save_png = TRUE)
+```
+
+## Write model
+```{r}
+model_filename <- "./surface_model_2.txt"
+resid_err <- FALSE # because n=1 per Station
+process_err <- TRUE
+write_JAGS_model(model_filename, resid_err, process_err, mix, source)
+
+run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
+            calcDIC = TRUE)
+jags.1.1 <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
+```
+
+## Check for convergence
+```{r}
+output_options1 <- list(summary_save = TRUE,
+                       summary_name = "summary_statistics1",
+                       sup_post = TRUE,
+                       plot_post_save_pdf = FALSE,
+                       plot_post_name = "posterior_density1",
+                       sup_pairs = TRUE,
+                       plot_pairs_save_pdf = FALSE,
+                       plot_pairs_name = "pairs_plot1",
+                       sup_xy = FALSE,
+                       plot_xy_save_pdf = FALSE,
+                       plot_xy_name = "xy_plot1",
+                       gelman = TRUE,
+                       heidel = FALSE,
+                       geweke = TRUE,
+                       diag_save = TRUE,
+                       diag_name = "diagnostics1",
+                       indiv_effect = FALSE,
+                       plot_post_save_png = FALSE,
+                       plot_pairs_save_png = FALSE,
+                       plot_xy_save_png = FALSE,
+                       diag_save_ggmcmc = FALSE,
+                       return_obj = TRUE)
+
+options(max.print = 3000) # change global option
+output_JAGS(jags.1, mix, source, output_options1)
+
+diag <- output_diagnostics(jags.1.1, mix, source, output_options1)
+df.stats <- output_stats(jags.1.1, mix, source, output_options1)
+g.post <- output_posteriors(jags.1.1, mix, source, output_options1)
+
+g.post$fac1[[33]]
+
+# Gelman diagnostic should be < 1.05
+# w/ "normal" MCMC parameters:                                     31; 0; 0
+# w/ "long" MCMC params:                                           16; 0; 0
+# w/ run = list(chainLength = 1000000, burn =  200000, thin = 100): 0; 0; 0
+# w/ run = list(chainLength = 1000000, burn =  500000, thin = 100): 0; 0; 0
+# w/ "very long" MCMC params:
+#          list(chainLength = 1000000, burn =  500000, thin = 500): 2; 0; 0
+# w/ run = list(chainLength = 2000000, burn =  500000, thin = 500): 0; 0; 0
+# w/ "extreme" MCMC params:
+#          list(chainLength = 3000000, burn = 1500000, thin = 500): 0; 0; 0
+
+# Geweke diagnostic should have ~5% outside +/-1.96 (~31-32/634) in each chain
+# w/ "normal" MCMC parameters:                                       91 / 32 / 62
+# w/ "long" MCMC params:                                             36 / 70 / 87
+# w/ run = list(chainLength = 1000000, burn =  200000, thin = 100):  90 / 46 / 102
+# w/ run = list(chainLength = 1000000, burn =  500000, thin = 100): 116 / 86 / 43
+# w/ "very long" MCMC params:
+#          list(chainLength = 1000000, burn =  500000, thin = 500):  37 / 32 / 34
+# w/ run = list(chainLength = 2000000, burn =  500000, thin = 500):  38 / 38 / 20
+# w/ "extreme" MCMC params:
+#          list(chainLength = 3000000, burn = 1500000, thin = 500):  22 / 24 / 38
+```
+
+## Plots for 1
+```{r}
+ggplot(oct[oct$Cast == "Surface", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM1)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM2)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM3)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  #geom_point(aes(x = a1, y = EM1)) +
+  geom_text(aes(x = a1, y = EM1, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  #geom_point(aes(x = a2, y = EM2)) +
+  geom_text(aes(x = a2, y = EM2, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  #geom_point(aes(x = a3, y = EM3)) +
+  geom_text(aes(x = a3, y = EM3, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+```
+
+# Surface: linear
+
+## Bayesian mixing model
+```{r}
+# create mixture data: nearshore data (001 - 005)
+read.csv("./data/OctCruiseData.csv") %>%
+  rename(Temp = Temperature) %>%
+  filter(Filtered == "",
+         Cast == "Surface",
+         Station < 6) %>%
+  select(-Filtered) %>%
+  write_csv("./mixing/OctCruiseData_linear.csv")
+
+# load mixture data
+mix <- load_mix_data(filename = "./mixing/OctCruiseData_linear.csv", 
+                     iso_names = c("Salinity", "Temp"),
+                     factors = "Station",
+                     fac_random = FALSE, # indiv. station is fixed effect
+                     fac_nested = NULL,
+                     cont_effects = NULL)
+
+# create source data
+EM <- c("EM1", "EM7")
+MeanTemp <- c(mean_temp_EMs1, mean_temp_EMs7)
+SDTemp <- c(err_temp_EMs1, err_temp_EMs7)
+MeanSalinity <- c(mean_sal_EMs1, mean_sal_EMs7)
+SDSalinity <- c(err_sal_EMs1, err_sal_EMs7)
+n <- c(length(EMs1), length(EMs7))
+
+write.csv(cbind(EM, MeanTemp, SDTemp,
+                MeanSalinity, SDSalinity, n), "./mixing/sources_linear.csv",
+          row.names = FALSE)
+
+# load source data
+source <- load_source_data(filename = "./mixing/sources_linear.csv",
+                           source_factors = NULL, 
+                           conc_dep = FALSE, 
+                           data_type = "means", 
+                           mix)
+
+# create discrimination data: 0 because conservative parameters
+MeanTemp <- rep(0, 2)
+SDTemp <- rep(0, 2)
+MeanSalinity <- rep(0, 2)
+SDSalinity <- rep(0, 2)
+
+write.csv(cbind(EM, MeanTemp, SDTemp,
+                MeanSalinity, SDSalinity), "./mixing/discr_linear.csv",
+          row.names = FALSE)
+
+# load discrimination data
+discr <- load_discr_data(filename = "./mixing/discr_linear.csv", mix)
+```
+
+## Make isospace plot & choose prior
+```{r}
+iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
+                 plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
+iso + theme(legend.position = "none")
+
+calc_area(source = source, mix = mix, discr = discr) # 0
+
+# uninformative (technically "generalist") prior (alpha = 1)
+# Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
+plot_prior(alpha.prior = 1, source, plot_save_pdf = FALSE, plot_save_png = TRUE)
+```
+
+## Write model
+```{r}
+model_filename <- "./linear_model.txt"
+resid_err <- FALSE # because n=1 per Station
+process_err <- TRUE
+write_JAGS_model(model_filename, resid_err, process_err, mix, source)
+
+run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
+            calcDIC = TRUE)
+jags.3 <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
+```
+
+## Check for convergence
+```{r}
+output_options3 <- list(summary_save = TRUE,
+                       summary_name = "summary_statistics3",
+                       sup_post = TRUE,
+                       plot_post_save_pdf = FALSE,
+                       plot_post_name = "posterior_density3",
+                       sup_pairs = TRUE,
+                       plot_pairs_save_pdf = FALSE,
+                       plot_pairs_name = "pairs_plot3",
+                       sup_xy = FALSE,
+                       plot_xy_save_pdf = FALSE,
+                       plot_xy_name = "xy_plot3",
+                       gelman = TRUE,
+                       heidel = FALSE,
+                       geweke = TRUE,
+                       diag_save = TRUE,
+                       diag_name = "diagnostics3",
+                       indiv_effect = FALSE,
+                       plot_post_save_png = FALSE,
+                       plot_pairs_save_png = FALSE,
+                       plot_xy_save_png = FALSE,
+                       diag_save_ggmcmc = FALSE,
+                       return_obj = TRUE)
+
+options(max.print = 3000) # change global option
+output_JAGS(jags.3, mix, source, output_options3)
+
+diag <- output_diagnostics(jags.3, mix, source, output_options3)
+df.stats <- output_stats(jags.3, mix, source, output_options3)
+g.post <- output_posteriors(jags.3, mix, source, output_options3)
+
+g.post$fac1[[1]]
+
+# Gelman diagnostic should be < 1.05
+# "extreme" MCMC parameters: 1; 0; 0
+
+# Geweke diagnostic should have ~5% outside +/-1.96 (~31-32/634) in each chain
+# "extreme" parameters: 34/22/24
+
+```
+
+## Plots for 3
+```{r}
+ggplot(oct[oct$Cast == "Surface", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM1)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM7)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  #geom_point(aes(x = a1, y = EM1)) +
+  geom_text(aes(x = a1, y = EM1, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Surface", ]) +
+  #geom_point(aes(x = a7, y = EM7)) +
+  geom_text(aes(x = a7, y = EM7, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+```
+
+# Bottom: triangle
+
+## Bayesian mixing model
+```{r}
+# create mixture data: bottom data w/ NAs excluded
+read.csv("./data/OctCruiseData.csv") %>%
+  rename(Temp = Temperature) %>%
+  filter(Filtered == "",
+         Cast == "Bottom",
+         !is.na(Temp)) %>%
+  select(-Filtered) %>%
+  write_csv("./mixing/OctCruiseData_bottom.csv")
+
+# load mixture data
+mix <- load_mix_data(filename = "./mixing/OctCruiseData_bottom.csv", 
+                     iso_names = c("Salinity", "Temp"),
+                     factors = "Station",
+                     fac_random = FALSE, # indiv. station is fixed effect
+                     fac_nested = NULL,
+                     cont_effects = NULL)
+
+# create source data
+EM <- c("EM4", "EM5", "EM6")
+MeanTemp <- c(mean_temp_EMs4, mean_temp_EMs5, mean_temp_EMs6)
+SDTemp <- c(err_temp_EMs4, err_temp_EMs5, err_temp_EMs6)
+MeanSalinity <- c(mean_sal_EMs4, mean_sal_EMs5, mean_sal_EMs6)
+SDSalinity <- c(err_sal_EMs4, err_sal_EMs5, err_sal_EMs6)
+n <- c(length(EMs4), length(EMs5), length(EMs6))
+
+write.csv(cbind(EM, MeanTemp, SDTemp,
+                MeanSalinity, SDSalinity, n), "./mixing/sources_bottom.csv",
+          row.names = FALSE)
+
+# load source data
+source <- load_source_data(filename = "./mixing/sources_bottom.csv",
+                           source_factors = NULL, 
+                           conc_dep = FALSE, 
+                           data_type = "means", 
+                           mix)
+
+# create discrimination data: 0 because conservative parameters
+MeanTemp <- rep(0, 3)
+SDTemp <- rep(0, 3)
+MeanSalinity <- rep(0, 3)
+SDSalinity <- rep(0, 3)
+
+write.csv(cbind(EM, MeanTemp, SDTemp,
+                MeanSalinity, SDSalinity), "./mixing/discr_bottom.csv",
+          row.names = FALSE)
+
+# load discrimination data
+discr <- load_discr_data(filename = "./mixing/discr_bottom.csv", mix)
+```
+
+## Make isospace plot & choose prior
+```{r}
+iso <- plot_data(filename = "isospace_plot", plot_save_pdf = FALSE,
+                 plot_save_png = FALSE, mix, source, discr, return_obj = TRUE)
+iso + theme(legend.position = "none")
+
+calc_area(source = source, mix = mix, discr = discr) # 922.1111
+
+# uninformative (technically "generalist") prior (alpha = 1)
+# Dirichlet distribution: all sources treated independently but must sum to 1 (Gelman et al. 2003)
+plot_prior(alpha.prior = 1, source, plot_save_pdf = FALSE, plot_save_png = TRUE)
+```
+
+## Write model
+```{r}
+model_filename <- "./bottom_model.txt"
+resid_err <- FALSE # because n=1 per Station
+process_err <- TRUE
+write_JAGS_model(model_filename, resid_err, process_err, mix, source)
+
+run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
+            calcDIC = TRUE)
+jags.2 <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
+```
+
+## Check for convergence
+```{r}
+output_options2 <- list(summary_save = TRUE,
+                       summary_name = "summary_statistics2",
+                       sup_post = TRUE,
+                       plot_post_save_pdf = FALSE,
+                       plot_post_name = "posterior_density2",
+                       sup_pairs = TRUE,
+                       plot_pairs_save_pdf = FALSE,
+                       plot_pairs_name = "pairs_plot2",
+                       sup_xy = FALSE,
+                       plot_xy_save_pdf = FALSE,
+                       plot_xy_name = "xy_plot2",
+                       gelman = TRUE,
+                       heidel = FALSE,
+                       geweke = TRUE,
+                       diag_save = TRUE,
+                       diag_name = "diagnostics2",
+                       indiv_effect = FALSE,
+                       plot_post_save_png = FALSE,
+                       plot_pairs_save_png = FALSE,
+                       plot_xy_save_png = FALSE,
+                       diag_save_ggmcmc = FALSE,
+                       return_obj = TRUE)
+
+options(max.print = 3000) # change global option
+output_JAGS(jags.2, mix, source, output_options2)
+
+diag <- output_diagnostics(jags.2, mix, source, output_options2)
+df.stats <- output_stats(jags.2, mix, source, output_options2)
+g.post <- output_posteriors(jags.2, mix, source, output_options2)
+
+g.post$fac1[[1]]
+
+# Gelman diagnostic should be < 1.05
+# "extreme" MCMC parameters: 1; 0; 0
+# EM6 = 076: 2; 0; 0
+
+# Geweke diagnostic should have ~5% outside +/-1.96 (~31-32/634) in each chain
+# "extreme" parameters: 34/22/24
+# EM6 = 076: 38 / 37 / 29
+
+```
+
+## Plots for 2
+```{r}
+ggplot(oct[oct$Cast == "Bottom", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM4)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Bottom", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM5)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Bottom", ]) +
+  geom_point(aes(x = Salinity, y = Temp, col = EM6)) +
+  scale_colour_viridis(option = "viridis") +
+  theme_bw()
+
+
+
+ggplot(oct[oct$Cast == "Bottom", ]) +
+  #geom_point(aes(x = a4, y = EM4)) +
+  geom_text(aes(x = a4, y = EM4, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+
+
+ggplot(oct[oct$Cast == "Bottom", ]) +
+  #geom_point(aes(x = a5, y = EM5)) +
+  geom_text(aes(x = a5, y = EM5, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+
+ggplot(oct[oct$Cast == "Bottom", ]) +
+  #geom_point(aes(x = a6, y = EM6)) +
+  geom_text(aes(x = a6, y = EM6, label = Station)) +
+  geom_abline(slope = 1) +
+  theme_bw()
+```
+
+
+
+
+## *OLD* Calculate EM contributions
+```{r}
+oct$a1 <- NA
+oct$a2 <- NA
+oct$a3 <- NA
+oct$a4 <- NA
+oct$a5 <- NA
+oct$a6 <- NA
+oct$a7 <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface" &
+     oct$Station[i] > "005") {
+       oct$a3[i] = (oct$Salinity[i] - S1 - oct$Temp[i]*(S2-S1)/(T2-T1) +
+             T1*(S2-S1)/(T2-T1)) /
+            ((S3-S1) - (T3-T1)*(S2-S1)/(T2-T1))
+       oct$a2[i] = (oct$Temp[i] - T1 - oct$a3[i]*(T3-T1)) / (T2-T1)
+       oct$a1[i] = 1 - (oct$a2[i] + oct$a3[i])
+     } else if(oct$Cast[i] == "Bottom") {
+       oct$a6[i] = (oct$Salinity[i] - S4 - oct$Temp[i]*(S5-S4)/(T5-T4) +
+             T4*(S5-S4)/(T5-T4)) /
+            ((S6-S4) - (T6-T4)*(S5-S4)/(T5-T4))
+       oct$a5[i] = (oct$Temp[i] - T4 - oct$a6[i]*(T6-T4)) / (T5-T4)
+       oct$a4[i] = 1 - (oct$a5[i] + oct$a6[i])
+     } else {
+       oct$a7[i] = (oct$Salinity[i] - S1) / (S7 - S1)
+       oct$a1[i] = 1 - oct$a7[i]
+     }
+}
+```
+
+## Calculate mixing-normalized DIC & TA values
+```{r}
+oct$DICn <- NA
+oct$dDIC <- NA
+oct$TAn <- NA
+oct$dTA <- NA
+
+## process used to solve the system of eq is at the end of this script
+
+# a1*DIC1 + a2*DIC2 + a3*DIC3 = oct$DICn[i]
+# a1*TA1 + a2*TA2 + a3*TA3 = oct$TAn[i]
+# oct$DIC[i] - oct$DICn[i] = oct$dDICn[i]
+# oct$TA[i] - oct$TAn[i] = oct$dTAn[i]
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface" &
+     oct$Station[i] > "005") {
+       oct$DICn[i] = oct$a1[i]*DIC1 + oct$a2[i]*DIC2 + oct$a3[i]*DIC3
+       oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
+       oct$TAn[i] = oct$a1[i]*TA1 + oct$a2[i]*TA2 + oct$a3[i]*TA3
+       oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
+     } else if(oct$Cast[i] == "Bottom") {
+       oct$DICn[i] = oct$a4[i]*DIC4 + oct$a5[i]*DIC5 + oct$a6[i]*DIC6
+       oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
+       oct$TAn[i] = oct$a4[i]*TA4 + oct$a5[i]*TA5 + oct$a6[i]*TA6
+       oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
+     } else {
+       oct$DICn[i] = oct$a1[i]*DIC1 + oct$a7[i]*DIC7
+       oct$dDIC[i] = oct$DIC[i] - oct$DICn[i]   # observed - expected
+       oct$TAn[i] = oct$a1[i]*TA1 + oct$a7[i]*TA7
+       oct$dTA[i] = oct$TA[i] - oct$TAn[i]   # observed - expected
+     }
+}
+```
+
+## O2 mixing analysis
+```{r}
+DO1 <- oct$DO[EM1]
+DO2 <- oct$DO[EM2]
+DO3 <- oct$DO[EM3]
+
+DO4 <- oct$DO[EM4]
+DO5 <- oct$DO[EM5]
+DO6 <- oct$DO[EM6]
+DO7 <- oct$DO[EM7]
+
+oct$DOn <- NA
+oct$dDO <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface" &
+     oct$Station[i] > "008") {
+       oct$DOn[i] = oct$a1[i]*DO1 + oct$a2[i]*DO2 + oct$a3[i]*DO3
+       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
+     } else if(oct$Cast[i] == "Bottom") {
+       oct$DOn[i] = oct$a4[i]*DO4 + oct$a5[i]*DO5 + oct$a6[i]*DO6
+       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
+     } else {
+       oct$DOn[i] = oct$a1[i]*DO1 + oct$a7[i]*DO7
+       oct$dDO[i] = oct$DO[i] - oct$DOn[i]   # observed - expected
+     }
+}
+```
+
+## Calculate CO2 atm equilibration time
+```{r}
+eqCO2sys <- carb(flag = 24,                               # pCO2 and ALK given
+                 var1 = 420,
+                 var2 = oct$TA / 10^6,                    # in mol/kg
+                 S = oct$Salinity,
+                 T = oct$Temp,
+                 Patm = oct$Pressure * 0.098692326671601, # in atm
+                 P = oct$SeaPressure / 10,                # in bar
+                 k1k2 = "l",
+                 ks = "d",
+                 b = "l10")
+
+oct$eqDIC <- NA
+oct$d <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface") {
+    oct$eqDIC[i] = eqCO2sys$DIC[i] * 10^6
+    oct$d[i] = (oct$DIC[i] - oct$eqDIC[i]) /
+                (oct$flux[i] / oct$MLD[i]) * oct$Density[i]
+  }
+}
+```
+
+## Calculate O2 atm equilibration time
+```{r}
+oct$d.O2 <- (oct$DO - oct$O2sol) / (oct$flux. / oct$MLD) * oct$Density
+```
+
+## Calculate eqDIC
+```{r}
+eqCO2sys <- carb(flag = 24,                               # pCO2 and ALK given
+                 var1 = 420,
+                 var2 = oct$TA[!is.na(oct$Temp)] / 10^6,                    # in mol/kg
+                 S = oct$Salinity[!is.na(oct$Temp)],
+                 T = oct$Temp[!is.na(oct$Temp)],
+                 Patm = oct$Pressure[!is.na(oct$Temp)] * 0.098692326671601, # in atm
+                 P = oct$SeaPressure[!is.na(oct$Temp)] / 10,                # in bar
+                 k1k2 = "l",
+                 ks = "d",
+                 b = "l10")
+
+oct$eqDIC <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Surface") {
+    oct$eqDIC[i] = eqCO2sys$DIC[i] * 10^6
+  }
+}
+```
+
+## Look at dissolution-signal sites
+```{r}
+oct$dDIC.ex <- NA
+oct$dTA.ex <- NA
+oct$ratio <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$dDIC[i]) &
+     oct$dDIC[i] > median(oct$sdDICn, na.rm = T) &
+     oct$dTA[i] > median(oct$sdTAn, na.rm = T)) {
+    oct$dDIC.ex[i] <- oct$dDIC[i] - (oct$dDO[i] * 106/-138)
+    oct$dTA.ex[i] <- oct$dTA[i] - (oct$dDO[i] * -17/-138)
+    oct$ratio[i] <- oct$dTA.ex[i] / oct$dDIC.ex[i]
+  }
+}
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+ggplot() +
+  geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "Oct")) +
+  geom_abline(slope = 2, linetype = 2) +
+  annotate("text", x = 32, y = 56, label = "2:1 line", fontface = 4) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "royalblue",
+                      name = "Month") +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+ggplot() +
+  geom_point(aes(x = dDIC.ex, y = ratio, shape = Cast, col = "Oct")) +
+  geom_hline(yintercept = 2, linetype = 2) +
+  annotate("text", x = 30, y = 1.75, label = "TA:DIC = 2", fontface = 4) +
+  ylab("Ratio of TA excess : DIC excess") +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "royalblue",
+                      name = "Month") +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+ggplot() +
+  geom_point(aes(x = OmegaAragonite, y = ratio, shape = Cast, col = "Oct")) +
+  ylab("Ratio of TA excess : DIC excess") +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "royalblue",
+                      name = "Month") +
+  theme_bw()
+```
+
 
 
 

@@ -152,9 +152,14 @@ ggplot() +
                       name = "Month") +
   theme_bw()
 
+fit <- lm(dDO ~ dDIC, may, subset = (Cast == "Bottom"), weights = 1/sdDICn)
+summary(fit)
+confint(fit, "dDIC", level = 0.95)
+
 # dDO plots
+# dDIC, surface
 ggplot() +
-  geom_point(data = may, aes(x = dDIC, y = dDO, shape = Cast, col = "May")) +
+  geom_point(data = may[may$Cast == "Surface", ], aes(x = dDIC, y = dDO, shape = Cast, col = "May")) +
   #geom_errorbar(data = may, aes(x = dDIC, y = dDO,
   #                              xmin = dDIC - sdDICn, xmax = dDIC + sdDICn),
   #              col = "chartreuse3", alpha = 0.3, width = 1) +
@@ -180,10 +185,51 @@ ggplot() +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(slope = -138/106) +
-  scale_shape_manual(values = c(16, 1),
+  geom_smooth(data = may[may$Cast == "Surface", ], aes(x = dDIC, y = dDO,
+                                                       weight = 1/(sdDICn)^2),
+              method = "lm", col = "darkgreen", linetype = "dotted") +
+  scale_shape_manual(values = 1,
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
+  theme_bw()
+
+# dDO plots
+ggplot() +
+  geom_point(data = may[may$Cast == "Bottom", ], aes(x = dDIC, y = dDO, shape = Cast, col = Depth)) +
+  #geom_errorbar(data = may, aes(x = dDIC, y = dDO,
+  #                              xmin = dDIC - sdDICn, xmax = dDIC + sdDICn),
+  #              col = "chartreuse3", alpha = 0.3, width = 1) +
+  #geom_errorbar(data = may, aes(x = dDIC, y = dDO,
+  #                              ymin = dDO - sdDOn, ymax = dDO + sdDOn),
+  #              col = "chartreuse3", alpha = 0.3, width = 1) +
+  #annotate("rect", alpha = 0.2, fill = "chartreuse3",
+  #         xmin = -median(may$sdDICn, na.rm = T),
+  #         xmax = median(may$sdDICn, na.rm = T),
+  #         ymin = -Inf,
+  #         ymax = Inf) +
+  #annotate("rect", alpha = 0.2, fill = "chartreuse3",
+  #         xmin = -Inf,
+  #         xmax = -median(may$sdDICn, na.rm = T),
+  #         ymin = -median(may$sdDOn, na.rm = T),
+  #         ymax = median(may$sdDOn, na.rm = T)) +
+  #annotate("rect", alpha = 0.2, fill = "chartreuse3",
+  #         xmin = median(may$sdDICn, na.rm = T),
+  #         xmax = Inf,
+  #         ymin = -median(may$sdDOn, na.rm = T),
+  #         ymax = median(may$sdDOn, na.rm = T)) +
+  #geom_text(data = may, aes(x = dDIC, y = dDO, label = Station , col = "May")) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(slope = -138/106) +
+  geom_smooth(data = may[may$Cast == "Bottom", ], aes(x = dDIC, y = dDO,
+                                                    weight = 1/(sdDICn)^2),
+              method = "lm", col = "darkgreen") +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_gradientn(colours = rev(parula(100)),
+                     guide = guide_colourbar(reverse = TRUE),
+                     breaks = c(40, 60, 80, 100)) +
   theme_bw()
 
 ggplot() +
@@ -237,6 +283,14 @@ may %>%
   ggplot(aes(x = Temp, y = pCO2)) +
   geom_point(aes(shape = Cast)) +
   scale_shape_manual(values = c(1)) +
+  theme_bw()
+
+may %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = flux / 10^3, y = dDIC)) +
+  geom_point(aes(shape = Cast), shape = 1, col = "chartreuse3") +
+  xlab(expression("flux (mmol/m"^2*"/d)")) +
+  ylab("Δ DIC (umol/kg)") +
   theme_bw()
 ```
 
@@ -343,12 +397,23 @@ may %>%
   theme_bw()
 ```
 
-## Plot "other" components
+## Plot DIC vs eqDIC
 ```{r}
 may %>%
-  filter(Cast != "Surface") %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = eqDIC, y = DIC)) +
+  geom_point(aes(shape = Cast), col = "chartreuse3") +
+  geom_abline(slope = 1) +
+  scale_shape_manual(values = 1,
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
+## Plot various components
+```{r}
+may %>%
   ggplot(aes(x = DIC.other, y = TA.other)) +
-  geom_point(aes(shape = Cast)) +
+  geom_point(aes(shape = Cast), col = "chartreuse3") +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   scale_shape_manual(values = c(16, 1),
@@ -356,6 +421,51 @@ may %>%
   theme_bw()
 
 may %>%
+  ggplot(aes(x = DOpr, y = dDIC)) +
+  geom_point(aes(shape = Cast), col = "chartreuse3") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+may %>%
+  ggplot(aes(x = DICf, y = dDIC)) +
+  geom_point(aes(shape = Cast), col = "chartreuse3") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+may %>%
+  ggplot(aes(x = DOf, y = dDO)) +
+  geom_point(aes(shape = Cast), col = "chartreuse3") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+may %>%
+  ggplot(aes(x = DOf, y = DOpr)) +
+  geom_point(aes(shape = Cast), col = "chartreuse3") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+may %>%
+  ggplot(aes(x = DOpr, y = dDO)) +
+  geom_point(aes(shape = Cast), col = "chartreuse3") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+#may %>%
   ggplot(aes(x = DIC.other, y = TA.other)) +
   geom_point(aes(shape = Cast, col = AOU)) +
   geom_vline(xintercept = 0, linetype = 2) +

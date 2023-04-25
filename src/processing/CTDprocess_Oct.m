@@ -416,7 +416,7 @@ surface_o2_sat = NaN(114, 1);
 %RSKprintchannels(oct1down)
 
 % oct1 file
-for i = 1:22
+for i = 1:length(oct1down.data)
     p = profiles1(i);
     stations(i) = oct1down.data(p).station;
     CTD_depth(i) = max(oct1down_uncut.data(p).values(:, 7));

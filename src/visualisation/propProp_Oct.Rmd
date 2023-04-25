@@ -330,6 +330,14 @@ oct %>%
   geom_point(aes(shape = Cast)) +
   scale_shape_manual(values = c(1)) +
   theme_bw()
+
+oct %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = flux / 10^3, y = dDIC)) +
+  geom_point(aes(shape = Cast), shape = 1, col = "royalblue") +
+  xlab(expression("flux (mmol/m"^2*"/d)")) +
+  ylab("Δ DIC (umol/kg)") +
+  theme_bw()
 ```
 
 ## Plot AOU data
@@ -451,38 +459,6 @@ oct %>%
   theme_bw()
 ```
 
-## Plot "other" components
-```{r}
-oct %>%
-  ggplot(aes(x = DIC.other, y = TA.other)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
-
-oct %>%
-  ggplot(aes(x = DIC.other, y = TA.other)) +
-  geom_point(aes(shape = Cast, col = AOU)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_color_viridis(option = "viridis") +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-  ggplot(aes(x = DIC.other, y = dDO)) +
-  geom_point(aes(shape = Cast)) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  theme_bw()
-```
-
 ## Delta plots
 ```{r}
 ggplot() +
@@ -565,6 +541,11 @@ ggplot() +
          col = guide_legend(order = 2)) +
   theme_bw()
 
+fit <- lm(dDO ~ dDIC, oct, subset = (Cast == "Bottom"), weights = 1/sdDICn)
+summary(fit)
+confint(fit, "dDIC", level = 0.95)
+
+
 # dDO plots
 ggplot() +
   geom_point(data = oct, aes(x = dDIC, y = dDO, shape = Cast, col = "Oct")) +
@@ -587,6 +568,13 @@ ggplot() +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_abline(slope = -138/106) +
+  geom_abline(slope = -0.3376439, intercept = -4.36556) +
+  geom_abline(slope = -0.2316372, intercept = -4.36556) +
+  geom_smooth(data = oct, aes(x = dDIC, y = dDO, weight = 1/(sdDICn)^2),
+              method = "lm", col = "navy", linetype = "dotted") +
+  geom_smooth(data = oct[oct$Cast == "Bottom", ], aes(x = dDIC, y = dDO,
+                                                    weight = 1/(sdDICn)^2),
+              method = "lm", col = "navy") +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
@@ -619,6 +607,99 @@ ggplot() +
                       name = "Month") +
   theme_bw()
 ```
+
+## Plot DIC vs eqDIC
+```{r}
+oct %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = eqDIC, y = DIC)) +
+  geom_point(aes(shape = Cast), col = "royalblue") +
+  geom_abline(slope = 1) +
+  scale_shape_manual(values = 1,
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
+## Plot various components
+```{r}
+oct %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast), col = "royalblue") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+oct %>%
+  ggplot(aes(x = DOpr, y = dDIC)) +
+  geom_point(aes(shape = Cast), col = "royalblue") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+oct %>%
+  ggplot(aes(x = DICf, y = dDIC)) +
+  geom_point(aes(shape = Cast), col = "royalblue") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Surface") %>%
+  ggplot(aes(x = DOf, y = dDO)) +
+  geom_point(aes(shape = Cast), col = "royalblue") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = 1,
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+summary(lm(oct$dDO ~ oct$DOf))
+
+oct %>%
+  ggplot(aes(x = DOf, y = DOpr)) +
+  geom_point(aes(shape = Cast), col = "royalblue") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+oct %>%
+  ggplot(aes(x = DOpr, y = dDO)) +
+  geom_point(aes(shape = Cast), col = "royalblue") +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+
+#oct %>%
+  ggplot(aes(x = DIC.other, y = TA.other)) +
+  geom_point(aes(shape = Cast, col = AOU)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_color_viridis(option = "viridis") +
+  theme_bw()
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+  ggplot(aes(x = DIC.other, y = dDO)) +
+  geom_point(aes(shape = Cast)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  theme_bw()
+```
+
 
 
 

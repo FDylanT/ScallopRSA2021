@@ -60,7 +60,7 @@ T7 <- may$Temp[EM7]
 # bottom EM4
 EMs4 <- may$Salinity[may$Cast == "Bottom" &
                        !is.na(may$Temp) &
-                       may$Station != "002" &
+                       #may$Station != "002" &
                        may$Salinity >= S4 - 0.1 & may$Salinity <= S4 + 0.1 &
                        may$Temp >= T4 - 0.2 & may$Temp <= T4 + 0.2]
 for(i in 1:length(EMs4)) {
@@ -107,7 +107,7 @@ err_temp_EMs5 <- sd_temp_EMs5 + temp_err5
 # bottom EM6
 EMs6 <- may$Salinity[may$Cast == "Bottom" &
                        !is.na(may$Temp) &
-                       may$Station != "003" & may$Station != "004" &
+                       #may$Station != "003" & may$Station != "004" &
                        may$Salinity >= S6 - 0.1 & may$Salinity <= S6 + 0.1 &
                        may$Temp >= T6 - 0.2 & may$Temp <= T6 + 0.2]
 for(i in 1:length(EMs6)) {
@@ -154,15 +154,16 @@ err_temp_EMs7 <- sd_temp_EMs7 + temp_err7
 ## Bayesian mixing model
 
 # create mixture data: bottom data w/ NAs excluded
-read.csv("MayCruiseData.csv") %>%
+read.csv("./MayCruiseData.csv") %>%
   rename(Temp = Temperature) %>%
   filter(Cast == "Bottom",
          !is.na(Temp),
-         Station != 1 &
-           Station != 2 &
-           Station != 3 &
-           Station != 4 &
-           Station != 113) %>%
+         #Station != 1 &
+         #Station != 2 &
+         #Station != 3 &
+         #Station != 4 &
+         #Station != 113
+         ) %>%
   write_csv("MayCruiseData_bottom.csv")
 
 # load mixture data
@@ -206,18 +207,18 @@ write.csv(cbind(EM, MeanTemp, SDTemp,
 discr <- load_discr_data(filename = "discr_bottom.csv", mix)
 
 ## Write & run model
-model_filename <- "./bottom_model_may.txt"
+model_filename <- "bottom_model_may.txt"
 resid_err <- FALSE # because n=1 per Station
 process_err <- TRUE
 write_JAGS_model(model_filename, resid_err, process_err, mix, source)
 
-run <- list(chainLength = 5000000, burn = 2000000, thin = 500, chains = 3,
+run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
             calcDIC = TRUE)
 jags.2m <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
 
 ## Check for convergence
 output_options2m <- list(summary_save = TRUE,
-                         summary_name = "summary_statistics2m4",
+                         summary_name = "summary_statistics2m",
                          sup_post = TRUE,
                          plot_post_save_pdf = FALSE,
                          plot_post_name = "posterior_density2m",

@@ -29,6 +29,17 @@ oct2down = RSKaddstationdata(oct2down, 'profile', profiles2, 'station', stations
 oct2up = RSKaddstationdata(oct2up, 'profile', profiles2, 'station', stations2);
 oct3down = RSKaddstationdata(oct3down, 'profile', profiles3, 'station', stations3);
 
+% calculate potential density
+oct1down = RSKderivesalinity(oct1down);
+oct1down = RSKderivesigma(oct1down);
+oct2down = RSKderivesalinity(oct2down);
+oct2down = RSKderivesigma(oct2down);
+oct2up = RSKderivesalinity(oct2up);
+oct2up = RSKderivesigma(oct2up);
+oct3down = RSKderivesalinity(oct3down);
+oct3down = RSKderivesigma(oct3down);
+
+% trim surface 2m
 oct1down = RSKtrim(oct1down, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
 oct2down = RSKtrim(oct2down, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
 oct2up = RSKtrim(oct2up, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
@@ -40,6 +51,66 @@ surfaceCond = NaN(111, 1);
 MLD = NaN(111, 1);
 
 %RSKplotprofiles(oct1down, 'profile', 1:5, 'channel', 'temperature');
+
+% Define MLD as the depth where the difference between interpolated potential density referenced to the surface glorys layer (~0.5m) is > 0.03 kg/m3:
+
+rho_0(z)-rho_0(1) > 0.03 %(Jones et al. 2014, Gill 1982, de Boyer Montegut et al. 2004)
+
+%read in the 3D data
+
+thetao = oct1down.data(i).values(:, 9) + 1000; %potential temperature (degC)
+lat = ncread('GLORYS12V1_NW_Atlantic_2018_daily.nc','latitude'); %lat
+lon = ncread('GLORYS12V1_NW_Atlantic_2018_daily.nc','longitude'); %lon
+so = ncread('GLORYS12V1_NW_Atlantic_2018_daily.nc','so'); %salinity (psu)
+depth = ncread('GLORYS12V1_NW_Atlantic_2018_daily.nc','depth'); %depth (m)
+
+%create a meshgrid
+[g_lat, g_lon, g_depth] = meshgrid(lat,lon,depth);
+ 
+%calculate sea pressure from depth, lat
+g_press = gsw_p_from_z(-g_depth,g_lat);
+[n,m,l] = size(g_press);
+ 
+%preallocate MLD
+mld = nan(n,m,365); %mld (m)
+ 
+%parallel pool
+parpool('local',8);
+Starting parallel pool (parpool) using the 'local' profile ... Connected to the parallel pool (number of workers: 8).
+tic
+
+%loop through all the data to calculate MLD
+parfor i = 1:365
+%     if mod(i,50) == 0
+%         disp(i);
+%     end
+sa = gsw_SA_from_SP(so(:,:,:,i),g_press,g_lon,g_lat); %calculate absolute salinity from practical salinity
+ct = gsw_CT_from_pt(sa,thetao(:,:,:,i)); %calculate conservative temperature from potential temperature and absolute salinity
+rho = gsw_rho(sa,ct,repmat(g_press(:,:,1),1,1,50)); %calculate potential density referenced to the surface glorys layer
+
+for j = 1:n
+    for k = 1:m
+        if sum(isnan(squeeze(rho(j,k,:)))) == 50 % if there's no data, move on
+        else
+            Ifind = find(squeeze(rho(j,k,:)-rho(j,k,1)) > 0.03,1,'first'); % find the first depth where > 0.03
+            if isempty(Ifind) % if this is never true, MLD is the full water column depth
+                mld(j,k,i) = depth(find(~isnan(squeeze(rho(j,k,:)-rho(j,k,1))) == 1,1,'last'));
+            else
+                I = 1:find(squeeze(-rho(j,k,1)+rho(j,k,:)) > 0.03,1,'first'); %find all the depths that are in the mixed layer
+                x = depth(I); %get x data to interpolate
+                y = squeeze(rho(j,k,I)); %get y data to interpolate
+                x_i = x(1):0.1:(x(end)+1); %use interpolation scale of 0.1 m
+                y_i = interp1(x,y,x_i); %1D interpolation
+                d = y_i-y_i(1); %calculate density difference
+                mld(j,k,i) = x_i(find(d <= 0.03,1,'last')); %the last value where diff < 0.03 is the MLD
+            end
+        end
+    end
+end
+
+end
+
+toc
 
 % oct1 file
 for i = 1:21

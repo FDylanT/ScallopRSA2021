@@ -217,7 +217,7 @@ jags.2m <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
 
 ## Check for convergence
 output_options2m <- list(summary_save = TRUE,
-                         summary_name = "summary_statistics2m4",
+                         summary_name = "summary_statistics2m",
                          sup_post = TRUE,
                          plot_post_save_pdf = FALSE,
                          plot_post_name = "posterior_density2m",
