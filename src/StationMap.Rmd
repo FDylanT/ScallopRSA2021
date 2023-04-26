@@ -185,7 +185,7 @@ Georges <- ggplot() +
   scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), na.value = "#C6DBEF") +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_point(data = station_sf, aes(x = Long, y = Lat), shape = 17) +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = "black") +
+  geom_sf(data = mass, fill = "darkgrey", colour = "black") +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   theme_bw() +
