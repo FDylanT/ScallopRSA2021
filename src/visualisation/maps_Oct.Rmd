@@ -1208,7 +1208,7 @@ plot_grid(
     DO2o,
     ncol = 3, nrow = 4,
     align = "hv",
-    labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, surface", "", "")),
+    labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, bottom", "", "")),
   nrow = 2,
   #rel_heights = c(1, 48, 3)
   rel_heights = c(4, 48)

@@ -159,6 +159,15 @@ for(i in c(1:38, 40, 42:44, 47:194, 197:228)) {
   oct$OmegaCalcite[i] <- octCarb$OmegaCalcite[r]
   r <- r + 1
 }
+
+for(i in 1:nrow(oct)) {
+  if(is.na(oct$Temp[i])) {
+    oct$pH[i] <- NA
+    oct$pCO2[i] <- NA
+    oct$OmegaAragonite[i] <- NA
+    oct$OmegaCalcite[i] <- NA
+  }
+}
 ```
 
 ## Calculate AOU

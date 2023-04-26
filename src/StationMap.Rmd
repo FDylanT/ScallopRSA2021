@@ -13,12 +13,9 @@ This script creates a map of the planned October 2021 RSA stations overlaid on t
 ```{r}
 library(tidyverse)
 library(sf)
+library(marmap)
 library(nngeo)
-library(PBSmapping)
-#library(marmap)
 library(ggmap)
-library(sp)
-#library(devtools)
 #library(ggOceanMaps)
 library(cowplot)
 ```
@@ -52,7 +49,7 @@ NLS_SouthShallow <- subset(GB, NewSAMS == "NLS-South-Shallow")
 CL2_AccessSouthwest <- subset(GB, NewSAMS == "CL2-Access-Southwest")
 SF_East <- subset(GB, NewSAMS == "SF-East")
 
-# combine polygons and set CRS
+# combine polygons
 GB_sf <- st_union(st_geometry(NLS_North), st_geometry(CL1_South)) %>%
   st_union(st_geometry(CL1_Sliver)) %>%
   st_union(st_geometry(CL2_AccessSoutheast)) %>%
@@ -74,29 +71,24 @@ GB_sf <- st_union(st_geometry(NLS_North), st_geometry(CL1_South)) %>%
 
 ## Create coastline polygon
 ```{r}
+sf_use_s2(FALSE)
+
 # get Massachusetts coastline
-#library(maps)
-#library(mapdata)
-library(maptools) # retiring by the end of 2023; transition to 'sp'
+mass <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp") %>%
+  st_make_valid() %>%
+  st_crop(xmin = -74, xmax = -63, ymin = 38, ymax = 45)
 
-mass <- Rgshhs("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/PBSmapping/gshhs_f.b",
-                xlim = c(286.5, 296.5), ylim = c(38, 46), level = 4)
-mass_sf <- as(mass$SP, "SpatialPolygonsDataFrame") %>%
-  st_as_sf() %>%
-  st_transform(crs = 26919)
+# get state borders
+borders <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/gshhg-shp-2.3.7/WDBII_shp/f/WDBII_border_f_L2.shp") %>%
+  st_make_valid()
 
-borders <- Rgshhs("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/PBSmapping/gshhg-bin-2.3.7/wdb_borders_f.b",
-                xlim = c(286.5, 296.5), ylim = c(38, 44))
-borders_sf <- as(borders2$SP, "SpatialLines") %>%
-  st_as_sf() %>%
-  st_transform(crs = 26919)
-
+# test both
 ggplot() +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-  geom_sf(data = borders_sf, colour = "black") +
-  coord_sf(xlim = c(104812.98, 925854.69),
-           ylim = c(4215380.56, 5108772.44),
-           crs = st_crs(26919))
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  geom_sf(data = borders, colour = "black", linewidth = 0.2) +
+  coord_sf(xlim = c(-73, -63.5),
+           ylim = c(38, 44),
+           crs = st_crs(4326))
 ```
 
 ## Load data
@@ -136,20 +128,21 @@ rm(Long_split_oct)
 rm(chd)
 ```
 
-## Create shapefile of station data
+## Create simple features obj of station data
 ```{r}
-station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
-                                        data = oct[ , c("Long", "Lat",
-                                                        "Station", "Tow")],
-                                        proj4string = CRS("EPSG:4326"))
+# create geometry column in data frame from lat/long data
+for(i in 1:nrow(oct)) {
+  oct$geometry[i] <- st_point(x = c(oct$Long[i], oct$Lat[i])) %>%
+    st_sfc(crs = 4326)
+}
 
-station_sf <- st_as_sf(station_SPDF)
+# create an sf object from data frame
+station_sf <- st_sf(oct, crs = 4326)
 ```
 
 ## Non-satellite maps
 ```{r}
 # create base map with NOAA data
-library(marmap)
 GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62,
 lat1 = 37, lat2 = 46, resolution = 1)
 
@@ -164,8 +157,8 @@ ggbathy <- GB_bathy %>%
 EastCoast <- ggplot() +
   geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
   scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), na.value = "#C6DBEF") +
-  geom_sf(data = mass_sf, fill = "darkgrey", colour = "black", linewidth = 0.05) +
-  geom_sf(data = borders_sf, colour = "black", linewidth = 0.1) +
+  geom_sf(data = mass, fill = "darkgrey", colour = "black", linewidth = 0.05) +
+  geom_sf(data = borders, colour = "black", linewidth = 0.1) +
   geom_rect(aes(xmin = -70.5, xmax = -66, ymin = 40, ymax = 42.5),
             colour = "#08306B", fill = alpha("grey", 0), linewidth = 0.5) +
   coord_sf(xlim = c(-73, -63.5), ylim = c(38, 44.5), crs = st_crs(4326)) +
@@ -196,6 +189,68 @@ Georges <- ggplot() +
 ggdraw(Georges) +
   draw_plot(EastCoast, x = 0.72, y = 0, width = 0.32, height = 0.32)
 ```
+
+## Create map w/ SAMs and tow sites marked
+```{r}
+ggplot() +
+  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
+  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"),
+                    na.value = "#C6DBEF",
+                    guide = "none") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = "black") +
+  geom_sf(data = NLS_North, fill = "palegreen2",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL1_South, fill = "firebrick3",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL1_Sliver, fill = "mediumorchid3",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL2_AccessSoutheast, fill = "lightskyblue",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = SF, fill = "darkorange2",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL2_North, fill = "seagreen2",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL1_Access, fill = "chartreuse3",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = NF, fill = "peachpuff2",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL2_Ext, fill = "slateblue1",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = GSC, fill = "steelblue2",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = NLS_SouthDeep, fill = "blueviolet",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = NLS_West, fill = "lightpink2",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = NLS_SouthShallow, fill = "tan3",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = CL2_AccessSouthwest, fill = "yellow2",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_sf(data = SF_East, fill = "darkturquoise",
+          alpha = 0.75, col = "transparent", inherit.aes = FALSE) +
+  geom_point(data = station_sf, aes(x = Long, y = Lat, col = Tow), shape = 18, size = 4) +
+  scale_colour_manual(values = c("black", "white"), labels = c("Towed", "Did not tow")) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(breaks = c(40, 41, 42), expand = c(0, 0)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_text(size = 14),
+        legend.title = element_text(size = 16, face = "bold"),
+        legend.text = element_text(size = 14),
+        legend.position = "none") #+
+  #guides(colour = guide_legend(title = "Scallop\nTow",
+  #                             title.hjust = 0.5,
+  #                             #reverse = TRUE,
+  #                             override.aes = list(shape = c(23, 23),
+  #                                                 col = c("black", "black"),
+  #                                                 fill = c("white", "black"))))
+
+```
+
+
+
 
 ## Using satellite map
 ```{r}

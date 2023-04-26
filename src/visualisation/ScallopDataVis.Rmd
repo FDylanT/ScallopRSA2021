@@ -35,70 +35,188 @@ octPlaco <- read.csv("./data/OctScallopData.csv") %>%
 table(mayPlaco$Site)
 table(octPlaco$Site)
 
-Placo <- rbind(mayPlaco, octPlaco)
+Placo <- rbind(mayPlaco, octPlaco) %>%
+  mutate(WetMus_g = as.numeric(WetMus_g)) %>%
+  mutate(LinDensity = ShellWt_g / ShellHt_mm)
+```
+
+## Load station data
+```{r}
+may <- read.csv("~/Desktop/Repos/ScallopRSA2021/data/MayCruiseData.csv") %>%
+  rename(Lat = Latitude_degrees_start,
+         Long = Longitude_degrees_start) %>%
+  filter(Cast == "Bottom") %>%
+  mutate(Tow = ifelse(is.na(Tow_start_time), "N", "Y")) %>%
+  mutate(Month = "May") %>%
+  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
+
+oct <- read.csv("~/Desktop/Repos/ScallopRSA2021/data/OctCruiseData.csv") %>%
+  rename(Lat = Latitude_degrees_start,
+         Long = Longitude_degrees_start) %>%
+  filter(Filtered == "",
+         Cast == "Bottom") %>%
+  select(-Filtered, -DIC.TA.Ratio, -DO_sat) %>%
+  mutate(Tow = ifelse(is.na(Tow_start_time), "N", "Y")) %>%
+  mutate(Month = "Oct") %>%
+  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
+
+seasons <- rbind(may, oct) %>%
+  rename(Temp = Temperature)
+```
+
+## Combine scallop data and station geo data
+```{r}
+seasonsPlaco <- Placo %>%
+  rename(Station = Site) %>%
+  group_by(Month, Station) %>%
+  summarise(ShellHt_mm = mean(ShellHt_mm, na.rm = TRUE),
+            ShellWt_g = mean(ShellWt_g, na.rm = TRUE),
+            WetMus_g = mean(WetMus_g, na.rm = TRUE),
+            LinDensity = mean(LinDensity, na.rm = TRUE))
+
+seasons <- seasons %>%
+  filter(Tow == "Y",
+         Tow_abundance != 0)
+```
+
+## Add CO2 sys data
+```{r}
+seasCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
+                var1 = seasons$TA[!is.na(seasons$Temp)] / 10^6,  # in mol/kg
+                var2 = seasons$DIC[!is.na(seasons$Temp)] / 10^6, # in mol/kg
+                S = seasons$Salinity[!is.na(seasons$Temp)],
+                T = seasons$Temp[!is.na(seasons$Temp)],          # in deg C
+                Patm = seasons$Pressure[!is.na(seasons$Temp)] * 0.098692326671601,
+                                                         # in atm
+                P = seasons$SeaPressure[!is.na(seasons$Temp)] / 10,   # in bar
+                k1k2 = "l",                              # l = Lueker et al. (2000)
+                                                         # kf: unspecified b/c low temps
+                ks = "d",                                # d = Dickson (1990)
+                b = "l10")                               # l10 = Lee et al. (2010)
+
+# combine scallop & carb data
+r <- 1
+for(i in c(1:5, 7:44)) {
+  seasons$pH[i] <- seasCarb$pH[r]
+  seasons$pCO2[i] <- seasCarb$pCO2[r]
+  seasons$OmegaAragonite[i] <- seasCarb$OmegaAragonite[r]
+  seasons$OmegaCalcite[i] <- seasCarb$OmegaCalcite[r]
+  r <- r + 1
+}
+
+for(i in 1:nrow(seasons)) {
+  if(is.na(seasons$Temp[i])) {
+    seasons$pH[i] <- NA
+    seasons$pCO2[i] <- NA
+    seasons$OmegaAragonite[i] <- NA
+    seasons$OmegaCalcite[i] <- NA
+  }
+}
+
+seasonsPlaco <- right_join(seasons, seasonsPlaco, by = c("Station", "Month"))
+```
+
+## Add chem data to full Placo df
+```{r}
+Placo$OmegaAragonite <- NA
+
+for(i in 1:nrow(Placo)) {
+  Placo$OmegaAragonite[i] <- seasonsPlaco$OmegaAragonite[seasonsPlaco$Station == Placo$Site[i]]
+}
 ```
 
 ## Plot size parameters
 ```{r}
 ggplot(Placo, aes(x = Site, y = ShellHt_mm, col = Month)) +
-  geom_boxplot() +
+  geom_boxplot(position = position_dodge2(preserve = "single")) +
   scale_color_manual(values = c("chartreuse3", "royalblue")) +
-  ylab("Shell Height (mm)") +
-  #labs(title = "Scallop Shell Heights by Site") +
+  labs(y = "Shell Height (mm)") +
   theme_bw() +
   theme(panel.grid.major.x = element_blank())
 
-ggplot(mayPlaco, aes(x = Site, y = ShellWt_g)) +
-  geom_boxplot() +
-  labs(y = "Shell Weight (g)", title = "Scallop Shell Weights by Site") +
-  theme_bw()
-
-ggplot(mayPlaco, aes(x = Site, y = ShellWt_g / ShellHt_mm)) +
-  geom_boxplot() +
-  labs(y = "Ratio of Shell Weight to Shell Height (g/mm)", title = "Linear Density of Scallop Shells") +
-  theme_bw()
-```
-
-## Create shapefile of Placo data
-```{r}
-station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
-                                        data = oct[ , c("Long", "Lat",
-                                                        "Station", "Tow")],
-                                        proj4string = CRS("EPSG:4326"))
-
-station_sf <- st_as_sf(station_SPDF)
-
-# add scallop bio data
-station_sf <- station_sf %>%
-  filter(Tow == "Y")
-
-for(i in 1:nrow(station_sf)) {
-  station = station_sf$Station[i]
-  ShellHt[i] = mean(Placo$ShellHt_mm[Placo$Site == station])
-}
-```
-
-## Create maps
-```{r}
-# using code from StationMap.Rmd
-
-ggplot() +
-  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
-  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), na.value = "#C6DBEF") +
-  #geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  geom_point(data = station_sf[station_sf$Tow == "Y", ], aes(x = Long, y = Lat), shape = 17) +
-  geom_sf(data = mass, fill = "darkgrey", colour = "black") +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
+ggplot(Placo, aes(x = Site, y = ShellWt_g / ShellHt_mm, col = Month)) +
+  geom_boxplot(position = position_dodge2(preserve = "single")) +
+  scale_color_manual(values = c("chartreuse3", "royalblue")) +
+  ylim(0, 2.3) +
+  labs(y = expression("Shell Weight : Shell Height (g mm"^-1*")")) +
   theme_bw() +
-  theme(axis.title = element_blank(),
-        axis.text = element_text(size = 12),
-        legend.position = "none")
+  theme(panel.grid.major.x = element_blank())
+
+ggplot(Placo, aes(x = Site, y = WetMus_g, col = Month)) +
+  geom_boxplot(position = position_dodge2(preserve = "single")) +
+  scale_color_manual(values = c("chartreuse3", "royalblue")) +
+  labs(y = "Muscle Wet Weight (g)") +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank())
+
+ggplot(Placo, aes(x = ShellHt_mm, y = WetMus_g, col = Month)) +
+  geom_point() +
+  scale_color_manual(values = c("chartreuse3", "royalblue")) +
+  labs(x = "Shell Height (mm)", y = "Muscle Wet Weight (g)") +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank())
+
+ggplot(Placo[Placo$Month == "May", ], aes(x = ShellHt_mm, y = WetMus_g, col = Site)) +
+  geom_point() +
+  labs(x = "Shell Height (mm)", y = "Muscle Wet Weight (g)") +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank())
+
+ggplot(seasonsPlaco, aes(x = ShellHt_mm, y = WetMus_g, col = OmegaAragonite)) +
+  geom_point() +
+  scale_colour_viridis() +
+  labs(x = "Shell Height (mm)", y = "Muscle Wet Weight (g)") +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank())
+
+ggplot(Placo[!is.na(Placo$OmegaAragonite), ], aes(x = ShellHt_mm, y = WetMus_g, col = OmegaAragonite)) +
+  geom_point() +
+  scale_colour_viridis() +
+  labs(x = "Shell Height (mm)", y = "Muscle Wet Weight (g)") +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank())
+```
+
+## Convert coordinates
+```{r}
+chd <- substr(seasons$Lat, 3, 3)[1]
+
+# convert latitude from DM to DD
+Lat_split_may <- str_split_fixed(seasons$Lat, chd, 2) %>%
+  as.data.frame()
+Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Lat_split_may$V2 <- Lat_split_may$V2/60
+Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
+
+seasons$Lat <- Lat_split_may$V1 + Lat_split_may$V2
+
+# convert longitude from DM to DD
+Long_split_may <- str_split_fixed(seasons$Long, chd, 2) %>%
+  as.data.frame()
+Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Long_split_may$V2 <- Long_split_may$V2/60
+Long_split_may$V1 <- as.numeric(Long_split_may$V1)
+
+seasons$Long <- -(Long_split_may$V1 + Long_split_may$V2)
+```
+
+## Create simple features obj
+```{r}
+# create geometry column in data frame from lat/long data
+for(i in 1:nrow(seasonsPlaco)) {
+  seasonsPlaco$geometry[i] <- st_point(x = c(seasonsPlaco$Long[i], seasonsPlaco$Lat[i])) %>%
+    st_sfc(crs = 4326)
+}
+
+# create an sf object from data frame
+seasonsPlaco_sf <- st_sf(seasonsPlaco, crs = 4326)
 ```
 
 ## Create map
 ```{r}
-# Create base map with NOAA data
+# create base map with NOAA data
 GB_bathy <- getNOAA.bathy(lon1 = -70.5, lon2 = -66, lat1 = 40, lat2 = 42.5, resolution = 1)
 
 ggbathy <- GB_bathy %>%
@@ -107,84 +225,47 @@ ggbathy <- GB_bathy %>%
   select(-c(x, y, z)) %>%
   mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180, -780, -1380, -1980, -2580, -3180, -Inf)))
 
-# get regional polygons
-reg = map_data("world2Hires")
-reg = subset(reg, region %in% 'USA')
+sf_use_s2(FALSE)
 
-# convert lat longs
-reg$long = (360 - reg$long)*-1
+# get mass coastline
+mass <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp") %>%
+  st_make_valid() %>%
+  st_crop(xmin = -71, xmax = -66, ymin = 40, ymax = 43)
 
 map <- ggplot() +
   geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
-  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), guide = "none") +
+  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"),
+                    na.value = "#C6DBEF",
+                    guide = "none") +
+  geom_sf(data = mass, fill = "darkgrey", colour = "black") +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(breaks = c(40, 41, 42), expand = c(0, 0)) +
-  geom_polygon(data = reg, aes(x = long, y = lat, group = group), 
-               fill = "darkgrey", color = NA) +
-  coord_cartesian(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
-  theme(axis.title = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank())
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  theme_bw() +
+  theme(axis.title = element_blank())
 ```
 
-## Load station data & convert coordinates
+## Add station data to map
 ```{r}
-stations <- read.csv("./data/MayCruiseData.csv") %>%
-  rename(Lat = Latitude_degrees_start,
-         Long = Longitude_degrees_start,
-         Depth = Depth_meters) %>%
-  mutate(Tow = ifelse(is.na(Tow_start_time), FALSE, TRUE)) %>%
-  select(Station, Cast, Lat, Long, Tow, Depth) %>%
-  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
+map +
+  geom_point(data = stationsPlaco_sf, aes(x = Long, y = Lat, size = ShellHt_mm)) +
+  scale_size_continuous(name = "Mean Shell\nHeight (mm)",
+                        range = c(1, 6),
+                        limits = c(80, 140),
+                        breaks = c(80, 100, 120, 140))
 
-chd <- substr(stations$Lat, 3, 3)[1]
+map +
+  geom_point(data = stationsPlaco_sf, aes(x = Long, y = Lat, size = WetMus_g), shape = 18) +
+  scale_size_continuous(name = "Muscle Wet\nWeight (g)",
+                        range = c(2, 6),
+                        limits = c(10, 50))
 
-# convert latitude from DM to DD
-Lat_split_may <- str_split_fixed(stations$Lat, chd, 2) %>%
-  as.data.frame()
-Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
-  as.numeric()
-Lat_split_may$V2 <- Lat_split_may$V2/60
-Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
-
-stations$Lat <- Lat_split_may$V1 + Lat_split_may$V2
-
-# convert longitude from DM to DD
-Long_split_may <- str_split_fixed(stations$Long, chd, 2) %>%
-  as.data.frame()
-Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
-  as.numeric()
-Long_split_may$V2 <- Long_split_may$V2/60
-Long_split_may$V1 <- as.numeric(Long_split_may$V1)
-
-stations$Long <- -(Long_split_may$V1 + Long_split_may$V2)
+map +
+  geom_point(data = stationsPlaco_sf, aes(x = Long, y = Lat, size = Tow_abundance), shape = 17)
 ```
 
-## Add scallop data to stations df
+## Old plots
 ```{r}
-maySites <- mayPlaco %>%
-  rename(Station = Site) %>%
-  group_by(Station) %>%
-  summarize(ShellHt_mm = mean(ShellHt_mm, na.rm = TRUE), ShellWt_g = mean(ShellWt_g, na.rm = TRUE)) %>%
-  mutate(LinDensity = ShellWt_g / ShellHt_mm)
-  
-stations <- stations %>%
-  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
-
-stations <- right_join(stations, maySites, by = "Station")
-```
-
-## Add station points to map
-```{r}
-stations_SPDF <- SpatialPointsDataFrame(coords = stations[ , c("Long","Lat")],
-                                        data = stations[ ,c("Long", "Lat", "Station", "Tow",
-                                                            "ShellHt_mm", "ShellWt_g", "LinDensity")],
-                                        proj4string = CRS("+init=epsg:4326"))
-
-stations_sf <- st_as_sf(stations_SPDF)
-stations_sf <- st_transform(stations_sf, crs = 4326)
-
 heights <- map +
   geom_sf(data = stations_sf, aes(size = ShellHt_mm, fill = Tow, shape = Tow), inherit.aes = FALSE) +
   geom_sf_text(data = stations_sf, aes(label = Station, colour = Tow), nudge_x = 0, nudge_y = 0.09, size = 3.5, inherit.aes = FALSE) +
