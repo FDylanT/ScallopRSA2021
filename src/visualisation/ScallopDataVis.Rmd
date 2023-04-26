@@ -13,11 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(marmap)
-library(mapdata)
-library(mapproj)
 library(sf)
 library(numform)
-library(sp)
 library(viridis)
 ```
 
@@ -25,29 +22,78 @@ library(viridis)
 ```{r}
 setwd("~/Desktop/Repos/ScallopRSA2021")
 
-may <- read.csv("./data/MayScallopData_12-9-21.csv") %>%
-  mutate(Site = str_extract(ScallopID, "^.{3}(?=_)"))
+mayPlaco <- read.csv("./data/MayScallopData.csv") %>%
+  mutate(Site = str_extract(ScallopID, "^.{3}(?=_)")) %>%
+  select(-Mus_Boat2_g, -Gon_Boat2_g, -Man_Boat2_g) %>%
+  mutate(Month = "May")
+
+octPlaco <- read.csv("./data/OctScallopData.csv") %>%
+  mutate(Site = str_extract(ScallopID, "^.{3}(?=_)")) %>%
+  mutate(Month = "Oct")
 
 # check number of scallops per site
-table(may$Site)
+table(mayPlaco$Site)
+table(octPlaco$Site)
+
+Placo <- rbind(mayPlaco, octPlaco)
 ```
 
 ## Plot size parameters
 ```{r}
-ggplot(may, aes(x = Site, y = ShellHt_mm)) +
+ggplot(Placo, aes(x = Site, y = ShellHt_mm, col = Month)) +
   geom_boxplot() +
-  labs(y = "Shell Height (mm)", title = "Scallop Shell Heights by Site") +
-  theme_bw()
+  scale_color_manual(values = c("chartreuse3", "royalblue")) +
+  ylab("Shell Height (mm)") +
+  #labs(title = "Scallop Shell Heights by Site") +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank())
 
-ggplot(may, aes(x = Site, y = ShellWt_g)) +
+ggplot(mayPlaco, aes(x = Site, y = ShellWt_g)) +
   geom_boxplot() +
   labs(y = "Shell Weight (g)", title = "Scallop Shell Weights by Site") +
   theme_bw()
 
-ggplot(may, aes(x = Site, y = ShellWt_g / ShellHt_mm)) +
+ggplot(mayPlaco, aes(x = Site, y = ShellWt_g / ShellHt_mm)) +
   geom_boxplot() +
   labs(y = "Ratio of Shell Weight to Shell Height (g/mm)", title = "Linear Density of Scallop Shells") +
   theme_bw()
+```
+
+## Create shapefile of Placo data
+```{r}
+station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
+                                        data = oct[ , c("Long", "Lat",
+                                                        "Station", "Tow")],
+                                        proj4string = CRS("EPSG:4326"))
+
+station_sf <- st_as_sf(station_SPDF)
+
+# add scallop bio data
+station_sf <- station_sf %>%
+  filter(Tow == "Y")
+
+for(i in 1:nrow(station_sf)) {
+  station = station_sf$Station[i]
+  ShellHt[i] = mean(Placo$ShellHt_mm[Placo$Site == station])
+}
+```
+
+## Create maps
+```{r}
+# using code from StationMap.Rmd
+
+ggplot() +
+  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
+  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), na.value = "#C6DBEF") +
+  #geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_point(data = station_sf[station_sf$Tow == "Y", ], aes(x = Long, y = Lat), shape = 17) +
+  geom_sf(data = mass, fill = "darkgrey", colour = "black") +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_text(size = 12),
+        legend.position = "none")
 ```
 
 ## Create map
@@ -117,7 +163,7 @@ stations$Long <- -(Long_split_may$V1 + Long_split_may$V2)
 
 ## Add scallop data to stations df
 ```{r}
-maySites <- may %>%
+maySites <- mayPlaco %>%
   rename(Station = Site) %>%
   group_by(Station) %>%
   summarize(ShellHt_mm = mean(ShellHt_mm, na.rm = TRUE), ShellWt_g = mean(ShellWt_g, na.rm = TRUE)) %>%
