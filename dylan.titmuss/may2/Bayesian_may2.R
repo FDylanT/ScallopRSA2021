@@ -211,7 +211,7 @@ resid_err <- FALSE # because n=1 per Station
 process_err <- TRUE
 write_JAGS_model(model_filename, resid_err, process_err, mix, source)
 
-run <- list(chainLength = 5000000, burn = 2000000, thin = 500, chains = 3,
+run <- list(chainLength = 3000000, burn = 1500000, thin = 500, chains = 3,
             calcDIC = TRUE)
 jags.2m <- run_model(run, mix, source, discr, model_filename, alpha.prior = 1)
 
