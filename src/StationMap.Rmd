@@ -149,18 +149,17 @@ lat1 = 37, lat2 = 46, resolution = 1)
 # prepare for use with ggplot
 ggbathy <- GB_bathy %>%
   fortify() %>%
-  mutate(lat = y, long = x, depth = z) %>%
-  select(-c(x, y, z)) %>%
-  mutate(depth_bins = cut(depth, breaks = c(0, -30, -55, -75, -90, -120, -150, -180, -780, -1380, -1980, -2580, -3180, -Inf)))
+  mutate(depth_bins = cut(z, breaks = c(0, -35, -55, -75, -95, -120, -200, -1000, -2000, -2500, -3000, -Inf)))
 
 # zoomed out
 EastCoast <- ggplot() +
-  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
-  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), na.value = "#C6DBEF") +
+  geom_raster(data = ggbathy, aes(x, y, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
+  scale_fill_manual(values = c("#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8"),
+                    na.value = "#B2D3E8") +
   geom_sf(data = mass, fill = "darkgrey", colour = "black", linewidth = 0.05) +
   geom_sf(data = borders, colour = "black", linewidth = 0.1) +
   geom_rect(aes(xmin = -70.5, xmax = -66, ymin = 40, ymax = 42.5),
-            colour = "#08306B", fill = alpha("grey", 0), linewidth = 0.5) +
+            colour = "grey15", fill = alpha("grey", 0), linewidth = 0.5) +
   coord_sf(xlim = c(-73, -63.5), ylim = c(38, 44.5), crs = st_crs(4326)) +
   scale_x_continuous(breaks = c(-70, -66)) +
   scale_y_continuous(breaks = c(38, 40, 42, 44)) +
@@ -174,8 +173,13 @@ EastCoast <- ggplot() +
 
 # zoomed in
 Georges <- ggplot() +
-  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
-  scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"), na.value = "#C6DBEF") +
+  geom_raster(data = ggbathy, aes(x, y, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
+  scale_fill_manual(values = c("#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4291C6", "#52A0CE", "#6BAFD6", "#84BDE4", "#9DD0EA", "#B5E2EF"),
+                    na.value = "#B5DBEF",
+                    breaks = levels(ggbathy$depth_bins)[1:11],
+                    labels = c(">3000", "3000", "2500", "2000", "1000", "200",
+                               "120", "95", "75", "55", "35"),
+                    name = "Depth (m)") +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_point(data = station_sf, aes(x = Long, y = Lat), shape = 17) +
   geom_sf(data = mass, fill = "darkgrey", colour = "black") +
@@ -184,7 +188,10 @@ Georges <- ggplot() +
   theme_bw() +
   theme(axis.title = element_blank(),
         axis.text = element_text(size = 12),
-        legend.position = "none")
+        legend.title = element_text(face = "bold"),
+        legend.key.size = unit(0.45, "cm"),
+        legend.position = c(1.1, 0.65)) +
+  guides(fill = guide_legend(reverse = TRUE))
 
 ggdraw(Georges) +
   draw_plot(EastCoast, x = 0.72, y = 0, width = 0.32, height = 0.32)
@@ -193,7 +200,7 @@ ggdraw(Georges) +
 ## Create map w/ SAMs and tow sites marked
 ```{r}
 ggplot() +
-  geom_raster(data = ggbathy, aes(long, lat, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
+  geom_raster(data = ggbathy, aes(x, y, fill = depth_bins), interpolate = TRUE, alpha = 0.75) +
   scale_fill_manual(values = c("#08306B", "#084184", "#08519C", "#1561A9", "#2171B5", "#3282BE", "#4292C6", "#57A0CE", "#6BAED6", "#85BCDC", "#9ECAE1", "#B2D3E8", "#C6DBEF"),
                     na.value = "#C6DBEF",
                     guide = "none") +
