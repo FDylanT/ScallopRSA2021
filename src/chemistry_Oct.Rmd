@@ -72,7 +72,7 @@ rm(chd)
 ```
 
 ## *SKIP SOMETIMES* Fill in missing temp & DO values
-```
+```#{r}
 # temp
 for(i in 1:nrow(oct)) {
   if(oct$Station[i] == "022") {
@@ -152,6 +152,7 @@ octCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
 # combine oct & carb data
 r <- 1
 for(i in c(1:38, 40, 42:44, 47:194, 197:228)) {
+#for(i in 1:nrow(oct)) {
   oct$pH[i] <- octCarb$pH[r]
   oct$fCO2[i] <- octCarb$fCO2[r]
   oct$pCO2[i] <- octCarb$pCO2[r]
@@ -326,7 +327,7 @@ err_temp_EMs3 <- sd_temp_EMs3 + temp_err3
 ```
 
 ```{r}
-summ1 <- read.table("summary_statistics1.txt", skip = 8) %>%
+summ1 <- read.table("dylan.titmuss/summary_statistics1.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -397,7 +398,7 @@ err_temp_EMs7 <- sd_temp_EMs7 + temp_err2
 ```
 
 ```{r}
-summ3 <- read.table("summary_statistics3.txt", skip = 8) %>%
+summ3 <- read.table("dylan.titmuss/summary_statistics3.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -491,7 +492,7 @@ err_temp_EMs6 <- sd_temp_EMs6 + temp_err6
 ```
 
 ```{r}
-summ2 <- read.table("summary_statistics2.txt", skip = 8) %>%
+summ2 <- read.table("dylan.titmuss/summary_statistics2.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -1093,6 +1094,11 @@ oct$TA.other <- NA
 oct$DIC.other <- oct$DIC - oct$DICn - oct$DICpr - oct$DICf
 oct$TA.other = oct$TA - oct$TAn - oct$TApr
 ```
+
+
+
+
+
 
 ## Calculate relative contributions from each
 ```{r}
