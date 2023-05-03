@@ -69,7 +69,7 @@ rm(chd)
 ```
 
 ## *SKIP SOMETIMES* Fill in missing temp & DO values
-```
+```#{r}
 # temp
 for(i in 1:nrow(may)) {
   if(may$Station[i] == "006") {
@@ -385,7 +385,7 @@ err_temp_EMs3 <- sd_temp_EMs3 + temp_err3
 ```
 
 ```{r}
-summ1m <- read.table("summary_statistics1m.txt", skip = 8) %>%
+summ1m <- read.table("dylan.titmuss/summary_statistics1m.txt", skip = 8) %>%
   select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -528,7 +528,7 @@ err_temp_EMs7 <- sd_temp_EMs7 + temp_err7
 ```
 
 ```{r}
-summ2m <- read.table("summary_statistics2m.txt", skip = 8) %>%
+summ2m <- read.table("dylan.titmuss/summary_statistics2m.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
