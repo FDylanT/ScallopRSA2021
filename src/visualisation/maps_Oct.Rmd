@@ -22,6 +22,7 @@ library(viridis)
 library(RColorBrewer)
 library(pals)
 library(Redmonder)
+library(colorspace)
 library(rcartocolor)
 library(cowplot)
 library(ggsci)
@@ -96,15 +97,29 @@ mass <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/li
 
 ## Create bathy shapefile
 ```{r}
-#library(marmap)
-#GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62,
-#lat1 = 37, lat2 = 46, resolution = 1)
+library(marmap)
+GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62, lat1 = 37, lat2 = 46, resolution = 1)
 
-#bathy_xyz <- as.xyz(GB_bathy)
+bathy_xyz <- as.xyz(GB_bathy)
 
 #####
 #library(raster)
-#projectRaster(bathy_xyz, crs = "+proj=longlat +datum=WGS84")
+#bathy_raster <- projectRaster(bathy_xyz, crs = 4326)
+
+ggplot() +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               binwidth = 100, alpha = 0.4) +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -150, alpha = 0.4, linetype = "dashed") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  labs(title = "Surface Temperature [Oct]") +
+  theme_bw()
 ```
 
 ## Create shapefile of chem data
@@ -118,21 +133,13 @@ station_SPDF <- SpatialPointsDataFrame(coords = oct[ , c("Long", "Lat")],
                                                         "DO", "AOU",
                                                         "pH", "fCO2", "pCO2",
                                                         "OmegaAragonite",
-                                                        "OmegaCalcite",
-                                                        "DICn", "TAn",
-                                                        "dDIC", "dTA", "dDO"
-                                                        ,"flux"
-                                                        #,"dDIC.ex", "dTA.ex"
-                                                        #,"ratio"
-                                                        #,"MLD", "MLD_frac",
+                                                        "OmegaCalcite"
+                                                        ,"DICn", "TAn"
+                                                        ,"dDIC", "dTA", "dDO"
+                                                        ,"flux", "flux.O2"
                                                         ,"DICf"
                                                         ,"DICpr", "TApr", "DOpr"
                                                         ,"DIC.other", "TA.other"
-                                                        #,"rel.DICf", "rel.DICpr"
-                                                        #,"rel.DICres"
-                                                        #,"rel.TApr","rel.TAres"
-                                                        #,"flux.O2", "DOf"
-                                                        #,"d", "d.O2"
                                                         )],
                                         proj4string = CRS("EPSG:4326"))
 
@@ -253,19 +260,22 @@ ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(col = Temp), size = 8, shape = 18) +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
-                       aesthetics = c("fill", "colour")) +
-  geom_tile(data = bathy_xyz, aes(x = V1, y = V2, fill = V3)) +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
-               binwidth = 50, alpha = 0.2) +
-  #geom_contour(data = bathy_xyz,
-  #             aes(x = V1, y = V2, z = V3),
-  #             breaks = -200) +
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  scale_fill_distiller(limits = c(6, 21), palette = "YlGnBu",
+                       aesthetics = c("fill", "colour")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   labs(title = "Surface Temperature [Oct]") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.title = element_blank())
 
 ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
@@ -486,66 +496,69 @@ ggplot() +
 # dDIC
   #min(surface_sf2$dDIC, na.rm = TRUE) # -41.66683
 sort(surface_sf2$dDIC)[2] # -24.51375
-max(surface_sf2$dDIC, na.rm = TRUE) # 27.98048
+max(surface_sf2$dDIC, na.rm = TRUE) # 24.0487
 
-  #min(bottom_sf2$dDIC, na.rm = TRUE) # -79.55213 - outlier
-sort(bottom_sf2$dDIC)[2] # -39.36527
-max(bottom_sf2$dDIC, na.rm = TRUE) # 60.98467
+  #min(bottom_sf2$dDIC, na.rm = TRUE) # -77.28295 - outlier
+sort(bottom_sf2$dDIC)[2] # -41.48472
+max(bottom_sf2$dDIC, na.rm = TRUE) # 61.10652
 
 # dTA
-min(surface_sf2$dTA, na.rm = TRUE) # -25.18332
+min(surface_sf2$dTA, na.rm = TRUE) # -25.37055
 max(surface_sf2$dTA, na.rm = TRUE) # 36.03762
 
-min(bottom_sf2$dTA, na.rm = TRUE) # -32.14353
-max(bottom_sf2$dTA, na.rm = TRUE) # 84.13417
+min(bottom_sf2$dTA, na.rm = TRUE) # -31.77863
+max(bottom_sf2$dTA, na.rm = TRUE) # 84.42403
 
 # dDO
-min(surface_sf2$dDO, na.rm = TRUE) # -14.41024
-max(surface_sf2$dDO, na.rm = TRUE) # 13.6312
+min(surface_sf2$dDO, na.rm = TRUE) # -14.7027
+max(surface_sf2$dDO, na.rm = TRUE) # 14.18127
 
-min(bottom_sf2$dDO, na.rm = TRUE) # -31.79507
-max(bottom_sf2$dDO, na.rm = TRUE) # 9.629293
+min(bottom_sf2$dDO, na.rm = TRUE) # -31.74614
+max(bottom_sf2$dDO, na.rm = TRUE) # 9.814863
 
 # flux
 min(surface_sf2$flux, na.rm = TRUE) # -9450.262
-max(surface_sf2$flux, na.rm = TRUE) # 13483.32
+max(surface_sf2$flux, na.rm = TRUE) # 7275.122
 
 # DICf
-min(surface_sf2$DICf, na.rm = TRUE) # -1.133729
+min(surface_sf2$DICf, na.rm = TRUE) # -0.4051017
 max(surface_sf2$DICf, na.rm = TRUE) # 0.9571934
 
-min(bottom_sf2$DICf, na.rm = TRUE) # -0.1838733
-max(bottom_sf2$DICf, na.rm = TRUE) # 0.07930123
+min(bottom_sf2$DICf, na.rm = TRUE) # -0.2095367
+max(bottom_sf2$DICf, na.rm = TRUE) # 0
 
 # DICpr
-min(surface_sf2$DICpr, na.rm = TRUE) # -25.46558
-max(surface_sf2$DICpr, na.rm = TRUE) # 10.39905
+min(surface_sf2$DICpr, na.rm = TRUE) # -25.8881
+max(surface_sf2$DICpr, na.rm = TRUE) # 10.6237
 
-min(bottom_sf2$DICpr, na.rm = TRUE) # -7.396413
-max(bottom_sf2$DICpr, na.rm = TRUE) # 24.4223
+min(bottom_sf2$DICpr, na.rm = TRUE) # -7.538953
+max(bottom_sf2$DICpr, na.rm = TRUE) # 24.38472
 
 # DIC.other
 min(surface_sf2$DIC.other, na.rm = TRUE) # -33.9237
-max(surface_sf2$DIC.other, na.rm = TRUE) # 33.09305
+max(surface_sf2$DIC.other, na.rm = TRUE) # 37.92676
 
-  #min(bottom_sf2$DIC.other, na.rm = TRUE) # -72.15572 - outlier
-sort(bottom_sf2$DIC.other)[2] # -42.50883
-max(bottom_sf2$DIC.other, na.rm = TRUE) # 39.25938
+  #min(bottom_sf2$DIC.other, na.rm = TRUE) # -69.744 - outlier
+sort(bottom_sf2$DIC.other)[2] # -42.61267
+max(bottom_sf2$DIC.other, na.rm = TRUE) # 39.36212
 
 # TApr
-min(surface_sf2$TApr, na.rm = TRUE) # -1.667772
-max(surface_sf2$TApr, na.rm = TRUE) # 4.084102
+min(surface_sf2$TApr, na.rm = TRUE) # -1.7038
+max(surface_sf2$TApr, na.rm = TRUE) # 4.151865
 
-min(bottom_sf2$TApr, na.rm = TRUE) # -3.916783
-max(bottom_sf2$TApr, na.rm = TRUE) # 1.186217
+min(bottom_sf2$TApr, na.rm = TRUE) # -3.910756
+max(bottom_sf2$TApr, na.rm = TRUE) # 1.209077
 
 # TA.other
-min(surface_sf2$TA.other, na.rm = TRUE) # -25.66467
+min(surface_sf2$TA.other, na.rm = TRUE) # -25.85842
 max(surface_sf2$TA.other, na.rm = TRUE) # 33.90461
 
-min(bottom_sf2$TA.other, na.rm = TRUE) # -31.22055
-max(bottom_sf2$TA.other, na.rm = TRUE) # 87.42014
+min(bottom_sf2$TA.other, na.rm = TRUE) # -30.8117
+max(bottom_sf2$TA.other, na.rm = TRUE) # 87.72202
+```
 
+## More limits
+```{r}
 # CO2 eq days
 min(abs(surface_sf2$d), na.rm = TRUE) # 6.146507
 max(abs(surface_sf2$d), na.rm = TRUE) # 351.8752
@@ -868,8 +881,20 @@ May.TvS <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
-  scale_x_continuous(limits = c(32.294, 34.397), breaks = c(33, 34)) +
-  ylim(6.716, 10.081) +
+  # EM1
+  annotate("point", x = 33.02325, y = 7.220628) +
+  annotate("segment", x = 33.02325-0.04339896, xend = 33.02325+0.04339896, y = 7.220628, yend = 7.220628) +
+  annotate("segment", x = 33.02325, xend = 33.02325, y = 7.220628-0.069308, yend = 7.220628+0.069308) +
+  # EM2
+  annotate("point", x = 32.30807, y = 8.128582) +
+  annotate("segment", x = 32.30807-0.01786962, xend = 32.30807+0.01786962, y = 8.128582, yend = 8.128582) +
+  annotate("segment", x = 32.30807, xend = 32.30807, y = 8.128582-0.05763103, yend = 8.128582+0.05763103) +
+  # EM3
+  annotate("point", x = 32.8277, y = 8.868272) +
+  annotate("segment", x = 32.8277-0.05091169, xend = 32.8277+0.05091169, y = 8.868272, yend = 8.868272) +
+  annotate("segment", x = 32.8277, xend = 32.8277, y = 8.868272-0.008266555, yend = 8.868272+0.008266555) +
+  scale_x_continuous(limits = c(32.29, 34.43), breaks = c(33, 34)) +
+  ylim(6.716, 10.164) +
   xlab("Salinity (PSU)") +
   ylab("Temperature (°C)") +
   labs(title = "May") +
@@ -884,8 +909,24 @@ Oct.TvS <- ggplot() +
              col = "royalblue") +
   scale_shape_manual(values = 1,
                      guide = guide_legend(reverse = TRUE)) +
+  # EM1
+  annotate("point", x = 32.36303, y = 17.61663) +
+  annotate("segment", x = 32.36303-0.04299143, xend = 32.36303+0.04299143, y = 17.61663, yend = 17.61663) +
+  annotate("segment", x = 32.36303, xend = 32.36303, y = 17.61663-0.1872035, yend = 17.61663+0.1872035) +
+  # EM2
+  annotate("point", x = 32.6138, y = 16.38836) +
+  annotate("segment", x = 32.6138-0.06364616, xend = 32.6138+0.06364616, y = 16.38836, yend = 16.38836) +
+  annotate("segment", x = 32.6138, xend = 32.6138, y = 16.38836-0.1211196, yend = 16.38836+0.1211196) +
+  # EM3
+  annotate("point", x = 34.03515, y = 20.41137) +
+  annotate("segment", x = 34.03515-0.05607357, xend = 34.03515+0.05607357, y = 20.41137, yend = 20.41137) +
+  annotate("segment", x = 34.03515, xend = 34.03515, y = 20.41137-0.4061293, yend = 20.41137+0.4061293) +
+  # EM7
+  annotate("point", x = 31.63787, y = 16.75489) +
+  annotate("segment", x = 31.63787-0.03885027, xend = 31.63787+0.03885027, y = 16.75489, yend = 16.75489) +
+  annotate("segment", x = 31.63787, xend = 31.63787, y = 16.75489-0.2673522, yend = 16.75489+0.2673522) +
   xlim(31.59, 35.65) +
-  ylim(8.31, 20.7) +
+  ylim(8.22, 20.82) +
   xlab("Salinity (PSU)") +
   ylab("Temperature (°C)") +
   labs(title = "October") +
@@ -894,13 +935,30 @@ Oct.TvS <- ggplot() +
         legend.position = "none")
 
 May.TvS.2 <- ggplot() +
-  geom_point(data = may[may$Cast == "Bottom", ], aes(x = Salinity, y = Temp, shape = Cast, col = "May")) +
+  geom_point(data = may[may$Cast == "Bottom", ],
+             aes(x = Salinity, y = Temp, shape = Cast, col = "May")) +
   scale_shape_manual(values = 16,
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
-  scale_x_continuous(limits = c(32.294, 34.397), breaks = c(33, 34)) +
-  ylim(6.716, 10.081) +
+  # EM4
+  annotate("point", x = 32.60722, y = 6.913535) +
+  annotate("segment", x = 32.60722-0.02688573, xend = 32.60722+0.02688573, y = 6.913535, yend = 6.913535) +
+  annotate("segment", x = 32.60722, xend = 32.60722, y = 6.913535-0.06965717, yend = 6.913535+0.06965717) +
+  # EM5
+  annotate("point", x = 32.92325, y = 8.043115) +
+  annotate("segment", x = 32.92325-0.01675843, xend = 32.92325+0.01675843, y = 8.043115, yend = 8.043115) +
+  annotate("segment", x = 32.92325, xend = 32.92325, y = 8.043115-0.1243565, yend = 8.043115+0.1243565) +
+  # EM6
+  annotate("point", x = 32.9749, y = 6.843245) +
+  annotate("segment", x = 32.9749-0.02552783, xend = 32.9749+0.02552783, y = 6.843245, yend = 6.843245) +
+  annotate("segment", x = 32.9749, xend = 32.9749, y = 6.843245-0.04853802, yend = 6.843245+0.04853802) +
+  # EM7
+  annotate("point", x = 34.3181, y = 9.877368) +
+  annotate("segment", x = 34.3181-0.1111572, xend = 34.3181+0.1111572, y = 9.877368, yend = 9.877368) +
+  annotate("segment", x = 34.3181, xend = 34.3181, y = 9.877368-0.2865716, yend = 9.877368+0.2865716) +
+  scale_x_continuous(limits = c(32.29, 34.43), breaks = c(33, 34)) +
+  ylim(6.716, 10.164) +
   xlab("Salinity (PSU)") +
   ylab("Temperature (°C)") +
   theme_bw() +
@@ -912,8 +970,20 @@ Oct.TvS.2 <- ggplot() +
              col = "royalblue") +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
+  # EM4
+  annotate("point", x = 32.5582, y = 18.31397) +
+  annotate("segment", x = 32.5582-0.01583919, xend = 32.5582+0.01583919, y = 18.31397, yend = 18.31397) +
+  annotate("segment", x = 32.5582, xend = 32.5582, y = 18.31397-0.1474015, yend = 18.31397+0.1474015) +
+  # EM5
+  annotate("point", x = 32.98455, y = 8.538995) +
+  annotate("segment", x = 32.98455-0.02991062, xend = 32.98455+0.02991062, y = 8.538995, yend = 8.538995) +
+  annotate("segment", x = 32.98455, xend = 32.98455, y = 8.538995-0.3136846, yend = 8.538995+0.3136846) +
+  # EM6
+  annotate("point", x = 35.49357, y = 15.75253) +
+  annotate("segment", x = 35.49357-0.1042053, xend = 35.49357+0.1042053, y = 15.75253, yend = 15.75253) +
+  annotate("segment", x = 35.49357, xend = 35.49357, y = 15.75253-0.3802984, yend = 15.75253+0.3802984) +
   xlim(31.59, 35.65) +
-  ylim(8.31, 20.7) +
+  ylim(8.22, 20.82) +
   xlab("Salinity (PSU)") +
   ylab("Temperature (°C)") +
   theme_bw() +
@@ -922,7 +992,8 @@ Oct.TvS.2 <- ggplot() +
 legend.only <- ggplot() +
   geom_point(data = may, aes(x = Salinity, y = Temp, shape = Cast, col = "May")) +
   geom_point(data = oct, aes(x = Salinity, y = Temp, shape = Cast, col = "October")) +
-  scale_shape_manual(values = c(16, 1),
+  scale_shape_manual(values = c(1, 16),
+                     breaks = c("Surface", "Bottom"),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = c("chartreuse3", "royalblue"),
                       name = "Month") +
@@ -930,7 +1001,7 @@ legend.only <- ggplot() +
          col = guide_legend(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
   theme(legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
+        legend.position = "left")
 
 theme_set(theme_minimal())
 
@@ -945,13 +1016,13 @@ plot_grid(
     May.TvS.2,
     Oct.TvS.2,
     ncol = 2, nrow = 2,
-    align = "hv",
-    labels = c("A", "B", "C", "D")),
-  plot_grid(
-    get_legend(legend.only)),
-  nrow = 3,
-  rel_heights = c(1, 24, 3)
+    align = "hv"),
+  nrow = 2,
+  rel_heights = c(1, 24)
 )
+
+plot_grid(
+    get_legend(legend.only))
 ```
 
 ### 12-panel chem parameter maps
@@ -965,9 +1036,9 @@ DIC <- ggplot() +
   scale_fill_viridis(limits = c(1930, 2155),
                      option = "plasma",
                        aesthetics = c("fill", "colour"),
-                       name = "DIC (umol/kg)") +
+                       name = expression(bold("DIC (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5)) +
   labs(title = "DIC") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
@@ -975,10 +1046,10 @@ DIC <- ggplot() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "bottom",
-        legend.key.width = unit(1.5, "cm"),
-        legend.text = element_text(angle = 45, vjust = 0.75))
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(angle = 45, vjust = 0.75, size = 10))
 
 TA <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
@@ -988,7 +1059,7 @@ TA <- ggplot() +
   scale_fill_gradientn(limits = c(2140, 2355),
                        colours = parula(100),
                        aesthetics = c("fill", "colour"),
-                       name = "TA (umol/kg)") +
+                       name = expression(bold("TA (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Total Alkalinity") +
@@ -998,10 +1069,10 @@ TA <- ggplot() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "bottom",
-        legend.key.width = unit(1.5, "cm"),
-        legend.text = element_text(angle = 45, vjust = 0.75))
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(angle = 45, vjust = 0.75, size = 10))
 
 DO <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DO), size = 0.25, colour = NA) +
@@ -1011,7 +1082,7 @@ DO <- ggplot() +
   scale_fill_gradientn(limits = c(200, 330),
                        colours = carto_pal(7, "ag_GrnYl"),
                        aesthetics = c("fill", "colour"),
-                       name = "DO (umol/kg)") +
+                       name = expression(bold("DO (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "Dissolved Oxygen") +
@@ -1021,10 +1092,10 @@ DO <- ggplot() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "bottom",
-        legend.key.width = unit(1.5, "cm"),
-        legend.text = element_text(angle = 45, vjust = 0.75))
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(angle = 45, vjust = 0.75, size = 10))
 
 DIC2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
@@ -1034,7 +1105,7 @@ DIC2 <- ggplot() +
   scale_fill_viridis(limits = c(1930, 2155),
                      option = "plasma",
                        aesthetics = c("fill", "colour"),
-                       name = "DIC (umol/kg)") +
+                       name = expression(bold("DIC (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "") +
@@ -1051,7 +1122,7 @@ TA2 <- ggplot() +
   scale_fill_gradientn(limits = c(2140, 2355),
                        colours = parula(100),
                        aesthetics = c("fill", "colour"),
-                       name = "TA (umol/kg)") +
+                       name = expression(bold("TA (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "") +
@@ -1068,7 +1139,7 @@ DO2 <- ggplot() +
   scale_fill_gradientn(limits = c(200, 330),
                        colours = carto_pal(7, "ag_GrnYl"),
                        aesthetics = c("fill", "colour"),
-                       name = "DO (umol/kg)") +
+                       name = expression(bold("DO (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom DO [May]") +
@@ -1086,7 +1157,7 @@ DICo <- ggplot() +
   scale_fill_viridis(limits = c(1930, 2155),
                      option = "plasma",
                        aesthetics = c("fill", "colour"),
-                       name = "DIC (umol/kg)") +
+                       name = expression(bold("DIC (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "DIC") +
@@ -1103,7 +1174,7 @@ TAo <- ggplot() +
   scale_fill_gradientn(limits = c(2140, 2355),
                        colours = parula(100),
                        aesthetics = c("fill", "colour"),
-                       name = "TA (umol/kg)") +
+                       name = expression(bold("TA (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Alkalinity") +
@@ -1120,7 +1191,7 @@ DOo <- ggplot() +
   scale_fill_gradientn(limits = c(200, 330),
                        colours = carto_pal(7, "ag_GrnYl"),
                        aesthetics = c("fill", "colour"),
-                       name = "DO (umol/kg)") +
+                       name = expression(bold("DO (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface DO [Oct]") +
@@ -1137,7 +1208,7 @@ DIC2o <- ggplot() +
   scale_fill_viridis(limits = c(1930, 2155),
                      option = "plasma",
                        aesthetics = c("fill", "colour"),
-                       name = "DIC (umol/kg)") +
+                       name = expression(bold("DIC (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "") +
@@ -1154,7 +1225,7 @@ TA2o <- ggplot() +
   scale_fill_gradientn(limits = c(2140, 2355),
                        colours = parula(100),
                        aesthetics = c("fill", "colour"),
-                       name = "TA (umol/kg)") +
+                       name = expression(bold("TA (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "") +
@@ -1171,7 +1242,7 @@ DO2o <- ggplot() +
   scale_fill_gradientn(limits = c(200, 330),
                        colours = carto_pal(7, "ag_GrnYl"),
                        aesthetics = c("fill", "colour"),
-                       name = "DO (umol/kg)") +
+                       name = expression(bold("DO (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom DO [Oct]") +
@@ -1207,8 +1278,8 @@ plot_grid(
     TA2o,
     DO2o,
     ncol = 3, nrow = 4,
-    align = "hv",
-    labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, bottom", "", "")),
+    align = "hv"),
+    #labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, bottom", "", "")),
   nrow = 2,
   #rel_heights = c(1, 48, 3)
   rel_heights = c(4, 48)
@@ -1235,9 +1306,10 @@ pH <- ggplot() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "bottom",
-        legend.key.width = unit(1.5, "cm"))
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(size = 10))
  
 omega <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
@@ -1256,9 +1328,10 @@ omega <- ggplot() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "bottom",
-        legend.key.width = unit(1.5, "cm"))
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(size = 10))
 
 AOU <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = AOU), size = 0.25, colour = NA) +
@@ -1269,7 +1342,7 @@ AOU <- ggplot() +
                        colours = rev(redmonder.pal(11, "dPBIRdGn")),
                        breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour"),
-                       name = "AOU (umol/kg)") +
+                       name = expression(bold("AOU (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   labs(title = "AOU") +
@@ -1279,9 +1352,10 @@ AOU <- ggplot() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "bottom",
-        legend.key.width = unit(1.5, "cm"))
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(size = 10))
 
 pH2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
@@ -1454,8 +1528,8 @@ plot_grid(
     omega2o,
     AOU2o,
     ncol = 3, nrow = 4,
-    align = "hv",
-    labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, surface", "", "")),
+    align = "hv"),
+    #labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, bottom", "", "")),
   nrow = 2,
   #rel_heights = c(1, 48, 3)
   rel_heights = c(4, 48)
@@ -1482,9 +1556,10 @@ may_pCO2 <- ggplot() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "bottom",
-        legend.key.width = unit(1.5, "cm"))
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(size = 10))
 
 may_flux <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
@@ -1492,7 +1567,7 @@ may_flux <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(-13, 13),
-                       colours = redmonder.pal(11, "dPBIPuGn"),
+                       colours = rev(redmonder.pal(11, "dPBIPuGn")),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold(CO[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1504,9 +1579,10 @@ may_flux <- ggplot() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "bottom",
-        legend.key.width = unit(1.5, "cm"))
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(size = 10))
 
 oct_pCO2 <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
@@ -1516,7 +1592,7 @@ oct_pCO2 <- ggplot() +
   scale_fill_gradientn(limits = c(280, 492),
                        colours = ocean.haline(100),
                        aesthetics = c("fill", "colour"),
-                       name = bquote(pCO[2]*" (μatm)   ")) +
+                       name = bquote(pCO[2]*" (μatm)")) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface pCO2 [Oct]") +
@@ -1531,7 +1607,7 @@ oct_flux <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(limits = c(-13, 13),
-                       colours = redmonder.pal(11, "dPBIPuGn"),
+                       colours = rev(redmonder.pal(11, "dPBIPuGn")),
                        aesthetics = c("fill", "colour"),
                        name = "CO2 flux\n(mmol m^-2 d^-1)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1560,8 +1636,8 @@ plot_grid(
     oct_pCO2,
     oct_flux,
     ncol = 2, nrow = 2,
-    align = "hv",
-    labels = c("(A) May, surface", "", "(B) Oct, surface", "")),
+    align = "hv"),
+    #labels = c("(A) May, surface", "", "(B) Oct, surface", "")),
   nrow = 2,
   #rel_heights = c(1, 3, 24)
   rel_heights = c(4, 24)
@@ -1597,7 +1673,7 @@ deltaTA.DIC <- ggplot() +
                       name = "Month",
                       guide = "none") +
   guides(shape = guide_legend(title.position = "top", title.hjust = 0.5)) +
-  labs(title = "May", x = "ΔDIC", y = "ΔTA") +
+  labs(title = "May", x = expression("ΔDIC (μmol kg"^-1*")"), y = expression("ΔTA (μmol kg"^-1*")")) +
   theme_bw() +
   theme(plot.title = element_text(face = "bold", hjust = 0.5),
         legend.title = element_text(face = "bold"),
@@ -1629,7 +1705,7 @@ deltaDO.DIC <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
-  labs(x = "ΔDIC", y = "ΔDO") +
+  labs(x = expression("ΔDIC (μmol kg"^-1*")"), y = expression("ΔDO (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.position = "none",
         axis.text = element_text(size = 9))
@@ -1658,7 +1734,7 @@ deltaDO.TA <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "chartreuse3",
                       name = "Month") +
-  labs(x = "ΔTA", y = "ΔDO") +
+  labs(x = expression("ΔTA (μmol kg"^-1*")"), y = expression("ΔDO (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.position = "none",
         axis.text = element_text(size = 9))
@@ -1688,7 +1764,7 @@ deltaTA.DICo <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
                       name = "Month") +
-  labs(title = "October", x = "ΔDIC", y = "ΔTA") +
+  labs(title = "October", x = expression("ΔDIC (μmol kg"^-1*")"), y = expression("ΔTA (μmol kg"^-1*")")) +
   theme_bw() +
   theme(plot.title = element_text(face = "bold", hjust = 0.5),
         legend.position = "none",
@@ -1718,7 +1794,7 @@ deltaDO.DICo <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
                       name = "Month") +
-  labs(x = "ΔDIC", y = "ΔDO") +
+  labs(x = expression("ΔDIC (μmol kg"^-1*")"), y = expression("ΔDO (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.position = "none",
         axis.text = element_text(size = 9))
@@ -1747,7 +1823,7 @@ deltaDO.TAo <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
                       name = "Month") +
-  labs(x = "ΔTA", y = "ΔDO") +
+  labs(x = expression("ΔTA (μmol kg"^-1*")"), y = expression("ΔDO (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.position = "none",
         axis.text = element_text(size = 9))
@@ -1765,12 +1841,12 @@ plot_grid(
     deltaDO.TA,
     deltaDO.TAo,
     ncol = 2, nrow = 3,
-    align = "hv",
-    labels = c("A", "B", "C", "D", "E", "F")),
-  plot_grid(
-    get_legend(deltaTA.DIC)),
-  nrow = 3,
-  rel_heights = c(1, 32, 3)
+    align = "hv"),
+    #labels = c("A", "B", "C", "D", "E", "F")),
+  #plot_grid(
+  #  get_legend(deltaTA.DIC)),
+  nrow = 2,
+  rel_heights = c(1, 32)
 )
 ```
 
@@ -1785,8 +1861,8 @@ dDIC <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-28, 28),
-                       breaks = c(-25, 0, 25),
+                       limits = c(-24.52, 24.52),
+                       breaks = c(-24, -12, 0, 12, 24),
                        aesthetics = c("fill", "colour"),
                        name = "ΔDIC") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1797,11 +1873,11 @@ dDIC <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(1.28, "cm"))
 
 oDICpr <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
@@ -1809,7 +1885,8 @@ oDICpr <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-25.5, 25.5), #palette = "RdBu",
+                       limits = c(-25.89, 25.89),
+                       breaks = c(-24, -12, 0, 12, 24),
                        aesthetics = c("fill", "colour"),
                        name = "Bio ") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1822,8 +1899,8 @@ oDICpr <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 oDICf <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
@@ -1831,7 +1908,7 @@ oDICf <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-1.14, 1.14), #palette = "RdBu",
+                       limits = c(-1, 1),
                        aesthetics = c("fill", "colour"),
                        name = "Flux") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1844,8 +1921,8 @@ oDICf <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 oDICo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
@@ -1853,10 +1930,10 @@ oDICo <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-33.93, 33.93), #palette = "RdBu",
-                       breaks = c(-30, -15, 0, 15, 30),
+                       limits = c(-42.62, 42.62),
+                       breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour"),
-                       name = "ε ") +
+                       name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface DIC_residual [Oct]") +
@@ -1865,10 +1942,10 @@ oDICo <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 16),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 dDIC2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
@@ -1879,7 +1956,7 @@ dDIC2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-61, 61),
+                       limits = c(-61.11, 61.11),
                        breaks = c(-60, -30, 0, 30, 60),
                        aesthetics = c("fill", "colour"),
                        name = "ΔDIC") +
@@ -1891,11 +1968,11 @@ dDIC2 <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(1.28, "cm"))
 
 oDICpr2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
@@ -1903,8 +1980,8 @@ oDICpr2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-24.5, 24.5), #palette = "RdBu",
-                       #breaks = c(-50, -25, 0, 25, 50),
+                       limits = c(-25.89, 25.89), #palette = "RdBu",
+                       breaks = c(-24, -12, 0, 12, 24),
                        aesthetics = c("fill", "colour"),
                        name = "Bio ") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1917,8 +1994,8 @@ oDICpr2 <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 oDICf2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
@@ -1926,8 +2003,7 @@ oDICf2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-0.2, 0.2), #palette = "RdBu",
-                       #breaks = c(-50, -25, 0, 25, 50),
+                       limits = c(-1, 1),
                        aesthetics = c("fill", "colour"),
                        name = "Flux") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1940,19 +2016,22 @@ oDICf2 <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 oDICo2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_v2[bottom_sf_v2$Station == "009", ],
+          fill = "grey8",
+          size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf3, aes(fill = DIC.other), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-42.51, 42.51), #palette = "RdBu",
-                       #breaks = c(-50, -25, 0, 25, 50),
+                       limits = c(-42.62, 42.62),
+                       breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour"),
-                       name = "ε ") +
+                       name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom DIC_residual [Oct]") +
@@ -1961,10 +2040,10 @@ oDICo2 <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 16),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 ```
 
 ## Same for TA
@@ -1976,7 +2055,7 @@ dTA <- ggplot() +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-36.04, 36.04),
-                       breaks = c(-30, -15, 0, 15, 30),
+                       breaks = c(-36, -18, 0, 18, 36),
                        aesthetics = c("fill", "colour"),
                        name = "ΔTA") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1987,11 +2066,11 @@ dTA <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(1.28, "cm"))
 
 TApr <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
@@ -1999,7 +2078,7 @@ TApr <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-4.09, 4.09), #palette = "RdBu",
+                       limits = c(-4.16, 4.16),
                        aesthetics = c("fill", "colour"),
                        name = "Bio") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2012,8 +2091,8 @@ TApr <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 TAo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
@@ -2021,7 +2100,7 @@ TAo <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-33.91, 33.91), #palette = "RdBu",
+                       limits = c(-33.91, 33.91),
                        breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = "ε") +
@@ -2033,10 +2112,10 @@ TAo <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 16),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(1.28, "cm"))
 
 dTA2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dTA), size = 0.25, colour = NA) +
@@ -2056,11 +2135,11 @@ dTA2 <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(1.28, "cm"))
 
 TApr2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
@@ -2068,7 +2147,7 @@ TApr2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-4.09, 4.09), #palette = "RdBu",
+                       limits = c(-4.16, 4.16),
                        aesthetics = c("fill", "colour"),
                        name = "Bio") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2081,8 +2160,8 @@ TApr2 <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 TAo2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
@@ -2090,10 +2169,10 @@ TAo2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-87.43, 87.43), #palette = "RdBu",
-                       breaks = c(-80, -40, 0, 40, 80),
+                       limits = c(-87.73, 87.73), #palette = "RdBu",
+                       breaks = c(-84, -42, 0, 42, 84),
                        aesthetics = c("fill", "colour"),
-                       name = "ε ") +
+                       name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom TA_residual [Oct]") +
@@ -2102,10 +2181,10 @@ TAo2 <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 16),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(1.28, "cm"))
 ```
 
 ## Build massive combo plot
@@ -2114,45 +2193,222 @@ theme_set(theme_minimal())
 
 plot_grid(
   plot_grid(
+    get_title(dDIC),
+    get_title(dDIC2),
+    get_title(dDIC),
+    get_title(dDIC2),
+    ncol = 4
+    ),
+  plot_grid(
     plot_grid(
-      get_title(dDIC)),
+      plot_grid(
+        get_legend(dDIC),
+        get_legend(dDIC2)
+      ),
+      plot_grid(
+        dDIC + theme(plot.title = element_blank(), legend.position = "none"),
+        dDIC2 + theme(plot.title = element_blank(), legend.position = "none"),
+        nrow = 1,
+        align = "hv"
+      ),
+      plot_grid(
+        get_legend(oDICpr)
+      ),
+      plot_grid(
+        oDICpr + theme(legend.position = "none"),
+        oDICpr2 + theme(legend.position = "none"),
+        ncol = 2
+      ),
+      plot_grid(
+        get_legend(oDICf)
+      ),
+      plot_grid(
+        oDICf + theme(legend.position = "none"),
+        oDICf2 + theme(legend.position = "none"),
+        ncol = 2,
+        align = "hv"
+      ),
+      plot_grid(
+        get_legend(oDICo)
+      ),
+      plot_grid(
+        oDICo + theme(legend.position = "none"),
+        oDICo2 + theme(legend.position = "none"),
+        ncol = 2,
+        align = "hv"
+      ),
+      nrow = 8,
+      rel_heights = c(1, 6, 1, 6, 1, 6, 1, 6)
+    ),
     plot_grid(
-      get_title(dDIC2))
+      plot_grid(
+        get_legend(dTA),
+        get_legend(dTA2)
+      ),
+      plot_grid(
+        dTA + theme(plot.title = element_blank(), legend.position = "none"),
+        dTA2 + theme(plot.title = element_blank(), legend.position = "none"),
+        nrow = 1),
+      plot_grid(
+        get_legend(TApr)
+      ),
+      plot_grid(
+        TApr + theme(legend.position = "none"),
+        TApr2 + theme(legend.position = "none"),
+        ncol = 2
+      ),
+      plot_grid(
+        get_legend(TApr + theme(legend.position = "none"))
+      ),
+      plot_grid(
+        ggplot(),
+        ggplot(),
+        ncol = 2,
+        align = "hv"),
+      plot_grid(
+        get_legend(TAo),
+        get_legend(TAo2)
+      ),
+      plot_grid(
+        TAo + theme(legend.position = "none"),
+        TAo2 + theme(legend.position = "none"),
+        ncol = 2,
+        align = "hv"),
+      nrow = 8,
+      rel_heights = c(1, 6, 1, 6, 1, 6, 1, 6)
+    ),
+    ncol = 2
+  ),
+  nrow = 2,
+  rel_heights = c(1, 24)
+)
+```
+
+## dO2 & O2 flux
+```{r}
+dDO <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = dDO), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = dDO), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-26.72, 26.72),
+                       breaks = c(-24, -12, 0, 12, 24),
+                       aesthetics = c("fill", "colour"),
+                       name = expression(bold("ΔDO (μmol kg"^-1*")"))) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "May") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
+
+O2.flux <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = flux.O2/10^3), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = flux.O2/10^3), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-137, 137),
+                       breaks = c(-120, -60, 0, 60, 120),
+                       aesthetics = c("fill", "colour"),
+                       name = expression(bold(O[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface TA_bio [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
+
+dDO2 <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = dDO), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = dDO), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-26.72, 26.72),
+                       breaks = c(-24, -12, 0, 12, 24),
+                       aesthetics = c("fill", "colour"),
+                       name = expression(bold("ΔDO (μmol kg"^-1*")"))) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  labs(title = "October") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
+
+O2.flux2 <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = flux.O2/10^3), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = flux.O2/10^3), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
+                       limits = c(-137, 137),
+                       breaks = c(-120, -60, 0, 60, 120),
+                       aesthetics = c("fill", "colour"),
+                       name = expression(bold(O[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  #labs(title = "Surface TA_bio [Oct]") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
+
+plot_grid(
+  plot_grid(
+    get_title(dDO),
+    get_title(dDO2)
   ),
   plot_grid(
     plot_grid(
-      dDIC + theme(plot.title = element_blank()),
-      oDICpr,
-      oDICf,
-      oDICo,
-      nrow = 4,
-      align = "hv",
-      labels = c("A", "B", "C", "D")),
+      get_legend(dDO)
+    ),
     plot_grid(
-      dTA + theme(plot.title = element_blank()),
-      TApr,
-      get_legend(TApr + theme(legend.position = "none")),
-      TAo,
-      nrow = 4,
-      align = "hv"),
+      dDO + theme(plot.title = element_blank(), legend.position = "none"),
+      dDO2 + theme(plot.title = element_blank(), legend.position = "none"),
+      nrow = 1,
+      align = "hv"
+    ),
     plot_grid(
-      dDIC2 + theme(plot.title = element_blank()),
-      oDICpr2,
-      oDICf2,
-      oDICo2,
-      nrow = 4,
-      align = "hv"),
+      get_legend(O2.flux)
+    ),
     plot_grid(
-      dTA2 + theme(plot.title = element_blank()),
-      TApr2,
-      get_legend(TApr + theme(legend.position = "none")),
-      TAo2,
-      nrow = 4,
-      align = "hv"),
-    ncol = 4
+      O2.flux + theme(legend.position = "none"),
+      O2.flux2 + theme(legend.position = "none"),
+      ncol = 2,
+      align = "hv"
+    ),
+    nrow = 4,
+    rel_heights = c(1, 6, 1, 6)
   ),
   nrow = 2,
-  rel_heights = c(1, 32)
+  rel_heights = c(1, 12)
 )
 ```
 
@@ -2242,7 +2498,7 @@ dDIC <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"))
 
 dTA <- ggplot() +
@@ -2297,7 +2553,7 @@ dDIC2 <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"))
 
 dTA2 <- ggplot() +
