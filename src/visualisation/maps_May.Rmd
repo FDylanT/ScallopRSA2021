@@ -74,30 +74,20 @@ GB_sf <- st_union(NLS_North, CL1_South) %>%
   st_union(NLS_SouthShallow) %>%
   st_union(CL2_AccessSouthwest) %>%
   st_union(SF_East) %>%
-  st_transform(crs = 26919)
+  st_remove_holes()
   
 #summary(GB_sf)
 ```
 
 ## Create coastline polygon
 ```{r}
+# turn off spherical geometry to avoid "duplicate vertex" errors
+sf_use_s2(FALSE)
+
 # get Massachusetts coastline
-#library(maps)
-#library(mapdata)
-library(maptools)
-
-mass <- Rgshhs("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/PBSmapping/gshhs_f.b",
-                xlim = c(286.5, 296.5), ylim = c(38, 46), level = 4)
-mass_sf <- as(mass$SP, "SpatialPolygonsDataFrame") %>%
-  st_as_sf() %>%
-  st_transform(crs = 26919)
-#st_crs(mass_sf)
-
-#ggplot() +
-#  geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
-#  coord_sf(xlim = c(371957.88, 756099.58),
-#           ylim = c(4428833.79, 4709654.16),
-#           crs = st_crs(26919))
+mass <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp") %>%
+  st_make_valid() %>%
+  st_crop(xmin = -71, xmax = -66, ymin = 40, ymax = 43)
 ```
 
 ## Update coords to fit within polygon
@@ -119,20 +109,13 @@ station_SPDF_m <- SpatialPointsDataFrame(coords = may[ , c("Long", "Lat")],
                                                         "DO", "AOU",
                                                         "pH", "fCO2", "pCO2",
                                                         "OmegaAragonite",
-                                                        "OmegaCalcite",
-                                                        "DICn", "TAn",
-                                                        "dDIC", "dTA", "dDO"
-                                                        ,"flux"
-                                                        #,"dDIC.ex", "dTA.ex"
-                                                        #,"ratio"
-                                                        #,"MLD", "MLD_frac",
+                                                        "OmegaCalcite"
+                                                        ,"DICn", "TAn"
+                                                        ,"dDIC", "dTA", "dDO"
+                                                        ,"flux", "flux.O2"
                                                         ,"DICf"
                                                         ,"DICpr", "TApr", "DOpr"
                                                         ,"DIC.other", "TA.other"
-                                                        #,"rel.DICf", "rel.DICpr"
-                                                        #,"rel.DICres"
-                                                        #,"rel.TApr","rel.TAres"
-                                                        #,"flux.O2", "DOf"
                                                         )],
                                         proj4string = CRS("EPSG:4326"))
 
@@ -766,7 +749,7 @@ ggplot() +
 
 ## Paper figures
 
-## 8-panel relative contribution maps (Oct)
+## 8-panel relative contribution maps (May)
 ```{r}
 dDIC <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
@@ -774,7 +757,7 @@ dDIC <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-40.24, 40.24),
+                       limits = c(-50.41, 50.41),
                        aesthetics = c("fill", "colour"),
                        name = "ΔDIC") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -785,11 +768,11 @@ dDIC <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 DICpr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
@@ -797,7 +780,7 @@ DICpr <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-21.7, 21.7), #palette = "RdBu",
+                       limits = c(-22.79, 22.79), #palette = "RdBu",
                        aesthetics = c("fill", "colour"),
                        name = "Bio ") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -810,8 +793,8 @@ DICpr <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 DICf <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICf), size = 0.25, colour = NA) +
@@ -832,8 +815,8 @@ DICf <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 DICo <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
@@ -841,9 +824,9 @@ DICo <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-24.73, 24.73), #palette = "RdBu",
+                       limits = c(-40.84, 40.84), #palette = "RdBu",
                        aesthetics = c("fill", "colour"),
-                       name = "ε ") +
+                       name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Surface DIC_residual [Oct]") +
@@ -852,10 +835,10 @@ DICo <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 16),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 dDIC2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
@@ -863,7 +846,7 @@ dDIC2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-40.24, 40.24),
+                       limits = c(-50.41, 50.41),
                        aesthetics = c("fill", "colour"),
                        name = "ΔDIC") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -874,11 +857,11 @@ dDIC2 <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 DICpr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
@@ -886,7 +869,7 @@ DICpr2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-21.7, 21.7), #palette = "RdBu",
+                       limits = c(-22.79, 22.79), #palette = "RdBu",
                        #breaks = c(-50, -25, 0, 25, 50),
                        aesthetics = c("fill", "colour"),
                        name = "Bio ") +
@@ -900,8 +883,8 @@ DICpr2 <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 DICf2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DICf), size = 0.25, colour = NA) +
@@ -922,8 +905,8 @@ DICf2 <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 DICo2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
@@ -931,9 +914,9 @@ DICo2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-24.73, 24.73),
+                       limits = c(-40.84, 40.84),
                        aesthetics = c("fill", "colour"),
-                       name = "ε ") +
+                       name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom DIC_residual [Oct]") +
@@ -942,10 +925,10 @@ DICo2 <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 16),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 ```
 
 ## Same for TA
@@ -956,7 +939,7 @@ dTA <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-34.2, 34.2),
+                       limits = c(-35.65, 35.65),
                        breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = "ΔTA") +
@@ -968,11 +951,11 @@ dTA <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 TApr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
@@ -980,7 +963,7 @@ TApr <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-3.5, 3.5), #palette = "RdBu",
+                       limits = c(-3.66, 3.66), #palette = "RdBu",
                        aesthetics = c("fill", "colour"),
                        name = "Bio") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -993,8 +976,8 @@ TApr <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 TAo <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
@@ -1002,8 +985,7 @@ TAo <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-33.9, 33.9), #palette = "RdBu",
-                       breaks = c(-30, -15, 0, 15, 30),
+                       limits = c(-40, 40),
                        aesthetics = c("fill", "colour"),
                        name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1014,10 +996,10 @@ TAo <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 16),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 dTA2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
@@ -1025,7 +1007,7 @@ dTA2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-34.2, 34.2),
+                       limits = c(-35.65, 35.65),
                        breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = "ΔTA") +
@@ -1037,11 +1019,11 @@ dTA2 <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 TApr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
@@ -1049,7 +1031,7 @@ TApr2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-3.5, 3.5),
+                       limits = c(-3.66, 3.66),
                        aesthetics = c("fill", "colour"),
                        name = "Bio") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -1062,8 +1044,8 @@ TApr2 <- ggplot() +
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 
 TAo2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
@@ -1071,10 +1053,9 @@ TAo2 <- ggplot() +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-33.9, 33.9),
-                       breaks = c(-30, -15, 0, 15, 30),
+                       limits = c(-40, 40),
                        aesthetics = c("fill", "colour"),
-                       name = "ε ") +
+                       name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
   #labs(title = "Bottom TA_residual [Oct]") +
@@ -1083,16 +1064,109 @@ TAo2 <- ggplot() +
   theme_bw() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 16),
+        legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
-        legend.key.height = unit(0.5, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.height = unit(0.25, "cm"),
+        legend.key.width = unit(2.65, "cm"))
 ```
 
 ## Build massive combo plot
 ```{r}
 theme_set(theme_minimal())
 
+plot_grid(
+  plot_grid(
+    get_title(dDIC),
+    get_title(dDIC2),
+    get_title(dDIC),
+    get_title(dDIC2),
+    ncol = 4
+    ),
+  plot_grid(
+    plot_grid(
+      plot_grid(
+        get_legend(dDIC)
+      ),
+      plot_grid(
+        dDIC + theme(plot.title = element_blank(), legend.position = "none"),
+        dDIC2 + theme(plot.title = element_blank(), legend.position = "none"),
+        nrow = 1,
+        align = "hv"
+      ),
+      plot_grid(
+        get_legend(DICpr)
+      ),
+      plot_grid(
+        DICpr + theme(legend.position = "none"),
+        DICpr2 + theme(legend.position = "none"),
+        ncol = 2
+      ),
+      plot_grid(
+        get_legend(DICf)
+      ),
+      plot_grid(
+        DICf + theme(legend.position = "none"),
+        DICf2 + theme(legend.position = "none"),
+        ncol = 2,
+        align = "hv"
+      ),
+      plot_grid(
+        get_legend(DICo)
+      ),
+      plot_grid(
+        DICo + theme(legend.position = "none"),
+        DICo2 + theme(legend.position = "none"),
+        ncol = 2,
+        align = "hv"
+      ),
+      nrow = 8,
+      rel_heights = c(1, 6, 1, 6, 1, 6, 1, 6)
+    ),
+    plot_grid(
+      plot_grid(
+        get_legend(dTA)
+      ),
+      plot_grid(
+        dTA + theme(plot.title = element_blank(), legend.position = "none"),
+        dTA2 + theme(plot.title = element_blank(), legend.position = "none"),
+        nrow = 1),
+      plot_grid(
+        get_legend(TApr)
+      ),
+      plot_grid(
+        TApr + theme(legend.position = "none"),
+        TApr2 + theme(legend.position = "none"),
+        ncol = 2
+      ),
+      plot_grid(
+        get_legend(TApr + theme(legend.position = "none"))
+      ),
+      plot_grid(
+        ggplot(),
+        ggplot(),
+        ncol = 2,
+        align = "hv"),
+      plot_grid(
+        get_legend(TAo)
+      ),
+      plot_grid(
+        TAo + theme(legend.position = "none"),
+        TAo2 + theme(legend.position = "none"),
+        ncol = 2,
+        align = "hv"),
+      nrow = 8,
+      rel_heights = c(1, 6, 1, 6, 1, 6, 1, 6)
+    ),
+    ncol = 2
+  ),
+  nrow = 2,
+  rel_heights = c(1, 24)
+)
+```
+
+
+## Old
+```{r}
 plot_grid(
   plot_grid(
     plot_grid(
