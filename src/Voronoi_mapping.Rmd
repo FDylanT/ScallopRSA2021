@@ -1,0 +1,339 @@
+---
+title: "Voronoi_mapping"
+author: "Dylan Titmuss"
+date: "2023-05-10"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+This script visualizes the chemistry data from the May sea scallop RSA cruise.
+Run chunks 1-5 of `chemistry_May.Rmd` to load data.
+
+## Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(numform)
+library(sf)
+library(nngeo)
+library(marmap)
+library(cowplot)
+
+# for colour scales
+library(viridis)
+library(pals)
+library(rcartocolor)
+library(Redmonder)
+library(colorspace)
+
+#setwd("~/Desktop/Repos/ScallopRSA2021")
+```
+
+## Load data
+```{r}
+may <- read.csv("./data/MayCruiseData.csv") %>%
+  rename(Lat = Latitude_degrees_start,
+         Long = Longitude_degrees_start,
+         Depth = Depth_m_CTD,
+         Temp = Temperature,
+         DO = Dissolved_oxygen) %>%
+  #select(Date, Station, Cast, Lat, Long,
+  #       Depth, Temp, Pressure, SeaPressure, Salinity,
+  #       DIC, TA, DO) %>%
+  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to stations
+```
+
+## Convert coordinates from DM to DD
+```{r}
+chd <- substr(may$Lat, 3, 3)[1]
+
+# latitude
+Lat_split_may <- str_split_fixed(may$Lat, chd, 2) %>%
+                 as.data.frame()
+Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
+                    as.numeric()
+Lat_split_may$V2 <- Lat_split_may$V2/60
+Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
+
+may$Lat <- Lat_split_may$V1 + Lat_split_may$V2
+rm(Lat_split_may)
+
+# longitude
+Long_split_may <- str_split_fixed(may$Long, chd, 2) %>%
+                  as.data.frame()
+Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
+                     as.numeric()
+Long_split_may$V2 <- Long_split_may$V2/60
+Long_split_may$V1 <- as.numeric(Long_split_may$V1)
+
+may$Long <- -(Long_split_may$V1 + Long_split_may$V2)
+rm(Long_split_may)
+rm(chd)
+```
+
+## FOR MAY ONLY: tweak certain coords to fall within polygon
+```{r}
+may <- may %>%
+  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
+         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
+         Long = ifelse(Station == "089", Long - 0.04, Long))
+```
+
+## Create simple features object of chem data
+```{r}
+# create geometry column in data frame from lat/long data
+for(i in 1:nrow(may)) {
+  may$geometry[i] <- st_point(x = c(may$Long[i], may$Lat[i])) %>%
+    st_sfc(crs = 4326)
+}
+
+# create an sf object from data frame
+station_sf <- st_sf(may, crs = 4326)
+
+bottom_sf <- station_sf %>%
+  filter(Cast == "Bottom")
+
+surface_sf <- station_sf %>%
+  filter(Cast == "Surface")
+```
+
+## Load GB shapefiles
+```{r}
+GB <- st_read("./data/2020SAMZones/GB_Estimation_Areas_2019_UTM19_PDT_SFModified.shp")
+
+# check CRS
+# st_crs(GB)   # EPSG:26919
+
+# check loaded
+ggplot() +
+  geom_sf(data = GB, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  theme_bw() +
+  theme(axis.title = element_blank())
+
+# subset shapefile to SAMs
+NLS_West <- subset(GB, NewSAMS == "NLS-West") %>%
+  fortify()
+NLS_North <- subset(GB, NewSAMS == "NLS-North") %>%
+  fortify()
+NLS_SouthShallow <- subset(GB, NewSAMS == "NLS-South-Shallow") %>%
+  fortify()
+NLS_SouthDeep <- subset(GB, NewSAMS == "NLS-South-Deep") %>%
+  fortify()
+GSC <- subset(GB, NewSAMS == "GSC") %>%
+  fortify()
+CL1_Sliver <- subset(GB, NewSAMS == "CL1-Sliver") %>%
+  fortify()
+CL1_Access <- subset(GB, NewSAMS == "CL1-Access") %>%
+  fortify()
+CL1_South <- subset(GB, NewSAMS == "CL1-South") %>%
+  fortify()
+NF <- subset(GB, NewSAMS == "NF") %>%
+  fortify()
+CL2_North <- subset(GB, NewSAMS == "CL2-North") %>%
+  fortify()
+CL2_AccessSoutheast <- subset(GB, NewSAMS == "CL2-Access-Southeast") %>%
+  fortify()
+CL2_AccessSouthwest <- subset(GB, NewSAMS == "CL2-Access-Southwest") %>%
+  fortify()
+CL2_Ext <- subset(GB, NewSAMS == "CL2-Ext") %>%
+  fortify()
+SF_East <- subset(GB, NewSAMS == "SF-East") %>%
+  fortify()
+SF <- subset(GB, NewSAMS == "SF") %>%
+  fortify()
+
+# combine polygons to create unified outline
+GB_sf <- st_union(st_geometry(NLS_West), st_geometry(NLS_North)) %>%
+  st_union(st_geometry(NLS_SouthShallow)) %>%
+  st_union(st_geometry(NLS_SouthDeep)) %>%
+  st_union(st_geometry(GSC)) %>%
+  st_union(st_geometry(CL1_Sliver)) %>%
+  st_union(st_geometry(CL1_Access)) %>%
+  st_union(st_geometry(CL1_South)) %>%
+  st_union(st_geometry(NF)) %>%
+  st_union(st_geometry(CL2_North)) %>%
+  st_union(st_geometry(CL2_AccessSoutheast)) %>%
+  st_union(st_geometry(CL2_AccessSouthwest)) %>%
+  st_union(st_geometry(CL2_Ext)) %>%
+  st_union(st_geometry(SF_East)) %>%
+  st_union(st_geometry(SF)) %>%
+  st_remove_holes() # remove false slivers between polygon borders
+
+# check loaded
+ggplot() +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  theme_bw() +
+  theme(axis.title = element_blank())
+```
+
+## Conduct nearest-neighbor interpolation (Voronoi)
+```{r}
+bottom_sf_geom <- st_union(bottom_sf) %>%
+  st_transform(crs = 26919)
+bottom_sf_v <- st_voronoi(bottom_sf_geom)
+bottom_sf_v <- st_sf(bottom_sf_v)
+
+surface_sf_geom <- st_union(surface_sf) %>%
+  st_transform(crs = 26919)
+surface_sf_v <- st_voronoi(surface_sf_geom)
+surface_sf_v <- st_sf(surface_sf_v)
+
+# mask Voronoi with contour
+bottom_sf_v <- st_intersection(st_cast(bottom_sf_v),
+                               st_union(st_buffer(GB, dist = 500)))
+bottom_sf_v <- st_sf(bottom_sf_v)
+
+#st_crs(bottom_sf_v)
+
+bottom_sf2 <- bottom_sf %>%
+  st_transform(crs = 26919)
+
+surface_sf_v <- st_intersection(st_cast(surface_sf_v),
+                                st_union(st_buffer(GB, dist = 500)))
+surface_sf_v <- st_sf(surface_sf_v)
+
+#st_crs(surface_sf_v)
+
+surface_sf2 <- surface_sf %>%
+  st_transform(crs = 26919)
+
+# complete spatial join
+bottom_sf_v2 <- st_join(bottom_sf_v, bottom_sf2)
+#glimpse(bottom_sf_v2)
+surface_sf_v2 <- st_join(surface_sf_v, surface_sf2)
+```
+
+## Create simple features objects for 3 central points
+```{r}
+bottom_sf3 <- bottom_sf2 %>%
+  filter(Station == "033" | Station == "034" | Station == "035")
+
+surface_sf3 <- surface_sf2 %>%
+  filter(Station == "033" | Station == "034" | Station == "035")
+```
+
+## Load higher-res coastline data
+```{r}
+# turn off spherical geometry to avoid "duplicate vertex" errors
+sf_use_s2(FALSE)
+
+# get Massachusetts coastline
+mass <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp") %>%
+  st_make_valid() %>%
+  st_crop(xmin = -71, xmax = -66, ymin = 40, ymax = 43)
+```
+
+## Import bathy data
+```{r}
+GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62, lat1 = 37, lat2 = 46, resolution = 1)
+
+bathy_xyz <- as.xyz(GB_bathy)
+
+# check import
+ggplot() +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               binwidth = 100, alpha = 0.4) +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.2) +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -150, alpha = 0.2) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  theme_bw() +
+  theme(axis.title = element_blank())
+```
+
+## Create interpolated map
+```{r}
+# DIC surface
+ggplot() +
+  geom_sf(data = surface_sf_v2,
+          aes(fill = DIC),
+          size = 0.25,
+          col = NA) +
+  geom_sf(data = surface_sf3,
+          aes(col = DIC),
+          size = 6,
+          shape = 18) +
+            # replace the three lines above w/ four lines below to add outline to points, for plots with diverging scales
+          #aes(fill = DIC),
+          #size = 4,
+          #shape = 23,
+          #linetype = "dashed") +
+    # next line adds GB outline, for plots with diverging scales
+  #geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, col = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, col = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, col = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", col = NA) +
+  scale_fill_gradientn(limits = c(1970, 2140),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = expression(bold("DIC (μmol kg"^-1*")"))) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "bottom",
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(angle = 45, vjust = 0.75, size = 10))
+
+# DIC bottom
+ggplot() +
+  geom_sf(data = bottom_sf_v2,
+          aes(fill = DIC),
+          size = 0.25,
+          colour = NA) +
+  geom_sf(data = bottom_sf3,
+          aes(fill = DIC),
+          size = 4,
+          shape = 23,
+          linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_gradientn(limits = c(1970, 2140),
+                       colours = parula(100),
+                       aesthetics = c("fill", "colour"),
+                       name = expression(bold("DIC (μmol kg"^-1*")"))) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(face = "bold"),
+        legend.position = "bottom",
+        legend.key.width = unit(1.7, "cm"),
+        legend.text = element_text(angle = 45, vjust = 0.75, size = 10))
+```

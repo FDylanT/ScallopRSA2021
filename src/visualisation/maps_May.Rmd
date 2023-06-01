@@ -8,18 +8,17 @@ editor_options:
 ---
 
 This script visualizes the chemistry data from the May RSA cruise.
-Run chunks 1-7 of `Chemistry_May.Rmd` to load data.
+Run chunks 1-7 of `chemistry_May.Rmd` to load data.
 
 ## Load packages
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
 
 library(tidyverse)
-library(sp)
 library(sf)
-library(viridis)
-library(RColorBrewer)
-library(pals)
+#library(viridis)
+#library(RColorBrewer)
+#library(pals)
 library(cowplot)
 ```
 
@@ -90,36 +89,16 @@ mass <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/li
   st_crop(xmin = -71, xmax = -66, ymin = 40, ymax = 43)
 ```
 
-## Update coords to fit within polygon
+## Create simple features object of chem data
 ```{r}
-may <- may %>%
-  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
-         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
-         Long = ifelse(Station == "089", Long - 0.04, Long))
-```
+# create geometry column in data frame from lat/long data
+for(i in 1:nrow(may)) {
+  may$geometry[i] <- st_point(x = c(may$Long[i], may$Lat[i])) %>%
+    st_sfc(crs = 4326)
+}
 
-## Add chem to shapefile
-```{r}
-station_SPDF_m <- SpatialPointsDataFrame(coords = may[ , c("Long", "Lat")],
-                                         data = may[ , c("Long", "Lat",
-                                                        "Station", "Cast",
-                                                        "Depth", "Temp",
-                                                        "Salinity", "Density",
-                                                        "DIC", "TA",
-                                                        "DO", "AOU",
-                                                        "pH", "fCO2", "pCO2",
-                                                        "OmegaAragonite",
-                                                        "OmegaCalcite"
-                                                        ,"DICn", "TAn"
-                                                        ,"dDIC", "dTA", "dDO"
-                                                        ,"flux", "flux.O2"
-                                                        ,"DICf"
-                                                        ,"DICpr", "TApr", "DOpr"
-                                                        ,"DIC.other", "TA.other"
-                                                        )],
-                                        proj4string = CRS("EPSG:4326"))
-
-station_sf_m <- st_as_sf(station_SPDF_m)
+# create an sf object from data frame
+station_sf_m <- st_sf(may, crs = 4326)
 
 bottom_sf_m <- station_sf_m %>%
   filter(Cast == "Bottom")
@@ -165,7 +144,7 @@ bottom_sf_m_v2 <- st_join(bottom_sf_m_v, bottom_sf_m2)
 surface_sf_m_v2 <- st_join(surface_sf_m_v, surface_sf_m2)
 ```
 
-## Create shapefiles for 3 central points
+## Create simple features objects for 3 central points
 ```{r}
 bottom_sf_m3 <- bottom_sf_m2 %>%
   filter(Station == "033" | Station == "034" | Station == "035")
@@ -753,8 +732,8 @@ ggplot() +
 ```{r}
 dDIC <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = dDIC), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = dDIC), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-50.41, 50.41),
@@ -776,8 +755,8 @@ dDIC <- ggplot() +
 
 DICpr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = DICpr), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = DICpr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-22.79, 22.79), #palette = "RdBu",
@@ -798,8 +777,8 @@ DICpr <- ggplot() +
 
 DICf <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICf), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = DICf), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = DICf), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-1, 1), #palette = "RdBu",
@@ -820,8 +799,8 @@ DICf <- ggplot() +
 
 DICo <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = DIC.other), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = DIC.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-40.84, 40.84), #palette = "RdBu",
@@ -842,8 +821,8 @@ DICo <- ggplot() +
 
 dDIC2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = dDIC), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = dDIC), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-50.41, 50.41),
@@ -865,8 +844,8 @@ dDIC2 <- ggplot() +
 
 DICpr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = DICpr), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = DICpr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-22.79, 22.79), #palette = "RdBu",
@@ -888,8 +867,8 @@ DICpr2 <- ggplot() +
 
 DICf2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DICf), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = DICf), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = DICf), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-1, 1),
@@ -910,8 +889,8 @@ DICf2 <- ggplot() +
 
 DICo2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = DIC.other), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = DIC.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-40.84, 40.84),
@@ -935,8 +914,8 @@ DICo2 <- ggplot() +
 ```{r}
 dTA <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = dTA), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = dTA), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-35.65, 35.65),
@@ -959,8 +938,8 @@ dTA <- ggplot() +
 
 TApr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = TApr), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = TApr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-3.66, 3.66), #palette = "RdBu",
@@ -981,8 +960,8 @@ TApr <- ggplot() +
 
 TAo <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = TA.other), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = TA.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-40, 40),
@@ -1003,8 +982,8 @@ TAo <- ggplot() +
 
 dTA2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = dTA), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = dTA), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-35.65, 35.65),
@@ -1027,8 +1006,8 @@ dTA2 <- ggplot() +
 
 TApr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = TApr), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = TApr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-3.66, 3.66),
@@ -1049,8 +1028,8 @@ TApr2 <- ggplot() +
 
 TAo2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = TA.other), size = 2.5, shape = 23, col = "black", linetype = "dashed") +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = TA.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-40, 40),
@@ -1307,7 +1286,7 @@ library(ggsci)
 dDIC <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = dDIC), size = 6, shape = 18) +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_gsea(limits = c(-41, 41),
   #                     colours = coolwarm(100),
@@ -1326,7 +1305,7 @@ dDIC <- ggplot() +
 dTA <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = dTA), size = 6, shape = 18) +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_gsea(limits = c(-35, 35),
                        breaks = c(-30, -15, 0, 15, 30),
@@ -1343,7 +1322,7 @@ dTA <- ggplot() +
 dDO <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dDO), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(col = dDO), size = 6, shape = 18) +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_gsea(limits = c(-28, 28),
                        breaks = c(-20, -10, 0, 10, 20),
@@ -1360,7 +1339,7 @@ dDO <- ggplot() +
 dDIC2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = dDIC), size = 6, shape = 18) +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_gsea(limits = c(-41, 41),
                        breaks = c(-40, -20, 0, 20, 40),
@@ -1378,7 +1357,7 @@ dDIC2 <- ggplot() +
 dTA2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = dTA), size = 6, shape = 18) +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_gsea(limits = c(-35, 35),
                        breaks = c(-30, -15, 0, 15, 30),
@@ -1395,7 +1374,7 @@ dTA2 <- ggplot() +
 dDO2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dDO), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(col = dDO), size = 6, shape = 18) +
-  geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass_sf, fill = "darkgrey", colour = NA) +
   scale_fill_gsea(limits = c(-28, 28),
                        breaks = c(-20, -10, 0, 10, 20),
@@ -1863,13 +1842,13 @@ ggplot(bottom_sf_m, aes(x = Long, y = Lat)) +
 ## Check polygon join
 ```{r}
 ggplot() +
-  geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5)
+  geom_sf(data = GB_sf, fill = "lightblue", size = 0.5)
 ```
 
 ## Check point placement on polygon
 ```{r}
 ggplot() +
-  geom_sf(data = GB_sf, fill = "lightblue", colour = "black", size = 0.5) +
+  geom_sf(data = GB_sf, fill = "lightblue", size = 0.5) +
   geom_point(data = bottom_sf_m, aes(x = Long, y = Lat, colour = Salinity)) +
   geom_text(data = bottom_sf_m, aes(x = Long, y = Lat, label = Station),
             hjust = 0.05, vjust = 0.05, size = 3) +

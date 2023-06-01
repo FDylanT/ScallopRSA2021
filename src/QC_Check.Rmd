@@ -18,6 +18,8 @@ library(tidyverse)
 
 ## Load RSA data
 ```{r}
+setwd("~/Desktop/Repos/ScallopRSA2021")
+
 may <- read.csv("./data/MayCruiseData.csv") %>%
   rename(Lat = Latitude_degrees_start,
          Long = Longitude_degrees_start,
@@ -52,13 +54,56 @@ Long_split_may$V1 <- as.numeric(Long_split_may$V1)
 may$Long <- -(Long_split_may$V1 + Long_split_may$V2)
 ```
 
-## Load QC'd data
+## Set region bounds
 ```{r}
-min(may$Lat)
-max(may$Lat)
-min(may$Long)
-max(may$Long)
+minLat <- min(may$Lat) - 0.5
+maxLat <- max(may$Lat) + 0.5
+minLon <- min(may$Long) - 0.5
+maxLon <- max(may$Long) + 0.5
+```
 
+## Load QC data
+```{r}
+QC <- read.csv("./data/bottle_data_DIC_prepared.csv") %>%
+  filter(!is.na(TALK),
+         Latitude >= minLat,
+         Latitude <= maxLat,
+         Longitude >= minLon,
+         Longitude <= maxLon)
+```
+
+## Prop-prop plots
+```{r}
+ggplot() +
+  geom_point(data = may, aes(x = DIC, y = TA, shape = "May 2021 cruise")) +
+  geom_point(data = oct, aes(x = DIC, y = TA, shape = "Oct 2021 cruise")) +
+  geom_point(data = QC, aes(x = DIC, y = TALK, shape = "historical data")) +
+  scale_shape_manual(values = c(1, 15, 17), name = "Data Source") +
+  theme_bw() +
+  theme(legend.title = element_text(face = "bold"),
+        legend.position = c(0.9, 0.1))
+
+ggplot(chem, aes(x = Salinity, y = Temp, col = CTD_depth, shape = Cast)) +
+  geom_point() +
+  scale_colour_viridis(option = "rocket", direction = -1) +
+  theme_bw()
+
+ggplot(chem, aes(x = Salinity, y = DIC_avg, shape = Cast)) +
+  geom_point() +
+  theme_bw()
+
+ggplot(chem, aes(x = DIC_avg, y = TA_avg, shape = Cast)) +
+  geom_point() +
+  theme_bw()
+```
+
+
+
+
+
+
+## Load QC data - NOT THIS
+```{r}
 QC <- read.csv("./data/bottle_satellite_data_clean.csv") %>%
   filter(Month == 4 | Month == 5) %>%
   filter(Latitude > 40 & Latitude < 42.5) %>%
@@ -73,25 +118,4 @@ QC <- read.csv("./data/bottle_satellite_data_clean.csv") %>%
                        ifelse(Depth_ratio > 0.80, "Bottom", NA)))
 
 QC$Cast[5] <- "Surface"
-```
-
-## Merge QC'd data with RSA data
-```{r}
-mayQC <- rbind(may, QC)
-```
-
-## Prop-prop plots
-```{r}
-ggplot(chem, aes(x = Salinity, y = Temp, col = CTD_depth, shape = Cast)) +
-  geom_point() +
-  scale_colour_viridis(option = "rocket", direction = -1) +
-  theme_bw()
-
-ggplot(chem, aes(x = Salinity, y = DIC_avg, shape = Cast)) +
-  geom_point() +
-  theme_bw()
-
-ggplot(chem, aes(x = DIC_avg, y = TA_avg, shape = Cast)) +
-  geom_point() +
-  theme_bw()
 ```

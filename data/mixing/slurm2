@@ -1,0 +1,22 @@
+#!/bin/bash
+
+#SBATCH --partition=compute
+#SBATCH --job-name="Bayesian2"
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=36
+#SBATCH --mem=8GB
+#SBATCH --time=24:00:00
+#SBATCH --output=Bayesian2.out
+cd /vortexfs1/scratch/dylan.titmuss
+
+echo "Running on node(s): $SLURM_NODELIST starting in: `pwd`"
+date
+
+module load R
+module load JAGS
+
+echo "Running Bayesian script on a single CPU core"
+
+Rscript --vanilla /vortexfs1/scratch/dylan.titmuss/Bayesian_may2.R
+
+date

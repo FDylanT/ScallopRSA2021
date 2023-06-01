@@ -20,6 +20,8 @@ library(gsw) # for AOU
 library(viridis)
 library(ncdf4)
 library(chron)
+# download MixSIAR from GitHub; latest changes not yet on CRAN
+#remotes::install_github("brianstock/MixSIAR", dependencies = T)
 library(MixSIAR)
 library(rjags)
 
@@ -191,22 +193,25 @@ may$Density <- gsw_rho(may$Salinity, may$Temp, may$SeaPressure)
 may$DO_L <- may$DO
 may$DO <- may$DO / (may$Density / 1000) # convert m^3 to L
 
-mayCarb <- carb(flag = 15,                               # 15 = ALK & DIC given
-                var1 = may$TA[!is.na(may$Temp)] / 10^6,  # in mol/kg
-                var2 = may$DIC[!is.na(may$Temp)] / 10^6, # in mol/kg
-                S = may$Salinity[!is.na(may$Temp)],
-                T = may$Temp[!is.na(may$Temp)],          # in deg C
-                Patm = may$Pressure[!is.na(may$Temp)] * 0.098692326671601,
-                                                         # in atm
-                P = may$SeaPressure[!is.na(may$Temp)] / 10,   # in bar
-                k1k2 = "l",                              # l = Lueker et al. (2000)
-                                                         # kf: unspecified b/c low temps
-                ks = "d",                                # d = Dickson (1990)
-                b = "l10")                               # l10 = Lee et al. (2010)
+# remove station 112 bottom DIC
+may$DIC[may$Station == "112" & may$Cast == "Bottom"] <- NA
+
+mayCarb <- carb(flag = 15,                                                  # 15 = ALK & DIC given
+                var1 = may$TA[!is.na(may$Temp) & !is.na(may$DIC)] / 10^6,   # in mol/kg
+                var2 = may$DIC[!is.na(may$Temp) & !is.na(may$DIC)] / 10^6,  # in mol/kg
+                S = may$Salinity[!is.na(may$Temp) & !is.na(may$DIC)],
+                T = may$Temp[!is.na(may$Temp & !is.na(may$DIC))],           # in deg C
+                Patm = may$Pressure[!is.na(may$Temp & !is.na(may$DIC))] * 0.098692326671601,
+                                                                            # in atm
+                P = may$SeaPressure[!is.na(may$Temp & !is.na(may$DIC))] / 10, # in bar
+                k1k2 = "l",                                                 # l = Lueker et al. (2000)
+                # kf: unspecified b/c low temps
+                ks = "d",                                                   # d = Dickson (1990)
+                b = "l10")                                                  # l10 = Lee et al. (2010)
 
 # combine may & carb data
 r <- 1
-for(i in c(1:10, 13:22, 25:30, 33:42, 45:58, 61:160, 163:220, 223:226)) {
+for(i in c(1:10, 13:22, 25:30, 33:42, 45:58, 61:160, 163:220, 224:226)) {
   may$pH[i] <- mayCarb$pH[r]
   may$fCO2[i] <- mayCarb$fCO2[r]
   may$pCO2[i] <- mayCarb$pCO2[r]
@@ -223,9 +228,6 @@ for(i in 1:nrow(may)) {
     may$OmegaCalcite[i] <- NA
   }
 }
-
-# remove station 112 bottom DIC
-may$DIC[may$Station == "112" & may$Cast == "Bottom"] <- NA
 ```
 
 ## Calculate AOU
@@ -385,7 +387,7 @@ err_temp_EMs3 <- sd_temp_EMs3 + temp_err3
 ```
 
 ```{r}
-summ1m <- read.table("dylan.titmuss/summary_statistics1m.txt", skip = 8) %>%
+summ1m <- read.table("data/mixing/summary_statistics1m.txt", skip = 8) %>%
   select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -528,7 +530,7 @@ err_temp_EMs7 <- sd_temp_EMs7 + temp_err7
 ```
 
 ```{r}
-summ2m <- read.table("dylan.titmuss/summary_statistics2m.txt", skip = 8) %>%
+summ2m <- read.table("data/mixing/summary_statistics2m.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)

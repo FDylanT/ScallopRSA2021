@@ -170,22 +170,6 @@ EastCoast <- ggplot() +
         plot.margin = margin(t = 3, r = 3, b = 0, l = 0),
         legend.position = "none")
 
-NLS_North <- subset(GB, NewSAMS == "NLS-North")
-CL1_South <- subset(GB, NewSAMS == "CL1-South")
-CL1_Sliver <- subset(GB, NewSAMS == "CL1-Sliver")
-CL2_AccessSoutheast <- subset(GB, NewSAMS == "CL2-Access-Southeast")
-SF <- subset(GB, NewSAMS == "SF")
-CL2_North <- subset(GB, NewSAMS == "CL2-North")
-CL1_Access <- subset(GB, NewSAMS == "CL1-Access")
-NF <- subset(GB, NewSAMS == "NF")
-CL2_Ext <- subset(GB, NewSAMS == "CL2-Ext")
-GSC <- subset(GB, NewSAMS == "GSC")
-NLS_SouthDeep <- subset(GB, NewSAMS == "NLS-South-Deep")
-NLS_West <- subset(GB, NewSAMS == "NLS-West")
-NLS_SouthShallow
-CL2_AccessSouthwest
-SF_East
-
 # zoomed in
 Georges <-
   ggplot() +
@@ -197,21 +181,6 @@ Georges <-
                                "120", "95", "75", "55", "35"),
                     name = "Depth (m)") +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  #geom_sf(data = NLS_West, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  #geom_sf(data = NLS_North, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  ##geom_sf(data = NLS_SouthShallow, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  #geom_sf(data = NLS_SouthDeep, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  ##geom_sf(data = GSC, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  geom_sf(data = CL1_Sliver, fill = "grey40", alpha = 0.4, colour = NA, linewidth = 0.4, linetype = "dashed") +
-  geom_sf(data = CL1_Access, fill = "grey40", alpha = 0.4, colour = NA, linewidth = 0.4, linetype = "dashed") +
-  geom_sf(data = CL1_South, fill = "grey40", alpha = 0.4, colour = NA, linewidth = 0.4, linetype = "dashed") +
-  ##geom_sf(data = NF, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  geom_sf(data = CL2_North, fill = "grey40", alpha = 0.4, colour = NA, linewidth = 0.4, linetype = "dashed") +
-  geom_sf(data = CL2_AccessSoutheast, fill = "grey40", alpha = 0.4, colour = NA, linewidth = 0.4, linetype = "dashed") +
-  geom_sf(data = CL2_AccessSouthwest, fill = "grey40", alpha = 0.4, colour = NA, linewidth = 0.4, linetype = "dashed") +
-  geom_sf(data = CL2_Ext, fill = "grey40", alpha = 0.4, colour = NA, linewidth = 0.4, linetype = "dashed") +
-  #geom_sf(data = SF_East, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  #geom_sf(data = SF, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
   geom_point(data = station_sf, aes(x = Long, y = Lat), shape = 17) +
   geom_sf(data = mass, fill = "darkgrey", colour = "black") +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +

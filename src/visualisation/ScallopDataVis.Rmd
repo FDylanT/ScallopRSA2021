@@ -24,7 +24,7 @@ setwd("~/Desktop/Repos/ScallopRSA2021")
 
 mayPlaco <- read.csv("./data/MayScallopData.csv") %>%
   mutate(Site = str_extract(ScallopID, "^.{3}(?=_)")) %>%
-  select(-Mus_Boat2_g, -Gon_Boat2_g, -Man_Boat2_g) %>%
+  dplyr::select(-Mus_Boat2_g, -Gon_Boat2_g, -Man_Boat2_g) %>%
   mutate(Month = "May")
 
 octPlaco <- read.csv("./data/OctScallopData.csv") %>%
@@ -55,7 +55,7 @@ oct <- read.csv("~/Desktop/Repos/ScallopRSA2021/data/OctCruiseData.csv") %>%
          Long = Longitude_degrees_start) %>%
   filter(Filtered == "",
          Cast == "Bottom") %>%
-  select(-Filtered, -DIC.TA.Ratio, -DO_sat) %>%
+  dplyr::select(-Filtered, -DIC.TA.Ratio, -DO_sat) %>%
   mutate(Tow = ifelse(is.na(Tow_start_time), "N", "Y")) %>%
   mutate(Month = "Oct") %>%
   mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to station numbers
@@ -173,6 +173,27 @@ ggplot(Placo[!is.na(Placo$OmegaAragonite), ], aes(x = ShellHt_mm, y = WetMus_g, 
   geom_point() +
   scale_colour_viridis() +
   labs(x = "Shell Height (mm)", y = "Muscle Wet Weight (g)") +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank())
+
+ggplot(Placo[!is.na(Placo$OmegaAragonite), ], aes(x = OmegaAragonite, y = WetMus_g)) +
+  geom_point() +
+  scale_colour_viridis() +
+  labs(x = "Omega", y = "Muscle Wet Weight (g)") +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank())
+
+ggplot(Placo[!is.na(Placo$OmegaAragonite), ], aes(x = OmegaAragonite, y = ShellHt_mm)) +
+  geom_point() +
+  scale_colour_viridis() +
+  labs(x = "Omega", y = "Shell Height (g)") +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank())
+
+ggplot(Placo[!is.na(Placo$OmegaAragonite), ], aes(x = OmegaAragonite, y = WetMus_g/(ShellHt_mm^3))) +
+  geom_point() +
+  scale_colour_viridis() +
+  labs(x = "Omega", y = "Condition") +
   theme_bw() +
   theme(panel.grid.major.x = element_blank())
 ```
