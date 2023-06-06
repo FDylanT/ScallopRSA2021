@@ -36,7 +36,7 @@ may <- read.csv("./data/MayCruiseData.csv") %>%
          Depth = Depth_m_CTD,
          Temp = Temperature,
          DO = Dissolved_oxygen) %>%
-    select(Date, Station, Cast, BottleID, Lat, Long,
+    select(Date, Station, Cast, Lat, Long,
          Depth, Temp, Pressure, SeaPressure, Salinity,
          DIC, TA, DO) %>%
   mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to stations
@@ -705,7 +705,7 @@ for(i in 1:nrow(may)) {
 
 ### Gas transfer velocity pt. 1: wind speeds
 ```{r}
-# sample collection: May 2-6, 2021
+# sample collection: May 2-6, 2021 GMT
 # 63-day period centered on May 4, 2021
 # Apr 3 - Jun 4
 
@@ -718,7 +718,7 @@ time <- ncvar_get(satA, "time")
 t.units <- ncatt_get(satA, "time", "units")
 
 # convert time
-t.units$value   # seconds since 1990-01-01 00:00:00
+#t.units$value   # "seconds since 1990-01-01 00:00:00"
 # chron() calculates *days* since origin
 #chron(time/60/60/24, origin = c(month = 1, day = 1, year = 1990))
 
@@ -726,15 +726,15 @@ wind_array <- ncvar_get(satA, "wind_speed")
 fillvalue <- ncatt_get(satA, "wind_speed", "_FillValue")
 wind_array[wind_array == fillvalue$value] <- NA
 
-#wind_slice <- wind_array[ , , 1]
+wind_6day <- wind_array[ , , 29:34] # 6-day period May 1-6
 #image(lon, lat, wind_slice, col = mako(40, direction = -1))
 
 wind_df_A <- data.frame(matrix(ncol = 4, nrow = 0))
 
 # fill dataframe
-for(i in 1:63) {
+for(i in 1:6) {
   lonlat <- as.matrix(expand.grid(lon, lat))
-  wind_slice <- wind_array[ , , i]
+  wind_slice <- wind_6day[ , , i]
   wind_vec <- as.vector(wind_slice)
   day_vec <- rep(i, length(wind_vec))
   wind_df_A <- rbind(wind_df_A, data.frame(cbind(day_vec, lonlat, wind_vec)))
@@ -754,15 +754,15 @@ wind_array <- ncvar_get(satB, "wind_speed")
 fillvalue <- ncatt_get(satB, "wind_speed", "_FillValue")
 wind_array[wind_array == fillvalue$value] <- NA
 
-#wind_slice <- wind_array[ , , 1]
+wind_6day <- wind_array[ , , 29:34]
 #image(lon, lat, wind_slice, col = mako(40, direction = -1))
 
 wind_df_B <- data.frame(matrix(ncol = 4, nrow = 0))
 
 # fill dataframe
-for(i in 1:63) {
+for(i in 1:6) {
   lonlat <- as.matrix(expand.grid(lon, lat))
-  wind_slice <- wind_array[ , , i]
+  wind_slice <- wind_6day[ , , i]
   wind_vec <- as.vector(wind_slice)
   day_vec <- rep(i, length(wind_vec))
   wind_df_B <- rbind(wind_df_B, data.frame(cbind(day_vec, lonlat, wind_vec)))
@@ -782,15 +782,15 @@ wind_array <- ncvar_get(satC, "wind_speed")
 fillvalue <- ncatt_get(satC, "wind_speed", "_FillValue")
 wind_array[wind_array == fillvalue$value] <- NA
 
-#wind_slice <- wind_array[ , , 1]
+wind_6day <- wind_array[ , , 29:34]
 #image(lon, lat, wind_slice, col = mako(40, direction = -1))
 
 wind_df_C <- data.frame(matrix(ncol = 4, nrow = 0))
 
 # fill dataframe
-for(i in 1:63) {
+for(i in 1:6) {
   lonlat <- as.matrix(expand.grid(lon, lat))
-  wind_slice <- wind_array[ , , i]
+  wind_slice <- wind_6day[ , , i]
   wind_vec <- as.vector(wind_slice)
   day_vec <- rep(i, length(wind_vec))
   wind_df_C <- rbind(wind_df_C, data.frame(cbind(day_vec, lonlat, wind_vec)))
