@@ -2943,6 +2943,258 @@ plot_grid(
 )
 ```
 
+## Supplement
+```{r}
+# May
+T <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = Temp), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "Temp (°C)") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  labs(title = "Temperature") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold", size = 14),
+        legend.position = "bottom",
+        legend.key.width = unit(1.7, "cm"))
+
+S <- ggplot() +
+  geom_sf(data = surface_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = Salinity), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
+                       breaks = c(32, 33, 34, 35),
+                       direction = "horizontal",
+                       aesthetics = c("fill", "colour"),
+                       name = "Salinity (PSU)") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  labs(title = "Salinity") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.title = element_text(face = "bold", size = 14),
+        legend.position = "bottom",
+        legend.key.width = unit(1.7, "cm"))
+
+T2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(fill = Temp), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "Temp (°C)      ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  #labs(title = "Temperature") +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+S2 <- ggplot() +
+  geom_sf(data = bottom_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf_m3, aes(fill = Salinity), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
+                       breaks = c(32, 35),
+                       direction = "horizontal",
+                       aesthetics = c("fill", "colour")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  #labs(title = "") +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+# October
+To <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = Temp), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "Temp (°C)      ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  #labs(title = "Surface") +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+So <- ggplot() +
+  geom_sf(data = surface_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = Salinity), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
+                       breaks = c(32, 33, 34, 35),
+                       direction = "horizontal",
+                       aesthetics = c("fill", "colour"),
+                       name = "Salinity (PSU)") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  #labs(title = "Salinity") +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+T2o <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = Temp), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
+                       aesthetics = c("fill", "colour"),
+                       name = "Temp (°C)      ") +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  #labs(title = "Bottom") +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+S2o <- ggplot() +
+  geom_sf(data = bottom_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
+  geom_sf(data = bottom_sf3, aes(fill = Salinity), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
+                       breaks = c(32, 35),
+                       direction = "horizontal",
+                       aesthetics = c("fill", "colour")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  #labs(title = "") +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none")
+
+theme_set(theme_minimal())
+
+plot_grid(
+  plot_grid(
+    get_legend(T),
+    get_legend(S),
+    nrow = 1),
+  plot_grid(
+    T + theme(plot.title = element_blank(), legend.position = "none"),
+    S + theme(plot.title = element_blank(), legend.position = "none"),
+    T2,
+    S2,
+    To,
+    So,
+    T2o,
+    S2o,
+    ncol = 2, nrow = 4,
+    align = "hv"),
+    #labels = c("A", "", "B", "", "C", "", "D", "")),
+  nrow = 2,
+  rel_heights = c(4, 48)
+)
+```
+
 ## dO2 & O2 flux
 ```{r}
 dDO <- ggplot() +
@@ -3598,171 +3850,7 @@ plot_grid(
     labels = c("A", "B", "C"))
 ```
 
-## Supplement
-```{r}
-# May
-T <- ggplot() +
-  geom_sf(data = surface_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = Temp), size = 6, shape = 18) +
-  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
-                       aesthetics = c("fill", "colour"),
-                       name = "Temp (°C)") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Temperature") +
-  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
-         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
 
-S <- ggplot() +
-  geom_sf(data = surface_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(col = Salinity), size = 6, shape = 18) +
-  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
-                       breaks = c(32, 33, 34, 35),
-                       direction = "horizontal",
-                       aesthetics = c("fill", "colour"),
-                       name = "Salinity (PSU)") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  labs(title = "Salinity") +
-  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
-         col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
-
-T2 <- ggplot() +
-  geom_sf(data = bottom_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = Temp), size = 6, shape = 18) +
-  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
-                       aesthetics = c("fill", "colour"),
-                       name = "Temp (°C)      ") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Temperature") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
-
-S2 <- ggplot() +
-  geom_sf(data = bottom_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(col = Salinity), size = 6, shape = 18) +
-  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
-                       breaks = c(32, 35),
-                       direction = "horizontal",
-                       aesthetics = c("fill", "colour")) +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
-
-# October
-To <- ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = Temp), size = 6, shape = 18) +
-  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
-                       aesthetics = c("fill", "colour"),
-                       name = "Temp (°C)      ") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Surface") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
-
-So <- ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(col = Salinity), size = 6, shape = 18) +
-  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
-                       breaks = c(32, 33, 34, 35),
-                       direction = "horizontal",
-                       aesthetics = c("fill", "colour"),
-                       name = "Salinity (PSU)") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Salinity") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
-
-T2o <- ggplot() +
-  geom_sf(data = bottom_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = Temp), size = 6, shape = 18) +
-  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
-                       aesthetics = c("fill", "colour"),
-                       name = "Temp (°C)      ") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "Bottom") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
-
-S2o <- ggplot() +
-  geom_sf(data = bottom_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(col = Salinity), size = 6, shape = 18) +
-  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
-                       breaks = c(32, 35),
-                       direction = "horizontal",
-                       aesthetics = c("fill", "colour")) +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
-  #labs(title = "") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "none")
-
-theme_set(theme_minimal())
-
-plot_grid(
-  plot_grid(
-    get_title(T),
-    get_title(S),
-    nrow = 1),
-  plot_grid(
-    T + theme(plot.title = element_blank(), legend.position = "none"),
-    S + theme(plot.title = element_blank(), legend.position = "none"),
-    T2,
-    S2,
-    To,
-    So,
-    T2o,
-    S2o,
-    ncol = 2, nrow = 4,
-    align = "hv",
-    labels = c("A", "", "B", "", "C", "", "D", "")),
-  plot_grid(
-    get_legend(T),
-    get_legend(S),
-    nrow = 1),
-  nrow = 3,
-  rel_heights = c(1, 20, 2)
-)
-```
 
 
 
