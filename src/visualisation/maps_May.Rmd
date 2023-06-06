@@ -89,6 +89,14 @@ mass <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/li
   st_crop(xmin = -71, xmax = -66, ymin = 40, ymax = 43)
 ```
 
+## *RUN ONCE* Tweak coords to fit within polygon
+```#{r}
+may <- may %>%
+  mutate(Long = ifelse(Station == "006", Long + 0.06, Long),
+         Lat = ifelse(Station == "026", Lat + 0.02, Lat),
+         Long = ifelse(Station == "089", Long - 0.04, Long))
+```
+
 ## Create simple features object of chem data
 ```{r}
 # create geometry column in data frame from lat/long data
