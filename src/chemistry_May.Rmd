@@ -200,10 +200,10 @@ mayCarb <- carb(flag = 15,                                                  # 15
                 var1 = may$TA[!is.na(may$Temp) & !is.na(may$DIC)] / 10^6,   # in mol/kg
                 var2 = may$DIC[!is.na(may$Temp) & !is.na(may$DIC)] / 10^6,  # in mol/kg
                 S = may$Salinity[!is.na(may$Temp) & !is.na(may$DIC)],
-                T = may$Temp[!is.na(may$Temp & !is.na(may$DIC))],           # in deg C
-                Patm = may$Pressure[!is.na(may$Temp & !is.na(may$DIC))] * 0.098692326671601,
+                T = may$Temp[!is.na(may$Temp) & !is.na(may$DIC)],           # in deg C
+                Patm = may$Pressure[!is.na(may$Temp) & !is.na(may$DIC)] * 0.098692326671601,
                                                                             # in atm
-                P = may$SeaPressure[!is.na(may$Temp & !is.na(may$DIC))] / 10, # in bar
+                P = may$SeaPressure[!is.na(may$Temp) & !is.na(may$DIC)] / 10, # in bar
                 k1k2 = "l",                                                 # l = Lueker et al. (2000)
                 # kf: unspecified b/c low temps
                 ks = "d",                                                   # d = Dickson (1990)
@@ -222,6 +222,12 @@ for(i in c(1:10, 13:22, 25:30, 33:42, 45:58, 61:160, 163:220, 224:226)) {
 
 for(i in 1:nrow(may)) {
   if(is.na(may$Temp[i])) {
+    may$pH[i] <- NA
+    may$pCO2[i] <- NA
+    may$OmegaAragonite[i] <- NA
+    may$OmegaCalcite[i] <- NA
+  }
+  if(is.na(may$DIC[i])) {
     may$pH[i] <- NA
     may$pCO2[i] <- NA
     may$OmegaAragonite[i] <- NA
@@ -259,7 +265,7 @@ may$AOU <- may$O2sol - may$DO
 ## Find endmember property values
 ```{r}
 # surface: 4, 72, 113 EMs
-# bottom: 1, 4, 113, + 59 EMs
+# bottom: 4, 62, 79, + 59 EMs
 
 # no data: 6, 12, 16, 22, 30, 81, 111, 114
 
@@ -408,12 +414,13 @@ for(i in 1:nrow(may)) {
      may$Station[i] != "030" &
      may$Station[i] != "081" &
      may$Station[i] != "111" &
-     may$Station[i] != "114" &
+     may$Station[i] != "114" #&
      ###
-     may$Station[i] != "058" &
-     may$Station[i] != "029" &
-     may$Station[i] != "002" &
-     may$Station[i] != "047") {
+     #may$Station[i] != "058" &
+     #may$Station[i] != "029" &
+     #may$Station[i] != "002" &
+     #may$Station[i] != "047"
+  ) {
     may$EM1[i] <- summ1m$Mean[summ1m$EM == "EM1" &
                            summ1m$Station == as.integer(may$Station[i])]
     may$EM1sd[i] <- summ1m$SD[summ1m$EM == "EM1" &
