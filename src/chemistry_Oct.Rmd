@@ -1095,6 +1095,28 @@ oct$DIC.other <- oct$DIC - oct$DICn - oct$DICpr - oct$DICf
 oct$TA.other = oct$TA - oct$TAn - oct$TApr
 ```
 
+## Look at dissolution-signal sites
+```{r}
+oct$dDIC.ex <- NA
+oct$dTA.ex <- NA
+oct$ratio <- NA
+
+for(i in 1:nrow(oct)) {
+  if(oct$Cast[i] == "Bottom" &
+     !is.na(oct$dDIC[i]) &
+     oct$dDIC[i] > median(oct$sdDICn, na.rm = TRUE) &
+     oct$dTA[i] > median(oct$sdTAn, na.rm = TRUE)) {
+    oct$dDIC.ex[i] <- oct$dDIC[i] - (oct$dDO[i] * 106/-138)
+    oct$dTA.ex[i] <- oct$dTA[i] - (oct$dDO[i] * -17/-138)
+    oct$ratio[i] <- oct$dTA.ex[i] / oct$dDIC.ex[i]
+  }
+}
+```
+
+
+
+
+
 
 
 
@@ -1762,59 +1784,7 @@ for(i in 1:nrow(oct)) {
 }
 ```
 
-## Look at dissolution-signal sites
-```{r}
-oct$dDIC.ex <- NA
-oct$dTA.ex <- NA
-oct$ratio <- NA
 
-for(i in 1:nrow(oct)) {
-  if(oct$Cast[i] == "Bottom" &
-     !is.na(oct$dDIC[i]) &
-     oct$dDIC[i] > median(oct$sdDICn, na.rm = T) &
-     oct$dTA[i] > median(oct$sdTAn, na.rm = T)) {
-    oct$dDIC.ex[i] <- oct$dDIC[i] - (oct$dDO[i] * 106/-138)
-    oct$dTA.ex[i] <- oct$dTA[i] - (oct$dDO[i] * -17/-138)
-    oct$ratio[i] <- oct$dTA.ex[i] / oct$dDIC.ex[i]
-  }
-}
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-ggplot() +
-  geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "Oct")) +
-  geom_abline(slope = 2, linetype = 2) +
-  annotate("text", x = 32, y = 56, label = "2:1 line", fontface = 4) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "royalblue",
-                      name = "Month") +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-ggplot() +
-  geom_point(aes(x = dDIC.ex, y = ratio, shape = Cast, col = "Oct")) +
-  geom_hline(yintercept = 2, linetype = 2) +
-  annotate("text", x = 30, y = 1.75, label = "TA:DIC = 2", fontface = 4) +
-  ylab("Ratio of TA excess : DIC excess") +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "royalblue",
-                      name = "Month") +
-  theme_bw()
-
-oct %>%
-  filter(Cast == "Bottom") %>%
-ggplot() +
-  geom_point(aes(x = OmegaAragonite, y = ratio, shape = Cast, col = "Oct")) +
-  ylab("Ratio of TA excess : DIC excess") +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "royalblue",
-                      name = "Month") +
-  theme_bw()
-```
 
 
 
