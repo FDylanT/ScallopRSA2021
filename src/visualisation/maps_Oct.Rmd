@@ -1677,7 +1677,7 @@ pH <- ggplot() +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_viridis(limits = c(7.85, 8.17), option = "viridis",
                      aesthetics = c("fill", "colour"),
-                     name = "pH") +
+                     name = "pH (total scale)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   labs(title = "pH") +
@@ -2077,7 +2077,9 @@ may_flux <- ggplot() +
                aes(x = V1, y = V2, z = V3),
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_gradientn(limits = c(-13, 13),
+  #scale_fill_gradientn(limits = c(-13, 13),
+  scale_fill_gradientn(limits = c(-19, 19),
+                       breaks = c(-18, -9, 0, 9, 18),
                        colours = rev(redmonder.pal(11, "dPBIPuGn")),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold(CO[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
@@ -2137,7 +2139,9 @@ oct_flux <- ggplot() +
                aes(x = V1, y = V2, z = V3),
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_gradientn(limits = c(-13, 13),
+  #scale_fill_gradientn(limits = c(-13, 13),
+  scale_fill_gradientn(limits = c(-19, 19),
+                       breaks = c(-18, -9, 0, 9, 18),
                        colours = rev(redmonder.pal(11, "dPBIPuGn")),
                        aesthetics = c("fill", "colour"),
                        name = "CO2 flux\n(mmol m^-2 d^-1)") +
@@ -2389,7 +2393,7 @@ dDIC <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-24.52, 24.52),
+                       limits = c(-24.05, 24.05),
                        breaks = c(-24, -12, 0, 12, 24),
                        aesthetics = c("fill", "colour"),
                        name = "ΔDIC") +
@@ -2423,8 +2427,7 @@ oDICpr <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-25.89, 25.89),
-                       breaks = c(-24, -12, 0, 12, 24),
+                       limits = c(-24.39, 24.39),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold("DIC"["bio"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2443,6 +2446,9 @@ oDICpr <- ggplot() +
 
 oDICf <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_v2[surface_sf_v2$Station == "009", ],
+          fill = "grey8",
+          size = 0.25, colour = NA) +
   geom_sf(data = surface_sf3, aes(fill = DICf), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
@@ -2456,7 +2462,8 @@ oDICf <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-1, 1),
+                       limits = c(-0.88, 0.88),
+                       breaks = c(-0.8, -0.4, 0, 0.4, 0.8),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold("DIC"["air-sea"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2489,7 +2496,6 @@ oDICo <- ggplot() +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-42.62, 42.62),
-                       breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour"),
                        name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2558,8 +2564,7 @@ oDICpr2 <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-25.89, 25.89), #palette = "RdBu",
-                       breaks = c(-24, -12, 0, 12, 24),
+                       limits = c(-24.39, 24.39),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold("DIC"["bio"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2591,7 +2596,8 @@ oDICf2 <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-1, 1),
+                       limits = c(-0.88, 0.88),
+                       breaks = c(-0.8, -0.4, 0, 0.4, 0.8),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold("DIC"["air-sea"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2627,7 +2633,6 @@ oDICo2 <- ggplot() +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-42.62, 42.62),
-                       breaks = c(-40, -20, 0, 20, 40),
                        aesthetics = c("fill", "colour"),
                        name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2662,8 +2667,8 @@ dTA <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-36.04, 36.04),
-                       breaks = c(-36, -18, 0, 18, 36),
+                       limits = c(-36.07, 36.07),
+                       breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = "ΔTA") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2696,7 +2701,7 @@ TApr <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-4.16, 4.16),
+                       limits = c(-4.05, 4.05),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold("TA"["bio"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2728,7 +2733,7 @@ TAo <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-33.91, 33.91),
+                       limits = c(-34.02, 34.02),
                        breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = "ε") +
@@ -2761,7 +2766,7 @@ dTA2 <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-84.14, 84.14),
+                       limits = c(-84.43, 84.43),
                        breaks = c(-80, -40, 0, 40, 80),
                        aesthetics = c("fill", "colour"),
                        name = "ΔTA") +
@@ -2795,7 +2800,7 @@ TApr2 <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-4.16, 4.16),
+                       limits = c(-4.05, 4.05),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold("TA"["bio"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -3195,25 +3200,66 @@ plot_grid(
 )
 ```
 
+## excess TA-DIC dissolution
+```{r}
+lm(oct$dTA.ex ~ oct$dDIC.ex)
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+ggplot() +
+  geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "Oct"), shape = 1, size = 2) +
+  geom_smooth(aes(x = dDIC.ex, y = dTA.ex), method = "lm", col = "royalblue", fill = "royalblue", alpha = 0.25) +
+  geom_abline(slope = 2, linetype = 2) +
+  annotate("text", x = 19, y = 56.5, label = "y = 2.042x + 2.63", fontface = 4, col = "royalblue") +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "royalblue",
+                      name = "Month") +
+  labs(x = "Excess DIC", y = "Excess TA") +
+  theme_bw() +
+  theme(legend.position = "none")
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+ggplot() +
+  geom_point(aes(x = OmegaAragonite, y = ratio, shape = Cast, col = "Oct")) +
+  ylab("Ratio of TA excess : DIC excess") +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "royalblue",
+                      name = "Month") +
+  theme_bw()
+```
+
 ## dO2 & O2 flux
 ```{r}
 dDO <- ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = dDO), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = dDO), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m_v2, aes(fill = dDO), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = dDO), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-26.72, 26.72),
-                       breaks = c(-24, -12, 0, 12, 24),
+                       limits = c(-31.75, 31.75),
+                       breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold("ΔDO (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   labs(title = "May") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
@@ -3222,22 +3268,32 @@ dDO <- ggplot() +
         legend.key.width = unit(2.65, "cm"))
 
 O2.flux <- ggplot() +
-  geom_sf(data = surface_sf_v2, aes(fill = flux.O2/10^3), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = flux.O2/10^3), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m_v2, aes(fill = flux.O2/10^3), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m3, aes(fill = flux.O2/10^3), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-137, 137),
-                       breaks = c(-120, -60, 0, 60, 120),
+                       limits = c(-151, 151),
+                       breaks = c(-150, -75, 0, 75, 150),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold(O[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface TA_bio [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
@@ -3245,22 +3301,32 @@ O2.flux <- ggplot() +
         legend.key.width = unit(2.65, "cm"))
 
 dDO2 <- ggplot() +
-  geom_sf(data = surface_sf_m_v2, aes(fill = dDO), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = dDO), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_v2, aes(fill = dDO), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = dDO), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-26.72, 26.72),
-                       breaks = c(-24, -12, 0, 12, 24),
+                       limits = c(-31.75, 31.75),
+                       breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold("ΔDO (μmol kg"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   labs(title = "October") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
@@ -3269,22 +3335,32 @@ dDO2 <- ggplot() +
         legend.key.width = unit(2.65, "cm"))
 
 O2.flux2 <- ggplot() +
-  geom_sf(data = surface_sf_m_v2, aes(fill = flux.O2/10^3), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = flux.O2/10^3), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_v2, aes(fill = flux.O2/10^3), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf3, aes(fill = flux.O2/10^3), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-137, 137),
-                       breaks = c(-120, -60, 0, 60, 120),
+                       limits = c(-151, 151),
+                       breaks = c(-150, -75, 0, 75, 150),
                        aesthetics = c("fill", "colour"),
                        name = expression(bold(O[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface TA_bio [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
@@ -3322,6 +3398,15 @@ plot_grid(
   rel_heights = c(1, 12)
 )
 ```
+
+
+
+
+
+
+
+
+
 
 ## DIC & TA solo plots
 ```{r}
