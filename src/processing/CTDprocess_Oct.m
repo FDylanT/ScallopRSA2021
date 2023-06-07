@@ -353,8 +353,8 @@ stations3 = {'69', '70', '71', '72', '76', '77', '78', '73', '74', '79', '75', '
 oct3down = RSKaddstationdata(oct3down, 'profile', profiles3, 'station', stations3);
 
 %% Plot end-member profiles
-% surface EMs: 9, 113, 30, + 5
-% bottom EMs: 21, 33, 53
+% surface EMs: 9, 43, 91, + 3
+% bottom EMs: 21, 33, 76
 
 stations1(22)
 profiles1(22)
@@ -363,13 +363,13 @@ profiles1(22)
 figure
 channel = {'temperature', 'salinity', 'dissolved O2'};
 h = RSKplotprofiles(oct1down, 'profile', 9, 'channel', channel); % 009
-j = RSKplotprofiles(oct2down, 'profile', 7, 'channel', channel); % 030
-k = RSKplotprofiles(oct3down, 'profile', 49, 'channel', channel); % 113
-l = RSKplotprofiles(oct1down, 'profile', 4, 'channel', channel); % 005
-set(h, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
-set(j, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
-set(k, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
-set(l, 'linewidth', 3, 'linestyle', ':', 'color', '#4169E1')
+j = RSKplotprofiles(oct2down, 'profile', 20, 'channel', channel); % 043
+k = RSKplotprofiles(oct3down, 'profile', 25, 'channel', channel); % 091
+l = RSKplotprofiles(oct1down, 'profile', 3, 'channel', channel); % 003
+set(h, 'linewidth', 3, 'linestyle', ':', 'color', '#009ACD')
+set(j, 'linewidth', 3, 'linestyle', ':', 'color', '#009ACD')
+set(k, 'linewidth', 3, 'linestyle', ':', 'color', '#009ACD')
+set(l, 'linewidth', 3, 'linestyle', ':', 'color', '#009ACD')
 
 % bottom
 figure
@@ -377,11 +377,11 @@ channel = {'temperature', 'salinity', 'dissolved O2'};
 h = RSKplotprofiles(oct1down, 'profile', 22, 'channel', channel); % 021
 j = RSKplotprofiles(oct2down, 'profile', 12, 'channel', channel); % 033
 k = RSKplotprofiles(oct2up, 'profile', 12, 'channel', channel); % 033
-l = RSKplotprofiles(oct2down, 'profile', 34, 'channel', channel); % 053
-set(h, 'linewidth', 3, 'color', '#4169E1')
-set(j, 'linewidth', 3, 'color', '#4169E1')
-set(k, 'linewidth', 3, 'color', '#4169E1')
-set(l, 'linewidth', 3, 'color', '#4169E1')
+l = RSKplotprofiles(oct3down, 'profile', 5, 'channel', channel); % 076
+set(h, 'linewidth', 3, 'color', '#009ACD')
+set(j, 'linewidth', 3, 'color', '#009ACD')
+set(k, 'linewidth', 3, 'color', '#009ACD')
+set(l, 'linewidth', 3, 'color', '#009ACD')
 
 %% Check indiv profile
 
