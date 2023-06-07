@@ -742,18 +742,28 @@ dDIC <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(fill = dDIC), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-50.41, 50.41),
+                       limits = c(-50.62, 50.62),
                        aesthetics = c("fill", "colour"),
                        name = "ΔDIC") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   labs(title = "Surface") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
@@ -763,20 +773,33 @@ dDIC <- ggplot() +
 
 DICpr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m_v2[surface_sf_m_v2$Station == "096", ],
+          fill = "grey8",
+          size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(fill = DICpr), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-22.79, 22.79), #palette = "RdBu",
+                       limits = c(-24.58, 24.58),
                        aesthetics = c("fill", "colour"),
                        name = "Bio ") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface DIC_bio [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
@@ -785,20 +808,34 @@ DICpr <- ggplot() +
 
 DICf <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICf), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m_v2[(surface_sf_m_v2$Station == "037" | surface_sf_m_v2$Station == "089" | surface_sf_m_v2$Station == "096"), ],
+          fill = "grey8",
+          size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(fill = DICf), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-1, 1), #palette = "RdBu",
+                       limits = c(-1.55, 1.55),
+                       breaks = c(-1.4, -0.7, 0, 0.7, 1.4),
                        aesthetics = c("fill", "colour"),
                        name = "Flux") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface DIC_flux [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
@@ -809,18 +846,28 @@ DICo <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(fill = DIC.other), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-40.84, 40.84), #palette = "RdBu",
+                       limits = c(-40.83, 40.83),
                        aesthetics = c("fill", "colour"),
                        name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface DIC_residual [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
@@ -831,18 +878,28 @@ dDIC2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(fill = dDIC), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-50.41, 50.41),
+                       limits = c(-50.62, 50.62),
                        aesthetics = c("fill", "colour"),
                        name = "ΔDIC") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   labs(title = "Bottom") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
@@ -854,19 +911,29 @@ DICpr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(fill = DICpr), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-22.79, 22.79), #palette = "RdBu",
-                       #breaks = c(-50, -25, 0, 25, 50),
+                       limits = c(-24.58, 24.58),
+                       breaks = c(-50, -25, 0, 25, 50),
                        aesthetics = c("fill", "colour"),
                        name = "Bio ") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Bottom DIC_bio [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
@@ -877,18 +944,29 @@ DICf2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DICf), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(fill = DICf), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-1, 1),
+                       limits = c(-1.55, 1.55),
+                       breaks = c(-1.4, -0.7, 0, 0.7, 1.4),
                        aesthetics = c("fill", "colour"),
-                       name = "Flux") +
+                       name = expression(bold("DIC"["air-sea"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Bottom DIC_flux [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
@@ -899,18 +977,28 @@ DICo2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(fill = DIC.other), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-40.84, 40.84),
+                       limits = c(-40.83, 40.83),
                        aesthetics = c("fill", "colour"),
                        name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Bottom DIC_residual [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
@@ -924,19 +1012,29 @@ dTA <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(fill = dTA), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-35.65, 35.65),
+                       limits = c(-34.93, 34.93),
                        breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = "ΔTA") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   labs(title = "Surface") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
@@ -946,20 +1044,33 @@ dTA <- ggplot() +
 
 TApr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
+  geom_sf(data = surface_sf_m_v2[surface_sf_m_v2$Station == "096", ],
+          fill = "grey8",
+          size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(fill = TApr), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-3.66, 3.66), #palette = "RdBu",
+                       limits = c(-4.05, 4.05),
                        aesthetics = c("fill", "colour"),
                        name = "Bio") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface TA_bio [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
@@ -970,18 +1081,29 @@ TAo <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m3, aes(fill = TA.other), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-40, 40),
+                       limits = c(-38.51, 38.51),
+                       breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface TA_residual [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
@@ -992,19 +1114,29 @@ dTA2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(fill = dTA), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-35.65, 35.65),
+                       limits = c(-34.93, 34.93),
                        breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = "ΔTA") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   labs(title = "Bottom") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold.italic", hjust = 0.5),
         legend.title = element_text(face = "bold"),
@@ -1016,18 +1148,28 @@ TApr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(fill = TApr), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-3.66, 3.66),
+                       limits = c(-4.05, 4.05),
                        aesthetics = c("fill", "colour"),
                        name = "Bio") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Bottom TA_bio [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold"),
         legend.position = "top",
@@ -1038,18 +1180,29 @@ TAo2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_m3, aes(fill = TA.other), size = 2.5, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
-                       limits = c(-40, 40),
+                       limits = c(-38.51, 38.51),
+                       breaks = c(-30, -15, 0, 15, 30),
                        aesthetics = c("fill", "colour"),
                        name = "ε") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(371957.88, 746508.34), ylim = c(4428833.79, 4709654.16)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Bottom TA_residual [Oct]") +
   guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5),
          col = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
   theme_bw() +
-  theme(axis.text = element_blank(),
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.title = element_text(face = "bold", size = 14),
         legend.position = "top",
