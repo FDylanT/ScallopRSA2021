@@ -40,10 +40,10 @@ oct3down = RSKderivesigma(oct3down);
 RSKprintchannels(oct1down);
 
 % trim surface 2m
-oct1down = RSKtrim(oct1down, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
-oct2down = RSKtrim(oct2down, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
-oct2up = RSKtrim(oct2up, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
-oct3down = RSKtrim(oct3down, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
+%oct1down = RSKtrim(oct1down, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
+%oct2down = RSKtrim(oct2down, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
+%oct2up = RSKtrim(oct2up, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
+%oct3down = RSKtrim(oct3down, 'reference', 'depth', 'range', [0 2], 'action', 'remove');
 
 stations = cell(111, 1);
 MLtemp = NaN(111, 1);
@@ -62,18 +62,18 @@ for i = 1:21
     cond = oct1down.data(p).values(index, 1);
     depth = oct1down.data(p).values(index, 7);
     temp = oct1down.data(p).values(index, 2);
-    sigma = oct1down.data(p).values(index, 9);
+    sigma = oct1down.data(p).values(index, 10);
     surfSigma = sigma;
-    while abs(surfSigma - sigma) < 0.03
+    while abs(surfSigma - sigma) < 0.125
         index = index + 1;
         if index > length(oct1down.data(p).values)
             break
         end
-        if isnan(oct1down.data(p).values(index, 9)) || isnan(oct1down.data(p).values(index, 7))
+        if isnan(oct1down.data(p).values(index, 10)) || isnan(oct1down.data(p).values(index, 7))
             continue
         end
         temp = oct1down.data(p).values(index, 2);
-        sigma = oct1down.data(p).values(index, 9);
+        sigma = oct1down.data(p).values(index, 10);
         depth = oct1down.data(p).values(index, 7);
     end
     surfaceCond(i) = cond;
@@ -91,18 +91,18 @@ for i = [1:11, 13:45] % skip 12; no downcast surface data
     cond = oct2down.data(p).values(index, 1);
     depth = oct2down.data(p).values(index, 7);
     temp = oct2down.data(p).values(index, 2);
-    sigma = oct2down.data(p).values(index, 9);
+    sigma = oct2down.data(p).values(index, 10);
     surfSigma = sigma;
-    while abs(surfSigma - sigma) < 0.03
+    while abs(surfSigma - sigma) < 0.125
         index = index + 1;
         if index > length(oct2down.data(p).values)
             break
         end
-        if isnan(oct2down.data(p).values(index, 9)) || isnan(oct2down.data(p).values(index, 7))
+        if isnan(oct2down.data(p).values(index, 10)) || isnan(oct2down.data(p).values(index, 7))
             continue
         end
         temp = oct2down.data(p).values(index, 2);
-        sigma = oct2down.data(p).values(index, 9);
+        sigma = oct2down.data(p).values(index, 10);
         depth = oct2down.data(p).values(index, 7);
     end
     surfaceCond(k) = cond;
@@ -120,18 +120,18 @@ index = find(oct2up.data(p).values(:, 1) > 38, 1, 'last');
 cond = oct2up.data(p).values(index, 1);
 depth = oct2up.data(p).values(index, 7);
 temp = oct2up.data(p).values(index, 2);
-sigma = oct2up.data(p).values(index, 9);
+sigma = oct2up.data(p).values(index, 10);
 surfSigma = sigma;
-while abs(surfSigma - sigma) < 0.03
+while abs(surfSigma - sigma) < 0.125
     index = index + 1;
     if index > length(oct2up.data(p).values)
         break
     end
-    if isnan(oct2up.data(p).values(index, 9)) || isnan(oct2up.data(p).values(index, 7))
+    if isnan(oct2up.data(p).values(index, 10)) || isnan(oct2up.data(p).values(index, 7))
         continue
     end
     temp = oct2up.data(p).values(index, 2);
-    sigma = oct2up.data(p).values(index, 9);
+    sigma = oct2up.data(p).values(index, 10);
     depth = oct2up.data(p).values(index, 7);
 end
 surfaceCond(k) = cond;
@@ -148,18 +148,18 @@ for i = 1:45
     cond = oct3down.data(p).values(index, 1);
     depth = oct3down.data(p).values(index, 7);
     temp = oct3down.data(p).values(index, 2);
-    sigma = oct3down.data(p).values(index, 9);
+    sigma = oct3down.data(p).values(index, 10);
     surfSigma = sigma;
-    while abs(surfSigma - sigma) < 0.03
+    while abs(surfSigma - sigma) < 0.125
         index = index + 1;
         if index > length(oct3down.data(p).values)
             break
         end
-        if isnan(oct3down.data(p).values(index, 9)) || isnan(oct3down.data(p).values(index, 7))
+        if isnan(oct3down.data(p).values(index, 10)) || isnan(oct3down.data(p).values(index, 7))
             continue
         end
         temp = oct3down.data(p).values(index, 2);
-        sigma = oct3down.data(p).values(index, 9);
+        sigma = oct3down.data(p).values(index, 10);
         depth = oct3down.data(p).values(index, 7);
     end
     surfaceCond(k) = cond;
@@ -182,7 +182,7 @@ writetable(oct_MLD, "data/CTD/oct_MLD.csv");
 
 %% Calculate May MLDs
 
-% run CTDprocess_May.m through line 122; remove loops causes issues
+% run CTDprocess_May.m through line 122; then derive sigmas; then bin-average
 
 % Hofmann 2008:
 % depth at which temp change from surface is 0.5°C
@@ -204,14 +204,14 @@ may2down = RSKderivesigma(may2down);
 
 RSKprintchannels(may1down);
 
-may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [-1 2], 'action', 'remove');
+%may1down = RSKtrim(may1down, 'reference', 'depth', 'range', [-1 2], 'action', 'remove');
 % remove an extra meter from this one; ~2.5m conductivity spike
-may1down = RSKtrim(may1down, 'reference', 'depth', 'profile', profiles1(35), 'range', [2 3], 'action', 'remove');
+%may1down = RSKtrim(may1down, 'reference', 'depth', 'profile', profiles1(35), 'range', [2 3], 'action', 'remove');
 
 %RSKplotprofiles(may1down, 'profile', profiles1(35), 'channel', {'temperature', 'conductivity'});
 %RSKplotprofiles(may1down, 'profile', profiles1([52, 56:58]), 'channel', {'temperature', 'conductivity'});
 
-may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [-1 2], 'action', 'remove');
+%may2down = RSKtrim(may2down, 'reference', 'depth', 'range', [-1 2], 'action', 'remove');
 
 %RSKplotprofiles(may1down, 'profile', profiles1, 'channel', {'temperature', 'conductivity'});
 
@@ -230,18 +230,22 @@ for i = 1:58
     cond = may1down.data(p).values(index, 1);
     depth = may1down.data(p).values(index, 7);
     temp = may1down.data(p).values(index, 2);
-    sigma = may1down.data(p).values(index, 12);
+    sigma = may1down.data(p).values(index, 13);
     surfSigma = sigma;
-    while abs(surfSigma - sigma) < 0.03
+    %surfTemp = temp;
+    %while abs(surfSigma - sigma) < 0.03
+    while abs(surfSigma - sigma) < 0.125
+    %while abs(surfTemp - temp) < 0.5
         index = index + 1;
         if index > length(may1down.data(p).values)
             break
         end
-        if isnan(may1down.data(p).values(index, 12)) || isnan(may1down.data(p).values(index, 7))
+        if isnan(may1down.data(p).values(index, 13)) || isnan(may1down.data(p).values(index, 7))
+        %if isnan(may1down.data(p).values(index, 2)) || isnan(may1down.data(p).values(index, 7))
             continue
         end
         temp = may1down.data(p).values(index, 2);
-        sigma = may1down.data(p).values(index, 12);
+        sigma = may1down.data(p).values(index, 13);
         depth = may1down.data(p).values(index, 7);
     end
     surfaceCond(i) = cond;
@@ -259,18 +263,22 @@ for i = 1:48
     cond = may2down.data(p).values(index, 1);
     depth = may2down.data(p).values(index, 7);
     temp = may2down.data(p).values(index, 2);
-    sigma = may2down.data(p).values(index, 12);
+    sigma = may2down.data(p).values(index, 13);
     surfSigma = sigma;
-    while abs(surfSigma - sigma) < 0.03
+    %surfTemp = temp;
+    %while abs(surfSigma - sigma) < 0.03
+    while abs(surfSigma - sigma) < 0.125
+    %while abs(surfTemp - temp) < 0.5
         index = index + 1;
         if index > length(may2down.data(p).values)
             break
         end
-        if isnan(may2down.data(p).values(index, 12)) || isnan(may2down.data(p).values(index, 7))
+        if isnan(may2down.data(p).values(index, 13)) || isnan(may2down.data(p).values(index, 7))
+        %if isnan(may2down.data(p).values(index, 2)) || isnan(may2down.data(p).values(index, 7))
             continue
         end
         temp = may2down.data(p).values(index, 2);
-        sigma = may2down.data(p).values(index, 12);
+        sigma = may2down.data(p).values(index, 13);
         depth = may2down.data(p).values(index, 7);
     end
     surfaceCond(k) = cond;
