@@ -366,10 +366,10 @@ h = RSKplotprofiles(oct1down, 'profile', 9, 'channel', channel); % 009
 j = RSKplotprofiles(oct2down, 'profile', 20, 'channel', channel); % 043
 k = RSKplotprofiles(oct3down, 'profile', 25, 'channel', channel); % 091
 l = RSKplotprofiles(oct1down, 'profile', 3, 'channel', channel); % 003
-set(h, 'linewidth', 3, 'linestyle', ':', 'color', '#009ACD')
-set(j, 'linewidth', 3, 'linestyle', ':', 'color', '#009ACD')
-set(k, 'linewidth', 3, 'linestyle', ':', 'color', '#009ACD')
-set(l, 'linewidth', 3, 'linestyle', ':', 'color', '#009ACD')
+set(h, 'linewidth', 3, 'linestyle', ':', 'color', 'black')
+set(j, 'linewidth', 3, 'linestyle', ':', 'color', 'black')
+set(k, 'linewidth', 3, 'linestyle', ':', 'color', 'black')
+set(l, 'linewidth', 3, 'linestyle', ':', 'color', 'black')
 
 % bottom
 figure
@@ -378,10 +378,10 @@ h = RSKplotprofiles(oct1down, 'profile', 22, 'channel', channel); % 021
 j = RSKplotprofiles(oct2down, 'profile', 12, 'channel', channel); % 033
 k = RSKplotprofiles(oct2up, 'profile', 12, 'channel', channel); % 033
 l = RSKplotprofiles(oct3down, 'profile', 5, 'channel', channel); % 076
-set(h, 'linewidth', 3, 'color', '#009ACD')
-set(j, 'linewidth', 3, 'color', '#009ACD')
-set(k, 'linewidth', 3, 'color', '#009ACD')
-set(l, 'linewidth', 3, 'color', '#009ACD')
+set(h, 'linewidth', 3, 'color', 'black')
+set(j, 'linewidth', 3, 'color', 'black')
+set(k, 'linewidth', 3, 'color', 'black')
+set(l, 'linewidth', 3, 'color', 'black')
 
 %% Check indiv profile
 
