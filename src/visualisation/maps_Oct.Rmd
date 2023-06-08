@@ -2966,6 +2966,7 @@ T <- ggplot() +
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
   scale_fill_distiller(limits = c(6.7, 20.7), palette = "YlGnBu",
+                       breaks = c(8, 12, 16, 20),
                        aesthetics = c("fill", "colour"),
                        name = "Temp (°C)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -2996,9 +2997,9 @@ S <- ggplot() +
                aes(x = V1, y = V2, z = V3),
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
+  scale_fill_gradientn(limits = c(31.5, 35.7),
+                       colours = parula(100),
                        breaks = c(32, 33, 34, 35),
-                       direction = "horizontal",
                        aesthetics = c("fill", "colour"),
                        name = "Salinity (PSU)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -3055,10 +3056,11 @@ S2 <- ggplot() +
                aes(x = V1, y = V2, z = V3),
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
-                       breaks = c(32, 35),
-                       direction = "horizontal",
-                       aesthetics = c("fill", "colour")) +
+  scale_fill_gradientn(limits = c(31.5, 35.7),
+                       colours = parula(100),
+                       breaks = c(32, 33, 34, 35),
+                       aesthetics = c("fill", "colour"),
+                       name = "Salinity (PSU)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "") +
@@ -3109,9 +3111,9 @@ So <- ggplot() +
                aes(x = V1, y = V2, z = V3),
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
+  scale_fill_gradientn(limits = c(31.5, 35.7),
+                       colours = parula(100),
                        breaks = c(32, 33, 34, 35),
-                       direction = "horizontal",
                        aesthetics = c("fill", "colour"),
                        name = "Salinity (PSU)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
@@ -3163,10 +3165,11 @@ S2o <- ggplot() +
                aes(x = V1, y = V2, z = V3),
                breaks = -500, alpha = 0.3, colour = "grey50") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_fill_distiller(limits = c(31.5, 35.7), palette = "OrRd",
-                       breaks = c(32, 35),
-                       direction = "horizontal",
-                       aesthetics = c("fill", "colour")) +
+  scale_fill_gradientn(limits = c(31.5, 35.7),
+                       colours = parula(100),
+                       breaks = c(32, 33, 34, 35),
+                       aesthetics = c("fill", "colour"),
+                       name = "Salinity (PSU)") +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "") +
@@ -3210,7 +3213,7 @@ ggplot() +
   geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "Oct"), shape = 1, size = 2) +
   geom_smooth(aes(x = dDIC.ex, y = dTA.ex), method = "lm", col = "royalblue", fill = "royalblue", alpha = 0.25) +
   geom_abline(slope = 2, linetype = 2) +
-  annotate("text", x = 19, y = 56.5, label = "y = 2.042x + 2.63", fontface = 4, col = "royalblue") +
+  annotate("text", x = 32, y = 92, label = "y = 2.042x + 2.63", fontface = 4, col = "royalblue", size = 6) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
