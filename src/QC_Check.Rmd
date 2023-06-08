@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load packages
 ```{r}
 library(tidyverse)
+library(numform)
 library(sf)
 ```
 
@@ -86,7 +87,7 @@ ggplot() +
   geom_point(data = may, aes(x = DIC, y = TA, shape = "May 2021 cruise", col = "May 2021 cruise")) +
   geom_point(data = oct, aes(x = DIC, y = TA, shape = "Oct 2021 cruise", col = "Oct 2021 cruise")) +
   scale_shape_manual(values = c(1, 2, 3), name = "Data Source") +
-  scale_colour_manual(values = c("black", "chartreuse3", "deepskyblue3"), name = "Data Source") +
+  scale_colour_manual(values = c("black", "coral", "royalblue"), name = "Data Source") +
   labs(x = expression("DIC (μmol kg"^-1*")"), y = expression("TA (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.title = element_text(face = "bold"),
