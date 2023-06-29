@@ -791,7 +791,7 @@ DICpr <- ggplot() +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-24.58, 24.58),
                        aesthetics = c("fill", "colour"),
-                       name = "Bio ") +
+                       name = expression(bold("DIC"["bio"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface DIC_bio [Oct]") +
@@ -827,7 +827,7 @@ DICf <- ggplot() +
                        limits = c(-1.55, 1.55),
                        breaks = c(-1.4, -0.7, 0, 0.7, 1.4),
                        aesthetics = c("fill", "colour"),
-                       name = "Flux") +
+                       name = expression(bold("DIC"["air-sea"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface DIC_flux [Oct]") +
