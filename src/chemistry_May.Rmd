@@ -270,12 +270,12 @@ may$AOU <- may$O2sol - may$DO
 # no data: 6, 12, 16, 22, 30, 81, 111, 114
 
 # surface EMs
-EM1 <- which(may$Station == "004" & may$Cast == "Surface")
-EM2 <- which(may$Station == "072" & may$Cast == "Surface")
-EM3 <- which(may$Station == "113" & may$Cast == "Surface")
+EM1 <- which(may$Station == "004" & may$Cast == "Surface") # GoM
+EM2 <- which(may$Station == "072" & may$Cast == "Surface") # Labrador
+EM3 <- which(may$Station == "113" & may$Cast == "Surface") # OCCC
 
 # bottom EMs
-EM4 <- which(may$Station == "062" & may$Cast == "Bottom") # already-in-GB water
+EM4 <- which(may$Station == "062" & may$Cast == "Bottom") # Labrador
 EM5 <- which(may$Station == "079" & may$Cast == "Bottom") # central water
 EM6 <- which(may$Station == "004" & may$Cast == "Bottom") # GoM water (046, 048)
 EM7 <- which(may$Station == "059" & may$Cast == "Bottom") # slope water
@@ -1140,11 +1140,6 @@ may$DIC.other <- may$DIC - may$DICn - may$DICf - may$DICpr
 may$TA.other = may$TA - may$TAn - may$TApr
 ```
 
-
-
-
-
-
 ## Look at unique-signal sites
 ```{r}
 may$dDIC.ex <- NA
@@ -1154,8 +1149,8 @@ may$ratio <- NA
 for(i in 1:nrow(may)) {
   if(may$Cast[i] == "Bottom" &
      !is.na(may$dDIC[i]) &
-     abs(may$dDIC[i]) > median(may$sdDICn, na.rm = T) &
-     abs(may$dDO[i]) > median(may$sdDOn, na.rm = T)) {
+     abs(may$dDIC[i]) > median(may$sdDICn, na.rm = TRUE) &
+     abs(may$dDO[i]) > median(may$sdDOn, na.rm = TRUE)) {
     may$dDIC.ex[i] <- may$dDIC[i] - (may$dDO[i] * 106/-138)
     may$dTA.ex[i] <- may$dTA[i] - (may$dDO[i] * -17/-138)
     may$ratio[i] <- may$dTA.ex[i] / may$dDIC.ex[i]
@@ -1165,14 +1160,102 @@ for(i in 1:nrow(may)) {
 for(i in 1:nrow(may)) {
   if(may$Cast[i] == "Surface" &
      !is.na(may$dDIC[i]) &
-     may$dTA[i] > median(may$sdTAn, na.rm = T) &
-     may$dDO[i] > median(may$sdDOn, na.rm = T)) {
+     may$dTA[i] > median(may$sdTAn, na.rm = TRUE) &
+     may$dDO[i] > median(may$sdDOn, na.rm = TRUE)) {
     may$dDIC.ex[i] <- may$dDIC[i] - (may$dDO[i] * 106/-138)
     may$dTA.ex[i] <- may$dTA[i] - (may$dDO[i] * -17/-138)
     may$ratio[i] <- may$dTA.ex[i] / may$dDIC.ex[i]
   }
 }
 ```
+
+## Look at photosynth/resp signal sites
+```{r}
+ggplot() +
+  #geom_point(data = may, aes(x = dDIC, y = dDO, col = Cast), shape = 1) +
+  geom_text(data = may, aes(x = dDIC, y = dDO, col = Cast, label = Station)) +
+  geom_smooth(data = may, aes(x = dDIC, y = dDO, col = Cast), method = "lm") +
+  annotate("rect", alpha = 0.2, fill = "grey50",
+           xmin = -median(may$sdDICn, na.rm = TRUE),
+           xmax = median(may$sdDICn, na.rm = TRUE),
+           ymin = -Inf,
+           ymax = Inf) +
+  annotate("rect", alpha = 0.2, fill = "grey50",
+           xmin = -Inf,
+           xmax = -median(may$sdDICn, na.rm = TRUE),
+           ymin = -median(may$sdDOn, na.rm = TRUE),
+           ymax = median(may$sdDOn, na.rm = TRUE)) +
+  annotate("rect", alpha = 0.2, fill = "grey50",
+           xmin = median(may$sdDICn, na.rm = TRUE),
+           xmax = Inf,
+           ymin = -median(may$sdDOn, na.rm = TRUE),
+           ymax = median(may$sdDOn, na.rm = TRUE)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_abline(slope = -138/106) +
+  scale_colour_manual(values = c("royalblue", "coral"),
+                     guide = guide_legend(reverse = TRUE)) +
+  labs(x = expression("ΔDIC (μmol kg"^-1*")"), y = expression("ΔDO (μmol kg"^-1*")")) +
+  theme_bw() +
+  theme(legend.position = "none",
+        axis.text = element_text(size = 9))
+
+may_bio <- may %>%
+  filter(!(Cast == "Bottom" & Station == "001") &
+         !(Cast == "Bottom" & Station == "002") &
+         !(Cast == "Bottom" & Station == "083") &
+         !(Cast == "Bottom" & Station == "113") &
+         !(Cast == "Surface" & Station == "049"))
+
+# 138/-106 = -1.3
+
+model <- lm(may$dDO ~ may$dDIC) # slope = -0.5385
+lm(may_bio$dDO ~ may_bio$dDIC) # slope = -0.6103
+
+model1 <- lm(may$dDO[may$Cast == "Surface"] ~ may$dDIC[may$Cast == "Surface"]) # -0.3397
+model2 <- lm(may$dDO[may$Cast == "Bottom"] ~ may$dDIC[may$Cast == "Bottom"]) # -0.6418
+
+lm(may_bio$dDO[may_bio$Cast == "Surface"] ~ may_bio$dDIC[may_bio$Cast == "Surface"]) # -0.3832
+lm(may_bio$dDO[may_bio$Cast == "Bottom"] ~ may_bio$dDIC[may_bio$Cast == "Bottom"]) # -0.7387
+```
+
+## Look at possible dissolution sites
+```{r}
+may %>%
+  filter(Cast == "Bottom" &
+         Station != "037") %>%
+ggplot() +
+  geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "May")) +
+  geom_abline(slope = 2, linetype = 2) +
+  #annotate("text", x = 4, y = 13, label = "2:1 line", fontface = 4) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "chartreuse3",
+                      name = "Month") +
+  theme_bw()
+
+may %>%
+  filter(Cast == "Bottom" &
+         Station != "037" &
+         Station != "018" &
+         Station != "076" &
+         Station != "093") %>%
+ggplot() +
+  geom_point(aes(x = dDIC.ex, y = ratio, shape = Cast, col = "May")) +
+  geom_hline(yintercept = 2, linetype = 2) +
+  annotate("text", x = 4, y = 1.75, label = "TA:DIC = 2", fontface = 4) +
+  ylab("Ratio of TA excess : DIC excess") +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "chartreuse3",
+                      name = "Month") +
+  theme_bw()
+```
+
+
+
+
+
 
 ## Calculate relative contributions from each
 ```{r}
@@ -1585,62 +1668,7 @@ for(i in 1:nrow(may)) {
 }
 ```
 
-## Look at photosynth/resp signal sites
-```{r}
-may %>%
-  filter(Cast == "Bottom" &
-         Station != "037") %>%
-ggplot() +
-  geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "May")) +
-  geom_abline(slope = 2, linetype = 2) +
-  annotate("text", x = 4, y = 13, label = "2:1 line", fontface = 4) +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "chartreuse3",
-                      name = "Month") +
-  theme_bw()
 
-may %>%
-  filter(Cast == "Bottom" &
-         Station != "037" &
-         Station != "018") %>%
-ggplot() +
-  geom_point(aes(x = dDIC.ex, y = ratio, shape = Cast, col = "May")) +
-  geom_hline(yintercept = 2, linetype = 2) +
-  annotate("text", x = 4, y = 1.75, label = "TA:DIC = 2", fontface = 4) +
-  ylab("Ratio of TA excess : DIC excess") +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "chartreuse3",
-                      name = "Month") +
-  theme_bw()
-
-may %>%
-  filter(Cast == "Surface") %>%
-ggplot() +
-  geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "May")) +
-  geom_abline(slope = 2, linetype = 2) +
-  annotate("text", x = 3, y = 3.5, label = "2:1 line", fontface = 4) +
-  scale_shape_manual(values = 1,
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "chartreuse3",
-                      name = "Month") +
-  ylim(0, 20.5) +
-  theme_bw()
-
-may %>%
-  filter(Cast == "Surface") %>%
-ggplot() +
-  geom_point(aes(x = dDIC.ex, y = ratio, shape = Cast, col = "May")) +
-  geom_hline(yintercept = 2, linetype = 2) +
-  annotate("text", x = -5, y = 1, label = "TA:DIC = 2", fontface = 4) +
-  ylab("Ratio of TA excess : DIC excess") +
-  scale_shape_manual(values = 1,
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "chartreuse3",
-                      name = "Month") +
-  theme_bw()
-```
 
 ## *OLD* Calculate mixing-normalized DIC & TA values
 ```{r}
