@@ -1111,6 +1111,12 @@ for(i in 1:nrow(oct)) {
     oct$ratio[i] <- oct$dTA.ex[i] / oct$dDIC.ex[i]
   }
 }
+
+model <- lm(oct$dTA.ex ~ oct$dDIC.ex)
+summary(model)
+
+# calculate rate of dissolution
+oct$dissolution <- oct$dDIC / oct$resTime
 ```
 
 
