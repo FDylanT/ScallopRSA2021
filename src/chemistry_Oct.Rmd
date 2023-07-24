@@ -1166,7 +1166,7 @@ read.csv("./data/OctCruiseData.csv") %>%
          !is.na(Temp),
          Station > 8) %>% # exclude sites 001-008
   select(-Filtered) %>%
-  write_csv("./mixing/OctCruiseData_surface.csv")
+  write_csv("./data/mixing-model/input-data/OctCruiseData_surface.csv")
 
 # load mixture data
 mix <- load_mix_data(filename = "./mixing/OctCruiseData_surface.csv", 
