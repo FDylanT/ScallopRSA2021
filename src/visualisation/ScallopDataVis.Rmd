@@ -13,9 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(marmap)
-library(sf)
 library(numform)
-library(viridis)
+library(sf)
+library(nngeo)
+library(pals)
+library(seacarb)
 ```
 
 ## Load scallop data
@@ -77,6 +79,155 @@ seasonsPlaco <- Placo %>%
 seasons <- seasons %>%
   filter(Tow == "Y",
          Tow_abundance != 0)
+```
+
+## Convert coordinates
+```{r}
+chd <- substr(seasons$Lat, 3, 3)[1]
+
+# convert latitude from DM to DD
+Lat_split_may <- str_split_fixed(seasons$Lat, chd, 2) %>%
+  as.data.frame()
+Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Lat_split_may$V2 <- Lat_split_may$V2/60
+Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
+
+seasons$Lat <- Lat_split_may$V1 + Lat_split_may$V2
+
+# convert longitude from DM to DD
+Long_split_may <- str_split_fixed(seasons$Long, chd, 2) %>%
+  as.data.frame()
+Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
+  as.numeric()
+Long_split_may$V2 <- Long_split_may$V2/60
+Long_split_may$V1 <- as.numeric(Long_split_may$V1)
+
+seasons$Long <- -(Long_split_may$V1 + Long_split_may$V2)
+```
+
+## Load GB shapefiles
+```{r}
+GB <- st_read("./data/2020SAMZones/GB_Estimation_Areas_2019_UTM19_PDT_SFModified.shp")
+
+# subset shapefile to SAMs
+NLS_North <- subset(GB, NewSAMS == "NLS-North") %>%
+  fortify()
+CL1_South <- subset(GB, NewSAMS == "CL1-South") %>%
+  fortify()
+CL1_Sliver <- subset(GB, NewSAMS == "CL1-Sliver") %>%
+  fortify()
+CL2_AccessSoutheast <- subset(GB, NewSAMS == "CL2-Access-Southeast") %>%
+  fortify()
+SF <- subset(GB, NewSAMS == "SF") %>%
+  fortify()
+CL2_North <- subset(GB, NewSAMS == "CL2-North") %>%
+  fortify()
+CL1_Access <- subset(GB, NewSAMS == "CL1-Access") %>%
+  fortify()
+NF <- subset(GB, NewSAMS == "NF") %>%
+  fortify()
+CL2_Ext <- subset(GB, NewSAMS == "CL2-Ext") %>%
+  fortify()
+GSC <- subset(GB, NewSAMS == "GSC") %>%
+  fortify()
+NLS_SouthDeep <- subset(GB, NewSAMS == "NLS-South-Deep") %>%
+  fortify()
+NLS_West <- subset(GB, NewSAMS == "NLS-West") %>%
+  fortify()
+NLS_SouthShallow <- subset(GB, NewSAMS == "NLS-South-Shallow") %>%
+  fortify()
+CL2_AccessSouthwest <- subset(GB, NewSAMS == "CL2-Access-Southwest") %>%
+  fortify()
+SF_East <- subset(GB, NewSAMS == "SF-East") %>%
+  fortify()
+
+# combine polygons
+GB_sf <- st_union(st_geometry(NLS_North), st_geometry(CL1_South)) %>%
+  st_union(st_geometry(CL1_Sliver)) %>%
+  st_union(st_geometry(CL2_AccessSoutheast)) %>%
+  st_union(st_geometry(SF)) %>%
+  st_union(st_geometry(CL2_North)) %>%
+  st_union(st_geometry(CL1_Access)) %>%
+  st_union(st_geometry(NF)) %>%
+  st_union(st_geometry(CL2_Ext)) %>%
+  st_union(st_geometry(GSC)) %>%
+  st_union(st_geometry(NLS_SouthDeep)) %>%
+  st_union(st_geometry(NLS_West)) %>%
+  st_union(st_geometry(NLS_SouthShallow)) %>%
+  st_union(st_geometry(CL2_AccessSouthwest)) %>%
+  st_union(st_geometry(SF_East)) %>%
+  st_remove_holes() # remove slivers between polygon borders
+  
+#summary(GB_sf)
+```
+
+## Create coastline polygon
+```{r}
+# turn off spherical geometry to avoid "duplicate vertex" errors
+sf_use_s2(FALSE)
+
+# get Massachusetts coastline
+mass <- read_sf("/Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/library/gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp") %>%
+  st_make_valid() %>%
+  st_crop(xmin = -71, xmax = -66, ymin = 40, ymax = 43)
+```
+
+## Import bathy data
+```{r}
+GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62, lat1 = 37, lat2 = 46, resolution = 1)
+
+bathy_xyz <- as.xyz(GB_bathy)
+```
+
+## Create simple features object of tow site data
+```{r}
+may_sf <- seasons %>%
+  filter(Month == "May") %>%
+  st_as_sf(coords = c("Long", "Lat"),
+           crs = 4326)
+```
+
+## Create Voronoi polygons for scallop tow sites
+```{r}
+may_sf_geom <- st_union(may_sf) %>%
+  st_transform(crs = 26919)
+may_sf_v <- st_voronoi(may_sf_geom)
+may_sf_v <- st_sf(may_sf_v)
+
+# mask Voronoi with contour
+may_sf_v <- st_intersection(st_cast(may_sf_v),
+                               st_union(st_buffer(GB_sf, dist = 500)))
+may_sf_v <- st_sf(may_sf_v)
+
+may_sf2 <- may_sf %>%
+  st_transform(crs = 26919)
+
+# complete spatial join
+may_sf_v2 <- st_join(may_sf_v, may_sf2)
+```
+
+## Plot tow abundance w/ Voronoi polygons
+```{r}
+ggplot() +
+  geom_sf(data = may_sf_v2, aes(fill = Tow_abundance), size = 0.25, colour = NA) +
+  geom_sf(data = mass, fill = "darkgrey", colour = NA) +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -50, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -100, alpha = 0.3, colour = "grey50") +
+  geom_contour(data = bathy_xyz,
+               aes(x = V1, y = V2, z = V3),
+               breaks = -500, alpha = 0.3, colour = "grey50") +
+  scale_fill_gradientn(colors = parula(100),
+                       aesthetics = c("fill")) +
+  scale_y_continuous(breaks = c(40, 41, 42)) +
+  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+  labs(title = "May Abundance") +
+  theme_bw() +
+  theme(axis.title = element_blank())
 ```
 
 ## Add CO2 sys data
@@ -196,31 +347,6 @@ ggplot(Placo[!is.na(Placo$OmegaAragonite), ], aes(x = OmegaAragonite, y = WetMus
   labs(x = "Omega", y = "Condition") +
   theme_bw() +
   theme(panel.grid.major.x = element_blank())
-```
-
-## Convert coordinates
-```{r}
-chd <- substr(seasons$Lat, 3, 3)[1]
-
-# convert latitude from DM to DD
-Lat_split_may <- str_split_fixed(seasons$Lat, chd, 2) %>%
-  as.data.frame()
-Lat_split_may$V2 <- str_remove_all(Lat_split_may$V2, pattern = "'") %>%
-  as.numeric()
-Lat_split_may$V2 <- Lat_split_may$V2/60
-Lat_split_may$V1 <- as.numeric(Lat_split_may$V1)
-
-seasons$Lat <- Lat_split_may$V1 + Lat_split_may$V2
-
-# convert longitude from DM to DD
-Long_split_may <- str_split_fixed(seasons$Long, chd, 2) %>%
-  as.data.frame()
-Long_split_may$V2 <- str_remove_all(Long_split_may$V2, pattern = "'") %>%
-  as.numeric()
-Long_split_may$V2 <- Long_split_may$V2/60
-Long_split_may$V1 <- as.numeric(Long_split_may$V1)
-
-seasons$Long <- -(Long_split_may$V1 + Long_split_may$V2)
 ```
 
 ## Create simple features obj
