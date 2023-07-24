@@ -181,13 +181,13 @@ Georges <-
                                "120", "95", "75", "55", "35"),
                     name = "Depth (m)") +
   geom_sf(data = GB_sf, fill = NA, colour = "black", linewidth = 0.4, linetype = "dashed") +
-  geom_point(data = station_sf, aes(x = Long, y = Lat), shape = 17) +
+  geom_point(data = station_sf, aes(x = Long, y = Lat), shape = 17, size = 1) +
   geom_sf(data = mass, fill = "darkgrey", colour = "black") +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   theme_bw() +
   theme(axis.title = element_blank(),
-        axis.text = element_text(size = 12),
+        axis.text = element_text(size = 10),
         legend.title = element_text(face = "bold"),
         legend.key.size = unit(0.45, "cm"),
         legend.position = c(1.1, 0.65)) +
@@ -195,6 +195,8 @@ Georges <-
 
 ggdraw(Georges) +
   draw_plot(EastCoast, x = 0.72, y = 0, width = 0.35, height = 0.35)
+
+ggsave("Fig1.png", width = 7.5, height = 4, units = "in", dpi = 600, bg = "#ffffff") # crop white space to 3900 px wide
 ```
 
 ## Create map w/ SAMs and tow sites marked
