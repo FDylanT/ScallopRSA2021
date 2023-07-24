@@ -64,34 +64,50 @@ rm(chd)
 
 ## Set region bounds
 ```{r}
-minLat <- min(may$Lat) - 0.5
-maxLat <- max(may$Lat) + 0.5
-minLon <- min(may$Long) - 0.5
-maxLon <- max(may$Long) + 0.5
+# minLat <- min(may$Lat) - 0.5
+# maxLat <- max(may$Lat) + 0.5
+# minLon <- min(may$Long) - 0.5
+# maxLon <- max(may$Long) + 0.5
 ```
 
 ## Load QC data
 ```{r}
 QC <- read.csv("./data/bottle_data_DIC_prepared.csv") %>%
-  filter(!is.na(TALK),
-         Latitude >= minLat,
-         Latitude <= maxLat,
-         Longitude >= minLon,
-         Longitude <= maxLon)
+  filter(TALK_flag != 3) #%>%
+  # filter(!is.na(TALK),
+  #        Latitude >= minLat,
+  #        Latitude <= maxLat,
+  #        Longitude >= minLon,
+  #        Longitude <= maxLon)
 ```
 
-## Prop-prop plot
+## Prop-prop plots (Supp. Figs. 1-2)
 ```{r}
 ggplot() +
-  geom_point(data = QC, aes(x = DIC, y = TALK, shape = "historical data", col = "historical data")) +
-  geom_point(data = may, aes(x = DIC, y = TA, shape = "May 2021 cruise", col = "May 2021 cruise")) +
-  geom_point(data = oct, aes(x = DIC, y = TA, shape = "Oct 2021 cruise", col = "Oct 2021 cruise")) +
-  scale_shape_manual(values = c(1, 2, 3), name = "Data Source") +
+  geom_point(data = QC, aes(x = DIC, y = TALK, shape = "historical data", col = "historical data"), alpha = 0.5) +
+  geom_point(data = may, aes(x = DIC, y = TA, shape = "May 2021 cruise", col = "May 2021 cruise"), alpha = 0.5) +
+  geom_point(data = oct, aes(x = DIC, y = TA, shape = "Oct 2021 cruise", col = "Oct 2021 cruise"), alpha = 0.5) +
+  scale_shape_manual(values = c(1, 16, 16), name = "Data Source") +
   scale_colour_manual(values = c("black", "coral", "royalblue"), name = "Data Source") +
   labs(x = expression("DIC (μmol kg"^-1*")"), y = expression("TA (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.title = element_text(face = "bold"),
-        legend.position = c(0.9, 0.1))
+        legend.position = c(0.88, 0.14))
+
+ggsave("SuppFig1.png", width = 6.5, height = 4.6, units = "in", dpi = 600, bg = "#ffffff")
+
+ggplot() +
+  geom_point(data = QC, aes(x = Salinity, y = TALK, shape = "historical data", col = "historical data"), alpha = 0.5) +
+  geom_point(data = may, aes(x = Salinity, y = TA, shape = "May 2021 cruise", col = "May 2021 cruise"), alpha = 0.5) +
+  geom_point(data = oct, aes(x = Salinity, y = TA, shape = "Oct 2021 cruise", col = "Oct 2021 cruise"), alpha = 0.5) +
+  scale_shape_manual(values = c(1, 16, 16), name = "Data Source") +
+  scale_colour_manual(values = c("black", "coral", "royalblue"), name = "Data Source") +
+  labs(x = expression("Salinity (PSU)"), y = expression("TA (μmol kg"^-1*")")) +
+  theme_bw() +
+  theme(legend.title = element_text(face = "bold"),
+        legend.position = c(0.88, 0.14))
+
+ggsave("SuppFig2.png", width = 6.5, height = 4.6, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 ## Map of QC data sites
@@ -107,8 +123,8 @@ ggplot() +
   geom_sf(data = QC_sf) +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_sf(data = mass, fill = "darkgrey", colour = NA) +
-  scale_y_continuous(breaks = c(40, 41, 42, 43)) +
-  coord_sf(xlim = c(-71, -65.5), ylim = c(39.5, 43), expand = FALSE) +
+  #scale_y_continuous(breaks = c(40, 41, 42, 43)) +
+  #coord_sf(xlim = c(-71, -65.5), ylim = c(39.5, 43), expand = FALSE) +
   theme_bw()
 ```
 
