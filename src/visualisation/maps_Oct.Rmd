@@ -99,19 +99,19 @@ GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62, lat1 = 37, lat2 = 46, resoluti
 
 bathy_xyz <- as.xyz(GB_bathy)
 
-ggplot() +
-  geom_contour(data = bathy_xyz,
-               aes(x = V1, y = V2, z = V3),
-               binwidth = 100, alpha = 0.4) +
-  geom_contour(data = bathy_xyz,
-               aes(x = V1, y = V2, z = V3),
-               breaks = -50, alpha = 0.4, linetype = "dashed") +
-  geom_contour(data = bathy_xyz,
-               aes(x = V1, y = V2, z = V3),
-               breaks = -150, alpha = 0.4, linetype = "dashed") +
-  scale_y_continuous(breaks = c(40, 41, 42)) +
-  coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
-  theme_bw()
+# ggplot() +
+#   geom_contour(data = bathy_xyz,
+#                aes(x = V1, y = V2, z = V3),
+#                binwidth = 100, alpha = 0.4) +
+#   geom_contour(data = bathy_xyz,
+#                aes(x = V1, y = V2, z = V3),
+#                breaks = -50, alpha = 0.4, linetype = "dashed") +
+#   geom_contour(data = bathy_xyz,
+#                aes(x = V1, y = V2, z = V3),
+#                breaks = -150, alpha = 0.4, linetype = "dashed") +
+#   scale_y_continuous(breaks = c(40, 41, 42)) +
+#   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
+#   theme_bw()
 ```
 
 ## Create simple features object of chem data
@@ -856,21 +856,22 @@ ggplot() +
 # Temp vs Sal plots
 ```{r}
 May.TvS <- ggplot() +
-  geom_point(data = may[may$Cast == "Surface", ], aes(x = Salinity, y = Temp, shape = Cast), shape = 1) +
+  geom_point(data = may[may$Cast == "Surface", ],
+             aes(x = Salinity, y = Temp, shape = Cast), shape = 1, size = 1) +
   # EM1
-  annotate("point", x = 33.02325, y = 7.220628, size = 4, col = "firebrick3") +
+  annotate("point", x = 33.02325, y = 7.220628, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 33.02325-0.04339896, xend = 33.02325+0.04339896, y = 7.220628, yend = 7.220628,
            col = "firebrick3") +
   annotate("segment", x = 33.02325, xend = 33.02325, y = 7.220628-0.069308, yend = 7.220628+0.069308,
            col = "firebrick3") +
   # EM2
-  annotate("point", x = 32.30807, y = 8.128582, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.30807, y = 8.128582, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.30807-0.01786962, xend = 32.30807+0.01786962, y = 8.128582, yend = 8.128582,
            col = "firebrick3") +
   annotate("segment", x = 32.30807, xend = 32.30807, y = 8.128582-0.05763103, yend = 8.128582+0.05763103,
            col = "firebrick3") +
   # EM3
-  annotate("point", x = 32.8277, y = 8.868272, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.8277, y = 8.868272, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.8277-0.05091169, xend = 32.8277+0.05091169, y = 8.868272, yend = 8.868272,
            col = "firebrick3") +
   annotate("segment", x = 32.8277, xend = 32.8277, y = 8.868272-0.008266555, yend = 8.868272+0.008266555,
@@ -881,33 +882,33 @@ May.TvS <- ggplot() +
   ylab("Temperature (°C)") +
   labs(title = "May") +
   theme_bw() +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+  theme(plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
         legend.title = element_text(face = "bold"),
         legend.position = "bottom")
 
 Oct.TvS <- ggplot() +
   geom_point(data = oct[oct$Cast == "Surface", ],
-             aes(x = Salinity, y = Temp, shape = Cast), shape = 1) +
+             aes(x = Salinity, y = Temp, shape = Cast), shape = 1, size = 1) +
   # EM1
-  annotate("point", x = 32.36303, y = 17.61663, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.36303, y = 17.61663, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.36303-0.04299143, xend = 32.36303+0.04299143, y = 17.61663, yend = 17.61663,
            col = "firebrick3") +
   annotate("segment", x = 32.36303, xend = 32.36303, y = 17.61663-0.1872035, yend = 17.61663+0.1872035,
            col = "firebrick3") +
   # EM2
-  annotate("point", x = 32.6138, y = 16.38836, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.6138, y = 16.38836, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.6138-0.06364616, xend = 32.6138+0.06364616, y = 16.38836, yend = 16.38836,
            col = "firebrick3") +
   annotate("segment", x = 32.6138, xend = 32.6138, y = 16.38836-0.1211196, yend = 16.38836+0.1211196,
            col = "firebrick3") +
   # EM3
-  annotate("point", x = 34.03515, y = 20.41137, size = 4, col = "firebrick3") +
+  annotate("point", x = 34.03515, y = 20.41137, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 34.03515-0.05607357, xend = 34.03515+0.05607357, y = 20.41137, yend = 20.41137,
            col = "firebrick3") +
   annotate("segment", x = 34.03515, xend = 34.03515, y = 20.41137-0.4061293, yend = 20.41137+0.4061293,
            col = "firebrick3") +
   # EM7
-  annotate("point", x = 31.63787, y = 16.75489, size = 4, col = "firebrick3") +
+  annotate("point", x = 31.63787, y = 16.75489, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 31.63787-0.03885027, xend = 31.63787+0.03885027, y = 16.75489, yend = 16.75489,
            col = "firebrick3") +
   annotate("segment", x = 31.63787, xend = 31.63787, y = 16.75489-0.2673522, yend = 16.75489+0.2673522,
@@ -918,32 +919,32 @@ Oct.TvS <- ggplot() +
   ylab("Temperature (°C)") +
   labs(title = "October") +
   theme_bw() +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+  theme(plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
         legend.position = "none")
 
 May.TvS.2 <- ggplot() +
   geom_point(data = may[may$Cast == "Bottom", ],
-             aes(x = Salinity, y = Temp, shape = Cast), shape = 1) +
+             aes(x = Salinity, y = Temp, shape = Cast), shape = 1, size = 1) +
   # EM4
-  annotate("point", x = 32.60722, y = 6.913535, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.60722, y = 6.913535, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.60722-0.02688573, xend = 32.60722+0.02688573, y = 6.913535, yend = 6.913535,
            col = "firebrick3") +
   annotate("segment", x = 32.60722, xend = 32.60722, y = 6.913535-0.06965717, yend = 6.913535+0.06965717,
            col = "firebrick3") +
   # EM5
-  annotate("point", x = 32.92325, y = 8.043115, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.92325, y = 8.043115, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.92325-0.01675843, xend = 32.92325+0.01675843, y = 8.043115, yend = 8.043115,
            col = "firebrick3") +
   annotate("segment", x = 32.92325, xend = 32.92325, y = 8.043115-0.1243565, yend = 8.043115+0.1243565,
            col = "firebrick3") +
   # EM6
-  annotate("point", x = 32.9749, y = 6.843245, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.9749, y = 6.843245, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.9749-0.02552783, xend = 32.9749+0.02552783, y = 6.843245, yend = 6.843245,
            col = "firebrick3") +
   annotate("segment", x = 32.9749, xend = 32.9749, y = 6.843245-0.04853802, yend = 6.843245+0.04853802,
            col = "firebrick3") +
   # EM7
-  annotate("point", x = 34.3181, y = 9.877368, size = 4, col = "firebrick3") +
+  annotate("point", x = 34.3181, y = 9.877368, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 34.3181-0.1111572, xend = 34.3181+0.1111572, y = 9.877368, yend = 9.877368,
            col = "firebrick3") +
   annotate("segment", x = 34.3181, xend = 34.3181, y = 9.877368-0.2865716, yend = 9.877368+0.2865716,
@@ -957,21 +958,21 @@ May.TvS.2 <- ggplot() +
 
 Oct.TvS.2 <- ggplot() +
   geom_point(data = oct[oct$Cast == "Bottom", ],
-             aes(x = Salinity, y = Temp, shape = Cast), shape = 1) +
+             aes(x = Salinity, y = Temp, shape = Cast), shape = 1, size = 1) +
   # EM4
-  annotate("point", x = 32.5582, y = 18.31397, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.5582, y = 18.31397, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.5582-0.01583919, xend = 32.5582+0.01583919, y = 18.31397, yend = 18.31397,
            col = "firebrick3") +
   annotate("segment", x = 32.5582, xend = 32.5582, y = 18.31397-0.1474015, yend = 18.31397+0.1474015,
            col = "firebrick3") +
   # EM5
-  annotate("point", x = 32.98455, y = 8.538995, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.98455, y = 8.538995, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.98455-0.02991062, xend = 32.98455+0.02991062, y = 8.538995, yend = 8.538995,
            col = "firebrick3") +
   annotate("segment", x = 32.98455, xend = 32.98455, y = 8.538995-0.3136846, yend = 8.538995+0.3136846,
            col = "firebrick3") +
   # EM6
-  annotate("point", x = 35.49357, y = 15.75253, size = 4, col = "firebrick3") +
+  annotate("point", x = 35.49357, y = 15.75253, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 35.49357-0.1042053, xend = 35.49357+0.1042053, y = 15.75253, yend = 15.75253,
            col = "firebrick3") +
   annotate("segment", x = 35.49357, xend = 35.49357, y = 15.75253-0.3802984, yend = 15.75253+0.3802984,
@@ -983,20 +984,20 @@ Oct.TvS.2 <- ggplot() +
   theme_bw() +
   theme(legend.position = "none")
 
-legend.only <- ggplot() +
-  geom_point(data = oct, aes(x = Salinity, y = Temp, col = "Measured"), shape = 1) +
-  geom_point(data = may, aes(x = Salinity, y = Temp, col = "Endmember"), size = 3) +
-  scale_colour_manual(values = c("black", "firebrick3"),
-                      breaks = c("Measured", "Endmember"),
-                      name = "Value") +
-  scale_shape_manual(values = c(1, 16),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_size_manual(values = c(1.5, 3),
-                    name = "Value") +
-  guides(col = guide_legend(title.position = "top", override.aes = list(shape = c(1, 16), size = c(1.5, 3)))) +
-  theme_bw() +
-  theme(legend.title = element_text(face = "bold"),
-        legend.position = "left")
+# legend.only <- ggplot() +
+#   geom_point(data = oct, aes(x = Salinity, y = Temp, col = "Measured"), shape = 1) +
+#   geom_point(data = may, aes(x = Salinity, y = Temp, col = "Endmember"), size = 2) +
+#   scale_colour_manual(values = c("black", "firebrick3"),
+#                       breaks = c("Measured", "Endmember"),
+#                       name = "Value") +
+#   scale_shape_manual(values = c(1, 16),
+#                      guide = guide_legend(reverse = TRUE)) +
+#   scale_size_manual(values = c(1.5, 3),
+#                     name = "Value") +
+#   guides(col = guide_legend(title.position = "top", override.aes = list(shape = c(1, 16), size = c(1.5, 3)))) +
+#   theme_bw() +
+#   theme(legend.title = element_text(face = "bold"),
+#         legend.position = "left")
 
 theme_set(theme_minimal())
 
@@ -1013,116 +1014,117 @@ plot_grid(
     ncol = 2, nrow = 2,
     align = "hv"),
   nrow = 2,
-  rel_heights = c(1, 24)
+  rel_heights = c(1, 18)
 )
 
-plot_grid(
-    get_legend(legend.only))
+ggsave("Fig2.png", width = 6.5, height = 5.1, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 # DIC/TA vs Sal plots
 ```{r}
 May.DICvS <- ggplot() +
   geom_point(data = may,
-             aes(x = Salinity, y = DIC, shape = Cast)) +
+             aes(x = Salinity, y = DIC, shape = Cast), size = 1) +
   scale_shape_manual(values = c(1, 16),
                      breaks = c("Surface", "Bottom"),
-                     guide = guide_legend(reverse = TRUE)) +
+                     name = "Layer") +
   # EM1
-  annotate("point", x = 33.02325, y = 2076.15, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 33.02325, y = 2076.15, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 33.02325-0.04339896, xend = 33.02325+0.04339896, y = 2076.15, yend = 2076.15,
            col = "firebrick3") +
   annotate("segment", x = 33.02325, xend = 33.02325, y = 2076.15-6.64003, yend = 2076.15+6.64003,
            col = "firebrick3") +
   # EM2
-  annotate("point", x = 32.30807, y = 2031.767, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 32.30807, y = 2031.767, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 32.30807-0.01786962, xend = 32.30807+0.01786962, y = 2031.767, yend = 2031.767,
            col = "firebrick3") +
   annotate("segment", x = 32.30807, xend = 32.30807, y = 2031.767-2.814842, yend = 2031.767+2.814842,
            col = "firebrick3") +
   # EM3
-  annotate("point", x = 32.8277, y = 2030.25, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 32.8277, y = 2030.25, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 32.8277-0.05091169, xend = 32.8277+0.05091169, y = 2030.25, yend = 2030.25,
            col = "firebrick3") +
   annotate("segment", x = 32.8277, xend = 32.8277, y = 2030.25-1.626346, yend = 2030.25+1.626346,
            col = "firebrick3") +
   # EM4
-  annotate("point", x = 32.60722, y = 2066.45, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.60722, y = 2066.45, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.60722-0.02688573, xend = 32.60722+0.02688573, y = 2066.45, yend = 2066.45,
            col = "firebrick3") +
   annotate("segment", x = 32.60722, xend = 32.60722, y = 2066.45-8.914969, yend = 2066.45+8.914969,
            col = "firebrick3") +
   # EM5
-  annotate("point", x = 32.92325, y = 2061.15, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.92325, y = 2061.15, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.92325-0.01675843, xend = 32.92325+0.01675843, y = 2061.15, yend = 2061.15,
            col = "firebrick3") +
   annotate("segment", x = 32.92325, xend = 32.92325, y = 2061.15-5.586144, yend = 2061.15+5.586144,
            col = "firebrick3") +
   # EM6
-  annotate("point", x = 32.9749, y = 2098.8, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.9749, y = 2098.8, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.9749-0.02552783, xend = 32.9749+0.02552783, y = 2098.8, yend = 2098.8,
            col = "firebrick3") +
   annotate("segment", x = 32.9749, xend = 32.9749, y = 2098.8-4.521062, yend = 2098.8+4.521062,
            col = "firebrick3") +
   # EM7
-  annotate("point", x = 34.3181, y = 2133.85, size = 4, col = "firebrick3") +
+  annotate("point", x = 34.3181, y = 2133.85, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 34.3181-0.1111572, xend = 34.3181+0.1111572, y = 2133.85, yend = 2133.85,
            col = "firebrick3") +
   annotate("segment", x = 34.3181, xend = 34.3181, y = 2133.85-5.020458, yend = 2133.85+5.020458,
            col = "firebrick3") +
   xlab("Salinity (PSU)") +
-  scale_y_continuous(breaks = c(2025, 2050, 2075, 2100, 2125)) +
+  scale_x_continuous(limits = c(32.29, 34.43), breaks = c(33, 34)) +
   ylab(expression("DIC (μmol kg"^-1*")")) +
+  scale_y_continuous(breaks = c(2025, 2050, 2075, 2100, 2125)) +
   labs(title = "May") +
   theme_bw() +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+  theme(plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
         legend.title = element_text(face = "bold"),
-        legend.position = "bottom")
+        legend.text = element_text(size = 10),
+        legend.position = "left")
 
 Oct.DICvS <- ggplot() +
   geom_point(data = oct,
-             aes(x = Salinity, y = DIC, shape = Cast)) +
+             aes(x = Salinity, y = DIC, shape = Cast), size = 1) +
   scale_shape_manual(values = c(1, 16),
                      breaks = c("Surface", "Bottom"),
                      guide = guide_legend(reverse = TRUE)) +
   # EM1
-  annotate("point", x = 32.36303, y = 1971.917, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 32.36303, y = 1971.917, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 32.36303-0.04299143, xend = 32.36303+0.04299143, y = 1971.917, yend = 1971.917,
            col = "firebrick3") +
   annotate("segment", x = 32.36303, xend = 32.36303, y = 1971.917-12.34689, yend = 1971.917+12.34689,
            col = "firebrick3") +
   # EM2
-  annotate("point", x = 32.6138, y = 2018.4, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 32.6138, y = 2018.4, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 32.6138-0.06364616, xend = 32.6138+0.06364616, y = 2018.4, yend = 2018.4,
            col = "firebrick3") +
   annotate("segment", x = 32.6138, xend = 32.6138, y = 2018.4-3.668787, yend = 2018.4+3.668787,
            col = "firebrick3") +
   # EM3
-  annotate("point", x = 34.03515, y = 2006.35, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 34.03515, y = 2006.35, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 34.03515-0.05607357, xend = 34.03515+0.05607357, y = 2006.35, yend = 2006.35,
            col = "firebrick3") +
   annotate("segment", x = 34.03515, xend = 34.03515, y = 2006.35-9.828784, yend = 2006.35+9.828784,
            col = "firebrick3") +
   # EM7
-  annotate("point", x = 31.63787, y = 1941.6, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 31.63787, y = 1941.6, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 31.63787-0.03885027, xend = 31.63787+0.03885027, y = 1941.6, yend = 1941.6,
            col = "firebrick3") +
   annotate("segment", x = 31.63787, xend = 31.63787, y = 1941.6-8.669487, yend = 1941.6+8.669487,
            col = "firebrick3") +
   # EM4
-  annotate("point", x = 32.5582, y = 1997.6, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.5582, y = 1997.6, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.5582-0.01583919, xend = 32.5582+0.01583919, y = 1997.6, yend = 1997.6,
            col = "firebrick3") +
   annotate("segment", x = 32.5582, xend = 32.5582, y = 1997.6-6.788225, yend = 1997.6+6.788225,
            col = "firebrick3") +
   # EM5
-  annotate("point", x = 32.98455, y = 2119.45, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.98455, y = 2119.45, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.98455-0.02991062, xend = 32.98455+0.02991062, y = 2119.45, yend = 2119.45,
            col = "firebrick3") +
   annotate("segment", x = 32.98455, xend = 32.98455, y = 2119.45-0.6363961, yend = 2119.45+0.6363961,
            col = "firebrick3") +
   # EM6
-  annotate("point", x = 35.49357, y = 2147.333, size = 4, col = "firebrick3") +
+  annotate("point", x = 35.49357, y = 2147.333, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 35.49357-0.1042053, xend = 35.49357+0.1042053, y = 2147.333, yend = 2147.333,
            col = "firebrick3") +
   annotate("segment", x = 35.49357, xend = 35.49357, y = 2147.333-8.093413, yend = 2147.333+8.093413,
@@ -1131,106 +1133,107 @@ Oct.DICvS <- ggplot() +
   ylab(expression("DIC (μmol kg"^-1*")")) +
   labs(title = "October") +
   theme_bw() +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+  theme(plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
         legend.position = "none")
 
 May.TAvS <- ggplot() +
   geom_point(data = may,
-             aes(x = Salinity, y = TA, shape = Cast)) +
+             aes(x = Salinity, y = TA, shape = Cast), size = 1) +
   scale_shape_manual(values = c(1, 16),
                      breaks = c("Surface", "Bottom"),
                      guide = guide_legend(reverse = TRUE)) +
   # EM1
-  annotate("point", x = 33.02325, y = 2227.4, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 33.02325, y = 2227.4, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 33.02325-0.04339896, xend = 33.02325+0.04339896, y = 2227.4, yend = 2227.4,
            col = "firebrick3") +
   annotate("segment", x = 33.02325, xend = 33.02325, y = 2227.4-2.255364, yend = 2227.4+2.255364,
            col = "firebrick3") +
   # EM2
-  annotate("point", x = 32.30807, y = 2203.833, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 32.30807, y = 2203.833, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 32.30807-0.01786962, xend = 32.30807+0.01786962, y = 2203.833, yend = 2203.833,
            col = "firebrick3") +
   annotate("segment", x = 32.30807, xend = 32.30807, y = 2203.833-2.411086, yend = 2203.833+2.411086,
            col = "firebrick3") +
   # EM3
-  annotate("point", x = 32.8277, y = 2204.9, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 32.8277, y = 2204.9, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 32.8277-0.05091169, xend = 32.8277+0.05091169, y = 2204.9, yend = 2204.9,
            col = "firebrick3") +
   annotate("segment", x = 32.8277, xend = 32.8277, y = 2204.9-9.616652, yend = 2204.9+9.616652,
            col = "firebrick3") +
   # EM4
-  annotate("point", x = 32.60722, y = 2215.65, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.60722, y = 2215.65, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.60722-0.02688573, xend = 32.60722+0.02688573, y = 2215.65, yend = 2215.65,
            col = "firebrick3") +
   annotate("segment", x = 32.60722, xend = 32.60722, y = 2215.65-3.51141, yend = 2215.65+3.51141,
            col = "firebrick3") +
   # EM5
-  annotate("point", x = 32.92325, y = 2222.95, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.92325, y = 2222.95, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.92325-0.01675843, xend = 32.92325+0.01675843, y = 2222.95, yend = 2222.95,
            col = "firebrick3") +
   annotate("segment", x = 32.92325, xend = 32.92325, y = 2222.95-10.67731, yend = 2222.95+10.67731,
            col = "firebrick3") +
   # EM6
-  annotate("point", x = 32.9749, y = 2227.233, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.9749, y = 2227.233, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.9749-0.02552783, xend = 32.9749+0.02552783, y = 2227.233, yend = 2227.233,
            col = "firebrick3") +
   annotate("segment", x = 32.9749, xend = 32.9749, y = 2227.233-1.625833, yend = 2227.233+1.625833,
            col = "firebrick3") +
   # EM7
-  annotate("point", x = 34.3181, y = 2289.1, size = 4, col = "firebrick3") +
+  annotate("point", x = 34.3181, y = 2289.1, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 34.3181-0.1111572, xend = 34.3181+0.1111572, y = 2289.1, yend = 2289.1,
            col = "firebrick3") +
   annotate("segment", x = 34.3181, xend = 34.3181, y = 2289.1-3.818377, yend = 2289.1+3.818377,
            col = "firebrick3") +
   xlab("Salinity (PSU)") +
+  scale_x_continuous(limits = c(32.29, 34.43), breaks = c(33, 34)) +
   ylab(expression("TA (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.position = "none")
 
 Oct.TAvS <- ggplot() +
   geom_point(data = oct,
-             aes(x = Salinity, y = TA, shape = Cast)) +
+             aes(x = Salinity, y = TA, shape = Cast), size = 1) +
   scale_shape_manual(values = c(1, 16),
                      breaks = c("Surface", "Bottom"),
                      guide = guide_legend(reverse = TRUE)) +
   # EM1
-  annotate("point", x = 32.36303, y = 2185.983, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 32.36303, y = 2185.983, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 32.36303-0.04299143, xend = 32.36303+0.04299143, y = 2185.983, yend = 2185.983,
            col = "firebrick3") +
   annotate("segment", x = 32.36303, xend = 32.36303, y = 2185.983-2.585666, yend = 2185.983+2.585666,
            col = "firebrick3") +
   # EM2
-  annotate("point", x = 32.6138, y = 2199.65, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 32.6138, y = 2199.65, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 32.6138-0.06364616, xend = 32.6138+0.06364616, y = 2199.65, yend = 2199.65,
            col = "firebrick3") +
   annotate("segment", x = 32.6138, xend = 32.6138, y = 2199.65-5.679495, yend = 2199.65+5.679495,
            col = "firebrick3") +
   # EM3
-  annotate("point", x = 34.03515, y = 2279.6, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 34.03515, y = 2279.6, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 34.03515-0.05607357, xend = 34.03515+0.05607357, y = 2279.6, yend = 2279.6,
            col = "firebrick3") +
   annotate("segment", x = 34.03515, xend = 34.03515, y = 2279.6-2.12132, yend = 2279.6+2.12132,
            col = "firebrick3") +
   # EM7
-  annotate("point", x = 31.63787, y = 2162.1, size = 3, col = "firebrick3", shape = 1, stroke = 1.5) +
+  annotate("point", x = 31.63787, y = 2162.1, size = 2, col = "firebrick3", shape = 1, stroke = 1.5) +
   annotate("segment", x = 31.63787-0.03885027, xend = 31.63787+0.03885027, y = 2162.1, yend = 2162.1,
            col = "firebrick3") +
   annotate("segment", x = 31.63787, xend = 31.63787, y = 2162.1-11.9662, yend = 2162.1+11.9662,
            col = "firebrick3") +
   # EM4
-  annotate("point", x = 32.5582, y = 2181.3, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.5582, y = 2181.3, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.5582-0.01583919, xend = 32.5582+0.01583919, y = 2181.3, yend = 2181.3,
            col = "firebrick3") +
   annotate("segment", x = 32.5582, xend = 32.5582, y = 2181.3-0.1414214, yend = 2181.3+0.1414214,
            col = "firebrick3") +
   # EM5
-  annotate("point", x = 32.98455, y = 2227.9, size = 4, col = "firebrick3") +
+  annotate("point", x = 32.98455, y = 2227.9, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 32.98455-0.02991062, xend = 32.98455+0.02991062, y = 2227.9, yend = 2227.9,
            col = "firebrick3") +
   annotate("segment", x = 32.98455, xend = 32.98455, y = 2227.9-0.8485281, yend = 2227.9+0.8485281,
            col = "firebrick3") +
   # EM6
-  annotate("point", x = 35.49357, y = 2349.533, size = 4, col = "firebrick3") +
+  annotate("point", x = 35.49357, y = 2349.533, size = 2.5, col = "firebrick3") +
   annotate("segment", x = 35.49357-0.1042053, xend = 35.49357+0.1042053, y = 2349.533, yend = 2349.533,
            col = "firebrick3") +
   annotate("segment", x = 35.49357, xend = 35.49357, y = 2349.533-4.966219, yend = 2349.533+4.966219,
@@ -1239,21 +1242,6 @@ Oct.TAvS <- ggplot() +
   ylab(expression("TA (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.position = "none")
-
-legend.only <- ggplot() +
-  geom_point(data = may, aes(x = Salinity, y = Temp, shape = Cast, col = "Measured")) +
-  geom_point(data = oct, aes(x = Salinity, y = Temp, shape = Cast, col = "Endmember"), size = 3) +
-  scale_colour_manual(values = c("black", "firebrick3"),
-                      breaks = c("Measured", "Endmember"),
-                      name = "Value") +
-  scale_shape_manual(values = c(1, 16),
-                     breaks = c("Surface", "Bottom"),
-                     name = "Layer") +
-  guides(col = guide_legend(title.position = "top", override.aes = list(shape = c(1, 1), size = c(1.5, 3))),
-         shape = guide_legend(override.aes = list(shape = c(1, 16), size = c(1.5, 1.5)))) +
-  theme_bw() +
-  theme(legend.title = element_text(face = "bold"),
-        legend.position = "left")
 
 theme_set(theme_minimal())
 
@@ -1270,11 +1258,15 @@ plot_grid(
     ncol = 2, nrow = 2,
     align = "hv"),
   nrow = 2,
-  rel_heights = c(1, 24)
+  rel_heights = c(1, 18)
 )
 
+ggsave("Fig3.png", width = 6.5, height = 5.1, units = "in", dpi = 600, bg = "#ffffff")
+
 plot_grid(
-    get_legend(legend.only))
+    get_legend(May.DICvS))
+
+ggsave("Fig3_legend.png", width = 6.5, height = 5.1, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 ### 12-panel chem parameter maps
@@ -1282,7 +1274,7 @@ plot_grid(
 # May
 DIC <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = DIC), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = DIC), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1308,14 +1300,15 @@ DIC <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"),
-        legend.text = element_text(angle = 45, vjust = 0.75, size = 10))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"),
+        legend.text = element_text(angle = 45, vjust = 0.75, size = 7))
 
 TA <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = TA), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = TA), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1341,14 +1334,15 @@ TA <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"),
-        legend.text = element_text(angle = 45, vjust = 0.75, size = 10))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"),
+        legend.text = element_text(angle = 45, vjust = 0.75, size = 7))
 
 DO <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DO), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = DO), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = DO), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1374,14 +1368,15 @@ DO <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"),
-        legend.text = element_text(angle = 45, vjust = 0.75, size = 10))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"),
+        legend.text = element_text(angle = 45, vjust = 0.75, size = 7))
 
 DIC2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = DIC), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = DIC), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1408,7 +1403,7 @@ DIC2 <- ggplot() +
 
 TA2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = TA), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = TA), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1435,7 +1430,7 @@ TA2 <- ggplot() +
 
 DO2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DO), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = DO), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = DO), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1463,7 +1458,7 @@ DO2 <- ggplot() +
 # October
 DICo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = DIC), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = DIC), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1490,7 +1485,7 @@ DICo <- ggplot() +
 
 TAo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = TA), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = TA), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1517,7 +1512,7 @@ TAo <- ggplot() +
 
 DOo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DO), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = DO), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = DO), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1544,7 +1539,7 @@ DOo <- ggplot() +
 
 DIC2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DIC), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = DIC), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = DIC), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1571,7 +1566,7 @@ DIC2o <- ggplot() +
 
 TA2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TA), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = TA), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = TA), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1598,7 +1593,7 @@ TA2o <- ggplot() +
 
 DO2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DO), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = DO), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = DO), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1654,8 +1649,10 @@ plot_grid(
     #labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, bottom", "", "")),
   nrow = 2,
   #rel_heights = c(1, 48, 3)
-  rel_heights = c(4, 48)
+  rel_heights = c(1.25, 12)
 )
+
+ggsave("Fig4.png", width = 6.5, height = 7.3, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 ### 12-panel derived parameter maps
@@ -1663,7 +1660,7 @@ plot_grid(
 # May
 pH <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = pH), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = pH), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1688,14 +1685,14 @@ pH <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"),
-        legend.text = element_text(size = 10))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"))
  
 omega <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = OmegaAragonite), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = OmegaAragonite), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1720,14 +1717,14 @@ omega <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"),
-        legend.text = element_text(size = 10))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"))
 
 AOU <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = AOU), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = AOU), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1754,14 +1751,14 @@ AOU <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"),
-        legend.text = element_text(size = 10))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"))
 
 pH2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = pH), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = pH), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = pH), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1786,7 +1783,7 @@ pH2 <- ggplot() +
 
 omega2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = OmegaAragonite), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = OmegaAragonite), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1811,7 +1808,7 @@ omega2 <- ggplot() +
 
 AOU2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = AOU), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = AOU), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1839,7 +1836,7 @@ AOU2 <- ggplot() +
 # October
 pHo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = pH), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = pH), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1865,7 +1862,7 @@ pHo <- ggplot() +
 
 omega.o <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = OmegaAragonite), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = OmegaAragonite), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1891,7 +1888,7 @@ omega.o <- ggplot() +
 
 AOUo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = AOU), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = AOU), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1918,7 +1915,7 @@ AOUo <- ggplot() +
 
 pH2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = pH), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = pH), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = pH), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1943,7 +1940,7 @@ pH2o <- ggplot() +
 
 omega2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = OmegaAragonite), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = OmegaAragonite), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = OmegaAragonite), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1968,7 +1965,7 @@ omega2o <- ggplot() +
 
 AOU2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = AOU), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = AOU), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = AOU), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2024,15 +2021,17 @@ plot_grid(
     #labels = c("(A) May, surface", "", "", "(B) May, bottom", "", "", "(C) Oct, surface", "", "", "(D) Oct, bottom", "", "")),
   nrow = 2,
   #rel_heights = c(1, 48, 3)
-  rel_heights = c(4, 48)
+  rel_heights = c(1.2, 12)
 )
+
+ggsave("Fig5.png", width = 6.5, height = 7.3, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 ## 2-panel surface flux maps
 ```{r}
 may_pCO2 <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = pCO2), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = pCO2), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2058,14 +2057,14 @@ may_pCO2 <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"),
-        legend.text = element_text(size = 10))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"))
 
 may_flux <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = flux / 10^3), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = flux / 10^3), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2082,7 +2081,7 @@ may_flux <- ggplot() +
                        breaks = c(-18, -9, 0, 9, 18),
                        colours = rev(redmonder.pal(11, "dPBIPuGn")),
                        aesthetics = c("fill", "colour"),
-                       name = expression(bold(CO[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
+                       name = expression(bold(CO[2]*" air-sea flux (mmol m"^-2*" d"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   labs(title = bquote(bold(CO[2]*" Flux"))) +
@@ -2093,14 +2092,14 @@ may_flux <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"),
-        legend.text = element_text(size = 10))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"))
 
 oct_pCO2 <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = pCO2), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = pCO2), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = pCO2), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2127,7 +2126,7 @@ oct_pCO2 <- ggplot() +
 
 oct_flux <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = flux / 10^3), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = flux / 10^3), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = flux / 10^3), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2175,14 +2174,16 @@ plot_grid(
     #labels = c("(A) May, surface", "", "(B) Oct, surface", "")),
   nrow = 2,
   #rel_heights = c(1, 3, 24)
-  rel_heights = c(4, 24)
+  rel_heights = c(1, 6)
 )
+
+ggsave("Fig6.png", width = 4.425, height = 4.1, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 ## 6-panel delta plots
 ```{r}
 deltaTA.DIC <- ggplot() +
-  geom_point(data = may, aes(x = dDIC, y = dTA, col = Cast), shape = 1) +
+  geom_point(data = may, aes(x = dDIC, y = dTA, col = Cast), shape = 1, size = 1) +
   annotate("rect", alpha = 0.2, fill = "grey50",
            xmin = -median(may$sdDICn, na.rm = TRUE),
            xmax = median(may$sdDICn, na.rm = TRUE),
@@ -2203,17 +2204,18 @@ deltaTA.DIC <- ggplot() +
   geom_abline(slope = 2) +
   geom_abline(slope = -17/106) +
   scale_colour_manual(values = c("royalblue", "coral"),
-                     guide = guide_legend(reverse = TRUE)) +
+                     guide = guide_legend(reverse = TRUE),
+                     name = "Layer") +
   #guides(col = guide_legend(title.position = "top", title.hjust = 0.5)) +
   labs(title = "       May", x = expression("ΔDIC (μmol kg"^-1*")"), y = expression("ΔTA (μmol kg"^-1*")")) +
+  scale_y_continuous(breaks = c(-30, -20, -10, 0, 10, 20, 30)) +
   theme_bw() +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+  theme(plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
         legend.title = element_text(face = "bold"),
-        legend.text = element_text(size = 11),
-        axis.text = element_text(size = 9))
+        legend.text = element_text(size = 10))
 
 deltaDO.DIC <- ggplot() +
-  geom_point(data = may, aes(x = dDIC, y = dDO, col = Cast), shape = 1) +
+  geom_point(data = may, aes(x = dDIC, y = dDO, col = Cast), shape = 1, size = 1) +
   annotate("rect", alpha = 0.2, fill = "grey50",
            xmin = -median(may$sdDICn, na.rm = TRUE),
            xmax = median(may$sdDICn, na.rm = TRUE),
@@ -2240,7 +2242,7 @@ deltaDO.DIC <- ggplot() +
         axis.text = element_text(size = 9))
 
 deltaDO.TA <- ggplot() +
-  geom_point(data = may, aes(x = dTA, y = dDO, col = Cast), shape = 1) +
+  geom_point(data = may, aes(x = dTA, y = dDO, col = Cast), shape = 1, size = 1) +
   annotate("rect", alpha = 0.2, fill = "grey50",
            xmin = -median(may$sdTAn, na.rm = TRUE),
            xmax = median(may$sdTAn, na.rm = TRUE),
@@ -2267,7 +2269,7 @@ deltaDO.TA <- ggplot() +
         axis.text = element_text(size = 9))
 
 deltaTA.DICo <- ggplot() +
-  geom_point(data = oct, aes(x = dDIC, y = dTA, col = Cast), shape = 1) +
+  geom_point(data = oct, aes(x = dDIC, y = dTA, col = Cast), shape = 1, size = 1) +
   annotate("rect", alpha = 0.2, fill = "grey50",
            xmin = -median(oct$sdDICn, na.rm = TRUE),
            xmax = median(oct$sdDICn, na.rm = TRUE),
@@ -2291,12 +2293,12 @@ deltaTA.DICo <- ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   labs(title = "     October", x = expression("ΔDIC (μmol kg"^-1*")"), y = expression("ΔTA (μmol kg"^-1*")")) +
   theme_bw() +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+  theme(plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
         legend.position = "none",
         axis.text = element_text(size = 9))
 
 deltaDO.DICo <- ggplot() +
-  geom_point(data = oct, aes(x = dDIC, y = dDO, col = Cast), shape = 1) +
+  geom_point(data = oct, aes(x = dDIC, y = dDO, col = Cast), shape = 1, size = 1) +
   annotate("rect", alpha = 0.2, fill = "grey50",
            xmin = -median(oct$sdDICn, na.rm = TRUE),
            xmax = median(oct$sdDICn, na.rm = TRUE),
@@ -2323,7 +2325,7 @@ deltaDO.DICo <- ggplot() +
         axis.text = element_text(size = 9))
 
 deltaDO.TAo <- ggplot() +
-  geom_point(data = oct, aes(x = dTA, y = dDO, col = Cast), shape = 1) +
+  geom_point(data = oct, aes(x = dTA, y = dDO, col = Cast), shape = 1, size = 1) +
   annotate("rect", alpha = 0.2, fill = "grey50",
            xmin = -median(oct$sdTAn, na.rm = TRUE),
            xmax = median(oct$sdTAn, na.rm = TRUE),
@@ -2367,10 +2369,14 @@ plot_grid(
   #plot_grid(
   #  get_legend(deltaTA.DIC)),
   nrow = 2,
-  rel_heights = c(1, 32)
+  rel_heights = c(1, 30)
 )
 
+ggsave("Fig7.png", width = 6.5, height = 7.4, units = "in", dpi = 600, bg = "#ffffff")
+
 plot_grid(get_legend(deltaTA.DIC))
+
+ggsave("Fig7_legend.png", width = 6.5, height = 7.4, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 ## 8-panel relative contribution maps (Oct)
@@ -2380,7 +2386,7 @@ dDIC <- ggplot() +
   geom_sf(data = surface_sf_v2[surface_sf_v2$Station == "009", ],
           fill = "grey8",
           size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = dDIC), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = dDIC), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2406,15 +2412,18 @@ dDIC <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(1.28, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.28, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 oDICpr <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = DICpr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = DICpr), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2439,17 +2448,20 @@ oDICpr <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 oDICf <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_v2[surface_sf_v2$Station == "009", ],
           fill = "grey8",
           size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = DICf), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = DICf), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2475,14 +2487,17 @@ oDICf <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 oDICo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = DIC.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = DIC.other), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2507,17 +2522,20 @@ oDICo <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 11),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 dDIC2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_v2[bottom_sf_v2$Station == "009", ],
           fill = "grey8",
           size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = dDIC), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = dDIC), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2543,15 +2561,18 @@ dDIC2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(1.28, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.28, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 oDICpr2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = DICpr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = DICpr), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2576,14 +2597,17 @@ oDICpr2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 oDICf2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DICf), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = DICf), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = DICf), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2609,17 +2633,20 @@ oDICf2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 oDICo2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
   geom_sf(data = bottom_sf_v2[bottom_sf_v2$Station == "009", ],
           fill = "grey8",
           size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = DIC.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = DIC.other), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2644,17 +2671,20 @@ oDICo2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 11),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 ```
 
 ## Same for TA
 ```{r}
 dTA <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = dTA), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = dTA), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = dTA), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2680,15 +2710,17 @@ dTA <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(1.28, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.28, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 TApr <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = TApr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = TApr), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2713,14 +2745,17 @@ TApr <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 TAo <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = TA.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = TA.other), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2746,14 +2781,17 @@ TAo <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 11),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(1.28, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.28, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 dTA2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = dTA), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = dTA), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = dTA), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2779,15 +2817,17 @@ dTA2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(1.28, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.28, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 TApr2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TApr), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = TApr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = TApr), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2812,14 +2852,17 @@ TApr2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 TAo2 <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = TA.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = TA.other), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2845,10 +2888,13 @@ TAo2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 11),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(1.28, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.28, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 ```
 
 ## Build massive combo plot
@@ -2946,6 +2992,8 @@ plot_grid(
   nrow = 2,
   rel_heights = c(1, 24)
 )
+
+ggsave("Fig9.png", width = 6.5, height = 6.8, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 ## Supplement
@@ -2953,7 +3001,7 @@ plot_grid(
 # May
 T <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = Temp), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = Temp), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -2979,13 +3027,14 @@ T <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"))
 
 S <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = Salinity), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = Salinity), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3012,13 +3061,14 @@ S <- ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(face = "bold", hjust = 0.5),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 10),
         legend.position = "bottom",
-        legend.key.width = unit(1.7, "cm"))
+        legend.key.width = unit(0.39, "in"),
+        legend.key.height = unit(0.15, "in"))
 
 T2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = Temp), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = Temp), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3044,7 +3094,7 @@ T2 <- ggplot() +
 
 S2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = Salinity), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = Salinity), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3073,7 +3123,7 @@ S2 <- ggplot() +
 # October
 To <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = Temp), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = Temp), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3099,7 +3149,7 @@ To <- ggplot() +
 
 So <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = Salinity), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = Salinity), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3127,7 +3177,7 @@ So <- ggplot() +
 
 T2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = Temp), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = Temp), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = Temp), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3153,7 +3203,7 @@ T2o <- ggplot() +
 
 S2o <- ggplot() +
   geom_sf(data = bottom_sf_v2, aes(fill = Salinity), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf3, aes(fill = Salinity), size = 4, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf3, aes(fill = Salinity), size = 2.25, shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3199,8 +3249,10 @@ plot_grid(
     align = "hv"),
     #labels = c("A", "", "B", "", "C", "", "D", "")),
   nrow = 2,
-  rel_heights = c(4, 48)
+  rel_heights = c(1, 12)
 )
+
+ggsave("SuppFig4.png", width = 4.425, height = 7.3, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 ## excess TA-DIC dissolution
@@ -3213,32 +3265,23 @@ ggplot() +
   geom_point(aes(x = dDIC.ex, y = dTA.ex, shape = Cast, col = "Oct"), shape = 1, size = 2) +
   geom_smooth(aes(x = dDIC.ex, y = dTA.ex), method = "lm", col = "royalblue", fill = "royalblue", alpha = 0.25) +
   geom_abline(slope = 2, linetype = 2) +
-  annotate("text", x = 32, y = 92, label = "y = 2.042x + 2.63", fontface = 4, col = "royalblue", size = 6) +
+  annotate("text", x = 32, y = 92, label = "y = 2.042x + 2.63", fontface = 4, col = "royalblue", size = 4) +
   scale_shape_manual(values = c(16, 1),
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
                       name = "Month") +
-  labs(x = "Excess DIC", y = "Excess TA") +
+  labs(x = expression("Excess DIC (μmol kg"^-1*")"), y = expression("Excess TA (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.position = "none")
 
-oct %>%
-  filter(Cast == "Bottom") %>%
-ggplot() +
-  geom_point(aes(x = OmegaAragonite, y = ratio, shape = Cast, col = "Oct")) +
-  ylab("Ratio of TA excess : DIC excess") +
-  scale_shape_manual(values = c(16, 1),
-                     guide = guide_legend(reverse = TRUE)) +
-  scale_colour_manual(values = "royalblue",
-                      name = "Month") +
-  theme_bw()
+ggsave("SuppFig5.png", width = 6.5, height = 4.6, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 ## dO2 & O2 flux
 ```{r}
 dDO <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dDO), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = dDO), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = dDO), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3264,15 +3307,18 @@ dDO <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 O2.flux <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = flux.O2/10^3), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = flux.O2/10^3), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = flux.O2/10^3), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3288,7 +3334,7 @@ O2.flux <- ggplot() +
                        limits = c(-151, 151),
                        breaks = c(-150, -75, 0, 75, 150),
                        aesthetics = c("fill", "colour"),
-                       name = expression(bold(O[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
+                       name = expression(bold(O[2]*" air-sea flux (mmol m"^-2*" d"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface TA_bio [Oct]") +
@@ -3298,14 +3344,17 @@ O2.flux <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 dDO2 <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = dDO), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = dDO), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = dDO), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3331,15 +3380,18 @@ dDO2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 O2.flux2 <- ggplot() +
   geom_sf(data = surface_sf_v2, aes(fill = flux.O2/10^3), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf3, aes(fill = flux.O2/10^3), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf3, aes(fill = flux.O2/10^3), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -3355,7 +3407,7 @@ O2.flux2 <- ggplot() +
                        limits = c(-151, 151),
                        breaks = c(-150, -75, 0, 75, 150),
                        aesthetics = c("fill", "colour"),
-                       name = expression(bold(O[2]*" Flux (mmol m"^-2*" d"^-1*")"))) +
+                       name = expression(bold(O[2]*" air-sea flux (mmol m"^-2*" d"^-1*")"))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface TA_bio [Oct]") +
@@ -3365,10 +3417,13 @@ O2.flux2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 plot_grid(
   plot_grid(
@@ -3400,6 +3455,8 @@ plot_grid(
   nrow = 2,
   rel_heights = c(1, 12)
 )
+
+ggsave("SuppFig6.png", width = 3.25, height = 3.54, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 
