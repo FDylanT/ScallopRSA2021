@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
 
 library(tidyverse)
 library(sf)
+library(nngeo)
 #library(viridis)
 #library(RColorBrewer)
 #library(pals)
@@ -740,7 +741,7 @@ ggplot() +
 ```{r}
 dDIC <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = dDIC), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = dDIC), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -765,18 +766,21 @@ dDIC <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 DICpr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m_v2[surface_sf_m_v2$Station == "096", ],
           fill = "grey8",
           size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = DICpr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = DICpr), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -801,17 +805,20 @@ DICpr <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 DICf <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DICf), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m_v2[(surface_sf_m_v2$Station == "037" | surface_sf_m_v2$Station == "089" | surface_sf_m_v2$Station == "096"), ],
           fill = "grey8",
           size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = DICf), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = DICf), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -837,14 +844,17 @@ DICf <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 DICo <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = DIC.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = DIC.other), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -869,14 +879,17 @@ DICo <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 11),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 dDIC2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dDIC), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = dDIC), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = dDIC), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -901,15 +914,18 @@ dDIC2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        plot.title = element_text(face = "bold.italic", hjust = 0.5, size = 12),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 DICpr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DICpr), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = DICpr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = DICpr), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -935,14 +951,17 @@ DICpr2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 DICf2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DICf), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = DICf), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = DICf), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -968,14 +987,17 @@ DICf2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 DICo2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = DIC.other), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = DIC.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = DIC.other), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1000,17 +1022,20 @@ DICo2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 11),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 ```
 
 ## Same for TA
 ```{r}
 dTA <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = dTA), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = dTA), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1036,18 +1061,20 @@ dTA <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 TApr <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
   geom_sf(data = surface_sf_m_v2[surface_sf_m_v2$Station == "096", ],
           fill = "grey8",
           size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = TApr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = TApr), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1062,7 +1089,7 @@ TApr <- ggplot() +
   scale_fill_gradientn(colours = diverging_hcl(100, "Blue-Red 3"),
                        limits = c(-4.05, 4.05),
                        aesthetics = c("fill", "colour"),
-                       name = "Bio") +
+                       name = expression(bold("TA"["bio"]))) +
   scale_y_continuous(breaks = c(40, 41, 42)) +
   coord_sf(xlim = c(-70.5, -66), ylim = c(40, 42.5), crs = st_crs(4326)) +
   #labs(title = "Surface TA_bio [Oct]") +
@@ -1072,14 +1099,17 @@ TApr <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 TAo <- ggplot() +
   geom_sf(data = surface_sf_m_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
-  geom_sf(data = surface_sf_m3, aes(fill = TA.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = surface_sf_m3, aes(fill = TA.other), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1105,14 +1135,17 @@ TAo <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 11),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 dTA2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = dTA), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = dTA), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = dTA), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1138,15 +1171,17 @@ dTA2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(face = "bold.italic", hjust = 0.5),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 TApr2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TApr), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = TApr), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = TApr), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1171,14 +1206,17 @@ TApr2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size = 9),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 
 TAo2 <- ggplot() +
   geom_sf(data = bottom_sf_m_v2, aes(fill = TA.other), size = 0.25, colour = NA) +
-  geom_sf(data = bottom_sf_m3, aes(fill = TA.other), size = 2.5, shape = 23, linetype = "dashed") +
+  geom_sf(data = bottom_sf_m3, aes(fill = TA.other), shape = 23, linetype = "dashed") +
   geom_sf(data = GB_sf, fill = NA, linewidth = 0.4, linetype = "dashed") +
   geom_contour(data = bathy_xyz,
                aes(x = V1, y = V2, z = V3),
@@ -1204,10 +1242,13 @@ TAo2 <- ggplot() +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(face = "bold", size = 14),
+        legend.title = element_text(face = "bold", size = 11),
+        legend.text = element_text(size = 7),
         legend.position = "top",
-        legend.key.height = unit(0.25, "cm"),
-        legend.key.width = unit(2.65, "cm"))
+        legend.key.height = unit(0.09, "in"),
+        legend.key.width = unit(0.60, "in"),
+        legend.spacing.y = unit(0.03, "in"),
+        legend.margin = margin(0, 0, 0, 0))
 ```
 
 ## Build massive combo plot
@@ -1302,6 +1343,8 @@ plot_grid(
   nrow = 2,
   rel_heights = c(1, 24)
 )
+
+ggsave("Fig8.png", width = 6.5, height = 6.8, units = "in", dpi = 600, bg = "#ffffff")
 ```
 
 
