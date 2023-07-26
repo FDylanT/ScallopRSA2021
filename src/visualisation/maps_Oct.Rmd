@@ -3275,6 +3275,18 @@ ggplot() +
   theme(legend.position = "none")
 
 ggsave("SuppFig5.png", width = 6.5, height = 4.6, units = "in", dpi = 600, bg = "#ffffff")
+
+oct %>%
+  filter(Cast == "Bottom") %>%
+ggplot() +
+  geom_point(aes(x = OmegaAragonite, y = dTA.ex/dDIC.ex, shape = Cast, col = "Oct"), shape = 1, size = 2) +
+  scale_shape_manual(values = c(16, 1),
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = "royalblue",
+                      name = "Month") +
+  labs(x = expression("Omega Aragonite"), y = expression("Residual TA / Residual DIC")) +
+  theme_bw() +
+  theme(legend.position = "none")
 ```
 
 ## dO2 & O2 flux
