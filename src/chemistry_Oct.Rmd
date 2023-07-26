@@ -327,7 +327,7 @@ err_temp_EMs3 <- sd_temp_EMs3 + temp_err3
 ```
 
 ```{r}
-summ1 <- read.table("data/mixing/summary_statistics1.txt", skip = 8) %>%
+summ1 <- read.table("data/mixing-model/summary_statistics1.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -398,7 +398,7 @@ err_temp_EMs7 <- sd_temp_EMs7 + temp_err2
 ```
 
 ```{r}
-summ3 <- read.table("data/mixing/summary_statistics3.txt", skip = 8) %>%
+summ3 <- read.table("data/mixing-model/summary_statistics3.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -492,7 +492,7 @@ err_temp_EMs6 <- sd_temp_EMs6 + temp_err6
 ```
 
 ```{r}
-summ2 <- read.table("data/mixing/summary_statistics2.txt", skip = 8) %>%
+summ2 <- read.table("data/mixing-model/summary_statistics2.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -673,7 +673,7 @@ for(i in 1:nrow(oct)) {
 # Sep 6 - Nov 7
 
 # first satellite
-satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_25_ASC_V2_oct.nc")
+satA <- nc_open("./data/MetOp-winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_25_ASC_V2_oct.nc")
 
 lon <- ncvar_get(satA, "lon")
 lat <- ncvar_get(satA, "lat")
@@ -705,7 +705,7 @@ for(i in 1:6) {
 names(wind_df_A) <- c("day", "lon", "lat", "wind_speed")
 
 # second satellite
-satB <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-B_ASCAT_25_ASC_V2_oct.nc")
+satB <- nc_open("./data/MetOp-winds/KNMI-GLO-WIND_L3-OBS_METOP-B_ASCAT_25_ASC_V2_oct.nc")
 
 lon <- ncvar_get(satB, "lon")
 lat <- ncvar_get(satB, "lat")
@@ -733,7 +733,7 @@ for(i in 1:6) {
 names(wind_df_B) <- c("day", "lon", "lat", "wind_speed")
 
 # third satellite
-satC <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_25_ASC_V2_oct.nc")
+satC <- nc_open("./data/MetOp-winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_25_ASC_V2_oct.nc")
 
 lon <- ncvar_get(satC, "lon")
 lat <- ncvar_get(satC, "lat")
@@ -848,7 +848,7 @@ for(i in 1:nrow(oct)) {
   # pH2O: seawater vapor pressure
 
 ## OOI data
-pCO2_data <- read.csv("./data/pCO2/OctCruiseCNSM.csv") %>%
+pCO2_data <- read.csv("./data/OOI-pCO2/OctCruiseCNSM.csv") %>%
   filter(DateTime >= "05-Oct-2021")
 
 P <- mean(pCO2_data$gas_stream_pressure) / 1013.25   # hPa to atm
