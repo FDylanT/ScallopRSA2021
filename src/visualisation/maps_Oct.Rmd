@@ -3270,7 +3270,7 @@ ggplot() +
                      guide = guide_legend(reverse = TRUE)) +
   scale_colour_manual(values = "royalblue",
                       name = "Month") +
-  labs(x = expression("Excess DIC (μmol kg"^-1*")"), y = expression("Excess TA (μmol kg"^-1*")")) +
+  labs(x = expression("Residual DIC (μmol kg"^-1*")"), y = expression("Residual TA (μmol kg"^-1*")")) +
   theme_bw() +
   theme(legend.position = "none")
 
