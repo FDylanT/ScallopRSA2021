@@ -13,6 +13,6 @@ Data folders:
 * `QC-bottle-data` contains historical data used for quality control.
 
 External data folders:
-* `MetOp-winds` contains gridded sea surface wind data from the MetOp satellite series.
+* `MetOp-winds` contains gridded sea surface wind data from the MetOp satellite series, extracted from [Copernicus](https://data.marine.copernicus.eu/product/WIND_GLO_WIND_L3_NRT_OBSERVATIONS_012_002).
 * `OOI-pCO2` contains atmospheric pCO2 data used for the calculation of air-sea CO2 flux.
 * `SAM-zones` contains spatial files for the sea scallop seasonal area management zones.
