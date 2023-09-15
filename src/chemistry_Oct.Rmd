@@ -1156,7 +1156,7 @@ for(i in 1:nrow(oct)) {
 
 # Surface: triangle
 
-## Bayesian mixing model
+## Prepare model components
 ```{r}
 # create mixture data: surface data w/ NAs & non-triangle sites excluded
 read.csv("./data/OctCruiseData.csv") %>%
