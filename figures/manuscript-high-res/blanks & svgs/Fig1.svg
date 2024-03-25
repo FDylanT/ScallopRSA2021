@@ -10,7 +10,7 @@
    xml:space="preserve"
    inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
    sodipodi:docname="Fig1.svg"
-   inkscape:export-filename="../Fig1_final.png"
+   inkscape:export-filename="../Fig1.png"
    inkscape:export-xdpi="600"
    inkscape:export-ydpi="600"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -29,8 +29,8 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="1.215155"
-     inkscape:cx="209.4383"
-     inkscape:cy="207.38095"
+     inkscape:cx="290.90939"
+     inkscape:cy="202.44331"
      inkscape:window-width="1440"
      inkscape:window-height="766"
      inkscape:window-x="0"
@@ -295,7 +295,7 @@
        id="path35030"
        sodipodi:nodetypes="cc" /><path
        style="display:inline;fill:none;stroke:#000000;stroke-width:0.873489;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker35344)"
-       d="m 136.95407,40.381387 c 0,0 -22.62506,43.021581 -89.452659,43.869292"
+       d="m 136.08313,37.768552 c 0,0 -21.75412,45.634416 -88.581719,46.482127"
        id="path35340"
        sodipodi:nodetypes="cc" /><path
        style="display:inline;fill:none;stroke:#000000;stroke-width:0.876799;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#marker2326)"
@@ -312,59 +312,59 @@
        transform="matrix(0.17729894,0,0,0.17729894,-1.2793881,-0.29995468)"><tspan
          x="294.2168"
          y="114.00812"
-         id="tspan1414">Gulf of Maine</tspan></text><text
+         id="tspan908">Gulf of Maine</tspan></text><text
        xml:space="preserve"
        id="text458-6"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;white-space:pre;shape-inside:url(#rect460-1);display:inline;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.377953;stroke-dasharray:none"
        transform="matrix(0.17729894,0,0,0.17729894,-18.444997,-14.212786)"><tspan
          x="294.2168"
          y="114.00812"
-         id="tspan1416">Outer
+         id="tspan910">Outer
 </tspan><tspan
          x="294.2168"
          y="130.67475"
-         id="tspan1418">Cape
+         id="tspan912">Cape
 </tspan><tspan
          x="294.2168"
          y="147.34138"
-         id="tspan1420">Coastal
+         id="tspan914">Coastal
 </tspan><tspan
          x="294.2168"
          y="164.008"
-         id="tspan1422">Current</tspan></text><text
+         id="tspan916">Current</tspan></text><text
        xml:space="preserve"
        id="text458-8-3-0-6"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;white-space:pre;shape-inside:url(#rect460-9-7-4-7);display:inline;fill:#000000;fill-opacity:0.997636;stroke:#000000;stroke-width:0.377953;stroke-dasharray:none"
        transform="matrix(0.17729894,0,0,0.17729894,28.506823,69.260508)"><tspan
          x="294.2168"
          y="114.00812"
-         id="tspan1424">slope</tspan></text><text
+         id="tspan918">Warm Slope Water</tspan></text><text
        xml:space="preserve"
        id="text458-8-2-6"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;white-space:pre;shape-inside:url(#rect460-9-6-8);display:inline;fill:#000000;fill-opacity:0.995272;stroke:#000000;stroke-width:0.377953;stroke-dasharray:none"
-       transform="matrix(0.17729894,0,0,0.17729894,72.165242,40.176111)"><tspan
+       transform="matrix(0.17729894,0,0,0.17729894,69.014505,40.816057)"><tspan
          x="294.2168"
          y="114.00812"
-         id="tspan1426">Labrador
+         id="tspan920">Labrador
 </tspan><tspan
          x="294.2168"
          y="130.67475"
-         id="tspan1428">Current</tspan></text><text
+         id="tspan922">Slope Water</tspan></text><text
        xml:space="preserve"
        id="text458-8-3-0-7"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;white-space:pre;shape-inside:url(#rect460-9-7-4-9);display:inline;fill:#000000;fill-opacity:0.997636;stroke:#000000;stroke-width:0.377953;stroke-dasharray:none"
        transform="matrix(0.17729894,0,0,0.17729894,26.525349,21.414978)"><tspan
          x="294.2168"
          y="114.00812"
-         id="tspan1430">tidal
+         id="tspan924">tidal
 </tspan><tspan
          x="294.2168"
          y="130.67475"
-         id="tspan1432">vertical 
+         id="tspan926">vertical 
 </tspan><tspan
          x="294.2168"
          y="147.34138"
-         id="tspan1434">mixing</tspan></text><path
+         id="tspan928">mixing</tspan></text><path
        style="display:inline;fill:none;stroke:#000000;stroke-width:0.531896;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker15201)"
        d="m 160.73738,71.797637 c 0,0 -3.47935,2.555825 -7.10285,9.081808 -3.07417,5.536606 -8.45122,7.5979 -13.41851,8.676315"
        id="path15197"
