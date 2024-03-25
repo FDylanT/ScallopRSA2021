@@ -393,7 +393,7 @@ err_temp_EMs3 <- sd_temp_EMs3 + temp_err3
 ```
 
 ```{r}
-summ1m <- read.table("data/mixing/summary_statistics1m.txt", skip = 8) %>%
+summ1m <- read.table("data/mixing-model/summary_statistics1m.txt", skip = 8) %>%
   select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -537,7 +537,7 @@ err_temp_EMs7 <- sd_temp_EMs7 + temp_err7
 ```
 
 ```{r}
-summ2m <- read.table("data/mixing/summary_statistics2m.txt", skip = 8) %>%
+summ2m <- read.table("data/mixing-model/summary_statistics2m.txt", skip = 8) %>%
   dplyr::select(-V1) %>%
   separate(V2, into = c("Station", "EM")) %>%
   rename(Mean = V3, SD = V4)
@@ -717,7 +717,7 @@ for(i in 1:nrow(may)) {
 # Apr 3 - Jun 4
 
 # first satellite
-satA <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_25_ASC_V2_may.nc")
+satA <- nc_open("./data/MetOp-winds/KNMI-GLO-WIND_L3-OBS_METOP-A_ASCAT_25_ASC_V2_may.nc")
 
 lon <- ncvar_get(satA, "lon")
 lat <- ncvar_get(satA, "lat")
@@ -749,7 +749,7 @@ for(i in 1:6) {
 names(wind_df_A) <- c("day", "lon", "lat", "wind_speed")
 
 # second satellite
-satB <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-B_ASCAT_25_ASC_V2_may.nc")
+satB <- nc_open("./data/MetOp-winds/KNMI-GLO-WIND_L3-OBS_METOP-B_ASCAT_25_ASC_V2_may.nc")
 
 lon <- ncvar_get(satB, "lon")
 lat <- ncvar_get(satB, "lat")
@@ -777,7 +777,7 @@ for(i in 1:6) {
 names(wind_df_B) <- c("day", "lon", "lat", "wind_speed")
 
 # third satellite
-satC <- nc_open("./data/winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_25_ASC_V2_may.nc")
+satC <- nc_open("./data/MetOp-winds/KNMI-GLO-WIND_L3-OBS_METOP-C_ASCAT_25_ASC_V2_may.nc")
 
 lon <- ncvar_get(satC, "lon")
 lat <- ncvar_get(satC, "lat")
@@ -892,7 +892,7 @@ for(i in 1:nrow(may)) {
   # pH2O: seawater vapor pressure
 
 ## OOI data
-pCO2_data <- read.csv("./data/pCO2/MayCruiseCNSM.csv") %>%
+pCO2_data <- read.csv("./data/OOI-pCO2/MayCruiseCNSM.csv") %>%
   filter(DateTime >= "01-May-2021")
 
 P <- mean(pCO2_data$gas_stream_pressure) / 1013.25   # hPa to atm
@@ -917,6 +917,76 @@ for(i in 1:nrow(may)) {
     K0 = may$K0[i] * 10^6 * 10^3 / 10^6    # mol/(L*atm) --> umol/(m^3*uatm)
     d.pCO2 = may$pCO2[i] - pCO2a    # uatm
     may$flux[i] = k * K0 * d.pCO2   # umol/(m^2*d)
+  }
+}
+```
+
+## Interlude: calculate future saturation states
+```{r}
+# CO2SYS function calls
+# first is present-day eq DIC
+may_co2_atm <- carb(24, pCO2a, may$TA[!is.na(may$Temp)] / 10^6,                 # in mol/kg
+                    may$Salinity[!is.na(may$Temp)],
+                    may$Temp[!is.na(may$Temp)],
+                    may$Pressure[!is.na(may$Temp)] * 0.098692326671601,         # in atm
+                    may$SeaPressure[!is.na(may$Temp)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+may_co2_atm_fut <- carb(24, 800, may$TA[!is.na(may$Temp)] / 10^6,               # in mol/kg
+                    may$Salinity[!is.na(may$Temp)],
+                    may$Temp[!is.na(may$Temp)],
+                    may$Pressure[!is.na(may$Temp)] * 0.098692326671601,         # in atm
+                    may$SeaPressure[!is.na(may$Temp)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+may_co2_atm_fut2050 <- carb(24, 550, may$TA[!is.na(may$Temp)] / 10^6,           # in mol/kg
+                    may$Salinity[!is.na(may$Temp)],
+                    may$Temp[!is.na(may$Temp)],
+                    may$Pressure[!is.na(may$Temp)] * 0.098692326671601,         # in atm
+                    may$SeaPressure[!is.na(may$Temp)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+
+may$co2_pres_dic <- NA
+may$co2_future_dic <- NA
+may$co2_future_dic2050 <- NA
+
+r <- 1
+for(i in 1:nrow(may)) {
+  if(!is.na(may$Temp[i])) {
+    may$co2_pres_dic[i] <- may_co2_atm$DIC[r]
+    may$co2_future_dic[i] <- may_co2_atm_fut$DIC[r]
+    may$co2_future_dic2050[i] <- may_co2_atm_fut2050$DIC[r]
+    r <- r + 1
+  }
+}
+
+may$deltaDIC <- may$co2_future_dic - may$co2_pres_dic   # delta specific to eq DIC difference
+may$deltaDIC2050 <- may$co2_future_dic2050 - may$co2_pres_dic
+may$DICfut <- (may$DIC / 10^6) + may$deltaDIC           # in umol/kg
+may$DICfut2050 <- (may$DIC / 10^6) + may$deltaDIC2050   # in umol/kg
+
+may_co2_fut <- carb(15, may$TA[!is.na(may$Temp) & !is.na(may$DIC)] / 10^6,                        # in mol/kg
+                    may$DICfut[!is.na(may$Temp) & !is.na(may$DIC)],                               # in umol/kg
+                    may$Salinity[!is.na(may$Temp) & !is.na(may$DIC)],
+                    may$Temp[!is.na(may$Temp) & !is.na(may$DIC)],
+                    may$Pressure[!is.na(may$Temp) & !is.na(may$DIC)] * 0.098692326671601,         # in atm
+                    may$SeaPressure[!is.na(may$Temp) & !is.na(may$DIC)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+may_co2_fut2050 <- carb(15, may$TA[!is.na(may$Temp) & !is.na(may$DIC)] / 10^6,                    # in mol/kg
+                    may$DICfut2050[!is.na(may$Temp) & !is.na(may$DIC)],                           # in umol/kg
+                    may$Salinity[!is.na(may$Temp) & !is.na(may$DIC)],
+                    may$Temp[!is.na(may$Temp) & !is.na(may$DIC)],
+                    may$Pressure[!is.na(may$Temp) & !is.na(may$DIC)] * 0.098692326671601,         # in atm
+                    may$SeaPressure[!is.na(may$Temp) & !is.na(may$DIC)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+
+may$omega_fut <- NA
+may$omega_fut2050 <- NA
+
+r <- 1
+for(i in 1:nrow(may)) {
+  if(!is.na(may$Temp[i]) & !is.na(may$DIC[i])) {
+    may$omega_fut[i] <- may_co2_fut$OmegaAragonite[r]
+    may$omega_fut2050[i] <- may_co2_fut2050$OmegaAragonite[r]
+    r <- r + 1
   }
 }
 ```
@@ -1102,17 +1172,17 @@ for(i in 1:nrow(may)) {
      may$DOf[i] = -1 * may$flux.O2[i] / may$MLD[i] / may$Density[i] * may$resTime[i]
   }
 }
+```
 
+## Convert dDO to DIC & TA signals
+```{r}
 # add zeros to flux-absent sites for use in calcs
 for(i in 1:nrow(may)) {
   if(is.na(may$DOf[i])) {
     may$DOf[i] = 0
   }
 }
-```
 
-## Convert dDO to DIC & TA signals
-```{r}
 # subtracting O2 flux at surface & fully mixed sites
 may$DOpr <- may$dDO - may$DOf
 
@@ -1293,10 +1363,10 @@ read.csv("./data/MayCruiseData.csv") %>%
          Station != 29 &
          Station != 47 &
          Station != 2) %>%
-  write_csv("./mixing/MayCruiseData_surface.csv")
+  write_csv("./mixing-model/MayCruiseData_surface.csv")
 
 # load mixture data
-mix <- load_mix_data(filename = "./mixing/MayCruiseData_surface.csv", 
+mix <- load_mix_data(filename = "./mixing-model/MayCruiseData_surface.csv", 
                      iso_names = c("Salinity", "Temp"),
                      factors = "Station",
                      fac_random = FALSE, # indiv. station is fixed effect
@@ -1312,11 +1382,11 @@ SDSalinity <- c(err_sal_EMs1, err_sal_EMs2, err_sal_EMs3)
 n <- c(length(EMs1), length(EMs2), length(EMs3))
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity, n), "./mixing/sources_surface.csv",
+                MeanSalinity, SDSalinity, n), "./mixing-model/sources_surface.csv",
           row.names = FALSE)
 
 # load source data
-source <- load_source_data(filename = "./mixing/sources_surface.csv",
+source <- load_source_data(filename = "./mixing-model/sources_surface.csv",
                            source_factors = NULL, 
                            conc_dep = FALSE, 
                            data_type = "means", 
@@ -1329,11 +1399,11 @@ MeanSalinity <- rep(0, 3)
 SDSalinity <- rep(0, 3)
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity), "./mixing/discr_surface.csv",
+                MeanSalinity, SDSalinity), "./mixing-model/discr_surface.csv",
           row.names = FALSE)
 
 # load discrimination data
-discr <- load_discr_data(filename = "./mixing/discr_surface.csv", mix)
+discr <- load_discr_data(filename = "./mixing-model/discr_surface.csv", mix)
 ```
 
 ## Make isospace plot & choose prior
@@ -1456,10 +1526,10 @@ read.csv("./data/MayCruiseData.csv") %>%
          Station != 3 &
          Station != 4 &
          Station != 113) %>%
-  write_csv("./mixing/MayCruiseData_bottom.csv")
+  write_csv("./mixing-model/MayCruiseData_bottom.csv")
 
 # load mixture data
-mix <- load_mix_data(filename = "./mixing/MayCruiseData_bottom.csv", 
+mix <- load_mix_data(filename = "./mixing-model/MayCruiseData_bottom.csv", 
                      iso_names = c("Salinity", "Temp"),
                      factors = "Station",
                      fac_random = FALSE, # indiv. station is fixed effect
@@ -1475,11 +1545,11 @@ SDSalinity <- c(err_sal_EMs4, err_sal_EMs5, err_sal_EMs6, err_sal_EMs7)
 n <- c(length(EMs4), length(EMs5), length(EMs6), 2)
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity, n), "./mixing/sources_bottom.csv",
+                MeanSalinity, SDSalinity, n), "./mixing-model/sources_bottom.csv",
           row.names = FALSE)
 
 # load source data
-source <- load_source_data(filename = "./mixing/sources_bottom.csv",
+source <- load_source_data(filename = "./mixing-model/sources_bottom.csv",
                            source_factors = NULL, 
                            conc_dep = FALSE, 
                            data_type = "means", 
@@ -1492,11 +1562,11 @@ MeanSalinity <- rep(0, 4)
 SDSalinity <- rep(0, 4)
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity), "./mixing/discr_bottom.csv",
+                MeanSalinity, SDSalinity), "./mixing-model/discr_bottom.csv",
           row.names = FALSE)
 
 # load discrimination data
-discr <- load_discr_data(filename = "./mixing/discr_bottom.csv", mix)
+discr <- load_discr_data(filename = "./mixing-model/discr_bottom.csv", mix)
 ```
 
 ## Make isospace plot & choose prior
