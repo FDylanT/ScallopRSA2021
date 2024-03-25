@@ -877,6 +877,75 @@ for(i in 1:nrow(oct)) {
 }
 ```
 
+## Interlude: calculate future saturation states
+```{r}
+# CO2SYS function calls
+oct_co2_atm <- carb(24, pCO2a, oct$TA[!is.na(oct$Temp)] / 10^6,                 # in mol/kg
+                    oct$Salinity[!is.na(oct$Temp)],
+                    oct$Temp[!is.na(oct$Temp)],
+                    oct$Pressure[!is.na(oct$Temp)] * 0.098692326671601,         # in atm
+                    oct$SeaPressure[!is.na(oct$Temp)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+oct_co2_atm_fut <- carb(24, 800, oct$TA[!is.na(oct$Temp)] / 10^6,               # in mol/kg
+                    oct$Salinity[!is.na(oct$Temp)],
+                    oct$Temp[!is.na(oct$Temp)],
+                    oct$Pressure[!is.na(oct$Temp)] * 0.098692326671601,         # in atm
+                    oct$SeaPressure[!is.na(oct$Temp)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+oct_co2_atm_fut2050 <- carb(24, 550, oct$TA[!is.na(oct$Temp)] / 10^6,           # in mol/kg
+                    oct$Salinity[!is.na(oct$Temp)],
+                    oct$Temp[!is.na(oct$Temp)],
+                    oct$Pressure[!is.na(oct$Temp)] * 0.098692326671601,         # in atm
+                    oct$SeaPressure[!is.na(oct$Temp)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+
+oct$co2_pres_dic <- NA
+oct$co2_future_dic <- NA
+oct$co2_future_dic2050 <- NA
+
+r <- 1
+for(i in 1:nrow(oct)) {
+  if(!is.na(oct$Temp[i])) {
+    oct$co2_pres_dic[i] <- oct_co2_atm$DIC[r]
+    oct$co2_future_dic[i] <- oct_co2_atm_fut$DIC[r]
+    oct$co2_future_dic2050[i] <- oct_co2_atm_fut2050$DIC[r]
+    r <- r + 1
+  }
+}
+
+oct$deltaDIC <- oct$co2_future_dic - oct$co2_pres_dic   # delta specific to eq DIC difference
+oct$deltaDIC2050 <- oct$co2_future_dic2050 - oct$co2_pres_dic
+oct$DICfut <- (oct$DIC / 10^6) + oct$deltaDIC           # in umol/kg
+oct$DICfut2050 <- (oct$DIC / 10^6) + oct$deltaDIC2050   # in umol/kg
+
+oct_co2_fut <- carb(15, oct$TA[!is.na(oct$Temp)] / 10^6,                        # in mol/kg
+                    oct$DICfut[!is.na(oct$Temp)],                               # in umol/kg
+                    oct$Salinity[!is.na(oct$Temp)],
+                    oct$Temp[!is.na(oct$Temp)],
+                    oct$Pressure[!is.na(oct$Temp)] * 0.098692326671601,         # in atm
+                    oct$SeaPressure[!is.na(oct$Temp)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+oct_co2_fut2050 <- carb(15, oct$TA[!is.na(oct$Temp)] / 10^6,                    # in mol/kg
+                    oct$DICfut2050[!is.na(oct$Temp)],                           # in umol/kg
+                    oct$Salinity[!is.na(oct$Temp)],
+                    oct$Temp[!is.na(oct$Temp)],
+                    oct$Pressure[!is.na(oct$Temp)] * 0.098692326671601,         # in atm
+                    oct$SeaPressure[!is.na(oct$Temp)] / 10,                     # in bar
+                    k1k2 = "l", ks = "d", b = "l10")
+
+oct$omega_fut <- NA
+oct$omega_fut2050 <- NA
+
+r <- 1
+for(i in 1:nrow(oct)) {
+  if(!is.na(oct$Temp[i])) {
+    oct$omega_fut[i] <- oct_co2_fut$OmegaAragonite[r]
+    oct$omega_fut2050[i] <- oct_co2_fut2050$OmegaAragonite[r]
+    r <- r + 1
+  }
+}
+```
+
 ## Add mixed-layer depths
 ```{r}
 MLD <- read.csv("./data/CTD/oct_MLD.csv")
@@ -1056,17 +1125,17 @@ for(i in 1:nrow(oct)) {
      oct$DOf[i] = -1 * oct$flux.O2[i] / oct$MLD[i] / oct$Density[i] * oct$resTime[i]
   }
 }
+```
 
+## Convert dDO to DIC & TA signals
+```{r}
 # add zeros to flux-absent sites for use in calcs
 for(i in 1:nrow(oct)) {
   if(is.na(oct$DOf[i])) {
     oct$DOf[i] = 0
   }
 }
-```
 
-## Convert dDO to DIC & TA signals
-```{r}
 # subtracting O2 flux at surface & fully mixed sites
 oct$DOpr <- oct$dDO - oct$DOf
 
@@ -1169,7 +1238,7 @@ read.csv("./data/OctCruiseData.csv") %>%
   write_csv("./data/mixing-model/input-data/OctCruiseData_surface.csv")
 
 # load mixture data
-mix <- load_mix_data(filename = "./mixing/OctCruiseData_surface.csv", 
+mix <- load_mix_data(filename = "./mixing-model/OctCruiseData_surface.csv", 
                      iso_names = c("Salinity", "Temp"),
                      factors = "Station",
                      fac_random = FALSE, # indiv. station is fixed effect
@@ -1185,11 +1254,11 @@ SDSalinity <- c(err_sal_EMs1, err_sal_EMs2, err_sal_EMs3)
 n <- c(length(EMs1), length(EMs2), length(EMs3))
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity, n), "./mixing/sources_surface.csv",
+                MeanSalinity, SDSalinity, n), "./mixing-model/sources_surface.csv",
           row.names = FALSE)
 
 # load source data
-source <- load_source_data(filename = "./mixing/sources_surface.csv",
+source <- load_source_data(filename = "./mixing-model/sources_surface.csv",
                            source_factors = NULL, 
                            conc_dep = FALSE, 
                            data_type = "means", 
@@ -1202,11 +1271,11 @@ MeanSalinity <- rep(0, 3)
 SDSalinity <- rep(0, 3)
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity), "./mixing/discr_surface.csv",
+                MeanSalinity, SDSalinity), "./mixing-model/discr_surface.csv",
           row.names = FALSE)
 
 # load discrimination data
-discr <- load_discr_data(filename = "./mixing/discr_surface.csv", mix)
+discr <- load_discr_data(filename = "./mixing-model/discr_surface.csv", mix)
 ```
 
 ## Make isospace plot & choose prior
@@ -1342,10 +1411,10 @@ read.csv("./data/OctCruiseData.csv") %>%
          Cast == "Surface",
          Station < 6) %>%
   select(-Filtered) %>%
-  write_csv("./mixing/OctCruiseData_linear.csv")
+  write_csv("./mixing-model/OctCruiseData_linear.csv")
 
 # load mixture data
-mix <- load_mix_data(filename = "./mixing/OctCruiseData_linear.csv", 
+mix <- load_mix_data(filename = "./mixing-model/OctCruiseData_linear.csv", 
                      iso_names = c("Salinity", "Temp"),
                      factors = "Station",
                      fac_random = FALSE, # indiv. station is fixed effect
@@ -1361,11 +1430,11 @@ SDSalinity <- c(err_sal_EMs1, err_sal_EMs7)
 n <- c(length(EMs1), length(EMs7))
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity, n), "./mixing/sources_linear.csv",
+                MeanSalinity, SDSalinity, n), "./mixing-model/sources_linear.csv",
           row.names = FALSE)
 
 # load source data
-source <- load_source_data(filename = "./mixing/sources_linear.csv",
+source <- load_source_data(filename = "./mixing-model/sources_linear.csv",
                            source_factors = NULL, 
                            conc_dep = FALSE, 
                            data_type = "means", 
@@ -1378,11 +1447,11 @@ MeanSalinity <- rep(0, 2)
 SDSalinity <- rep(0, 2)
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity), "./mixing/discr_linear.csv",
+                MeanSalinity, SDSalinity), "./mixing-model/discr_linear.csv",
           row.names = FALSE)
 
 # load discrimination data
-discr <- load_discr_data(filename = "./mixing/discr_linear.csv", mix)
+discr <- load_discr_data(filename = "./mixing-model/discr_linear.csv", mix)
 ```
 
 ## Make isospace plot & choose prior
@@ -1489,10 +1558,10 @@ read.csv("./data/OctCruiseData.csv") %>%
          Cast == "Bottom",
          !is.na(Temp)) %>%
   select(-Filtered) %>%
-  write_csv("./mixing/OctCruiseData_bottom.csv")
+  write_csv("./mixing-model/OctCruiseData_bottom.csv")
 
 # load mixture data
-mix <- load_mix_data(filename = "./mixing/OctCruiseData_bottom.csv", 
+mix <- load_mix_data(filename = "./mixing-model/OctCruiseData_bottom.csv", 
                      iso_names = c("Salinity", "Temp"),
                      factors = "Station",
                      fac_random = FALSE, # indiv. station is fixed effect
@@ -1508,11 +1577,11 @@ SDSalinity <- c(err_sal_EMs4, err_sal_EMs5, err_sal_EMs6)
 n <- c(length(EMs4), length(EMs5), length(EMs6))
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity, n), "./mixing/sources_bottom.csv",
+                MeanSalinity, SDSalinity, n), "./mixing-model/sources_bottom.csv",
           row.names = FALSE)
 
 # load source data
-source <- load_source_data(filename = "./mixing/sources_bottom.csv",
+source <- load_source_data(filename = "./mixing-model/sources_bottom.csv",
                            source_factors = NULL, 
                            conc_dep = FALSE, 
                            data_type = "means", 
@@ -1525,11 +1594,11 @@ MeanSalinity <- rep(0, 3)
 SDSalinity <- rep(0, 3)
 
 write.csv(cbind(EM, MeanTemp, SDTemp,
-                MeanSalinity, SDSalinity), "./mixing/discr_bottom.csv",
+                MeanSalinity, SDSalinity), "./mixing-model/discr_bottom.csv",
           row.names = FALSE)
 
 # load discrimination data
-discr <- load_discr_data(filename = "./mixing/discr_bottom.csv", mix)
+discr <- load_discr_data(filename = "./mixing-model/discr_bottom.csv", mix)
 ```
 
 ## Make isospace plot & choose prior
