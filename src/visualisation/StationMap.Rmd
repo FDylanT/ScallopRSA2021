@@ -142,8 +142,7 @@ station_sf <- st_sf(oct, crs = 4326)
 ## Non-satellite maps
 ```{r}
 # create base map with NOAA data
-GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62,
-lat1 = 37, lat2 = 46, resolution = 1)
+GB_bathy <- getNOAA.bathy(lon1 = -74, lon2 = -62, lat1 = 37, lat2 = 46, resolution = 1)
 
 # prepare for use with ggplot
 ggbathy <- GB_bathy %>%
