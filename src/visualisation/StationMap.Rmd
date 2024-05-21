@@ -21,7 +21,7 @@ library(cowplot)
 
 ## Register Google API key
 ```{r, include=FALSE}
-register_google(key = "[hidden]")
+register_google(key = "AIzaSyBn1OxFq4DMK79J4qHmQoBvFlbHbeImABw")
 ```
 
 ## Load GB shapefiles
