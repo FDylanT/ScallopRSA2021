@@ -14,7 +14,6 @@ This script manipulates the chemistry data from the May RSA cruise.
 knitr::opts_chunk$set(echo = TRUE, root.dir = "~/Desktop/Repos/ScallopRSA2021")
 
 library(tidyverse)
-library(numform) # for f_pad_zero()
 library(seacarb)
 library(gsw) # for AOU
 library(viridis)
@@ -35,11 +34,11 @@ may <- read.csv("./data/MayCruiseData.csv") %>%
          Long = Longitude_degrees_start,
          Depth = Depth_m_CTD,
          Temp = Temperature,
-         DO = Dissolved_oxygen) %>%
+         DO = Dissolved_oxygen) #%>%
     select(Date, Station, Cast, Lat, Long,
          Depth, Temp, Pressure, SeaPressure, Salinity,
          DIC, TA, DO) %>%
-  mutate(Station = as.character(f_pad_zero(Station))) # add leading zeros to stations
+  mutate(Station = str_pad(Station, 3, pad = "0")) # add leading zeros to stations
 ```
 
 ## Convert coordinates from DM to DD
@@ -180,7 +179,7 @@ for(i in 1:nrow(may)) {
 ## Calculate density & carbon system parameters
 ```{r}
 for(i in which(is.na(may$SeaPressure))) {
-  # substitude depth for sites without sea pressure
+  # substitute depth for sites without sea pressure
   may$SeaPressure[i] <- may$Depth[i]
   # calculate surface pressure
   may$Pressure[i] <- may$SeaPressure[i] + 10.1325
